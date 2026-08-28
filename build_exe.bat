@@ -30,7 +30,7 @@ if exist "%LOCALAPPDATA%\Microsoft\WinGet\Links\ffmpeg.exe" (
 echo.
 echo 5. Membuat file ZIP siap rilis untuk GitHub Releases...
 if exist "dist\YTPlaylistDownloader.zip" del /f /q "dist\YTPlaylistDownloader.zip"
-powershell -NoProfile -Command "Compress-Archive -Path 'dist\YTPlaylistDownloader' -DestinationPath 'dist\YTPlaylistDownloader.zip' -Force"
+python -c "import shutil; shutil.make_archive('dist/YTPlaylistDownloader', 'zip', 'dist', 'YTPlaylistDownloader')"
 
 echo.
 echo ========================================================
@@ -39,4 +39,5 @@ echo   Folder App : dist\YTPlaylistDownloader\YTPlaylistDownloader.exe
 echo   File Rilis : dist\YTPlaylistDownloader.zip (Upload file ini ke GitHub Releases)
 echo ========================================================
 pause
+
 
