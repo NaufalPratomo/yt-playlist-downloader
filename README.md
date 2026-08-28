@@ -4,7 +4,7 @@ Aplikasi **YouTube Playlist Downloader** lengkap dengan Web UI modern yang berja
 
 ---
 
-## 🌟 Fitur Unggulan
+## Fitur Unggulan
 
 1. **Pengorganisasian Folder per Playlist Otomatis**:
    - Setiap playlist akan dibuatkan subfolder khusus di dalam direktori Music Anda (contoh: `Music\throwback`).
@@ -29,7 +29,7 @@ Aplikasi **YouTube Playlist Downloader** lengkap dengan Web UI modern yang berja
 
 ---
 
-## 🚀 Cara Menjalankan
+## Cara Menjalankan
 
 ### Cara 1: Double Klik `start.bat` (Termudah di Windows)
 Cukup double-click file `start.bat` di folder project ini. Browser akan otomatis terbuka ke `http://127.0.0.1:8585`.
@@ -41,7 +41,7 @@ python run.py
 
 ---
 
-## 🛠️ Format Penamaan File yang Didukung
+## Format Penamaan File yang Didukung
 Anda dapat memilih atau menyesuaikan template penamaan file di menu Pengaturan:
 - `{num}. {title}-{id}.mp3` (Contoh: `1. lowkey-HaZRGYd9mh4.mp3` - persis seperti di Windows Explorer)
 - `{num}. {title}.mp3` (Contoh: `1. lowkey.mp3`)
