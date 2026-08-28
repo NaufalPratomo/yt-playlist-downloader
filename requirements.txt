@@ -1,0 +1,6 @@
+fastapi>=0.100.0
+uvicorn>=0.20.0
+yt-dlp>=2024.0.0
+mutagen>=1.46.0
+pillow>=10.0.0
+requests>=2.31.0
