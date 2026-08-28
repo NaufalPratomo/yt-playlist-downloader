@@ -18,13 +18,13 @@ Unduh playlist atau lagu YouTube menjadi file MP3 berkualitas tinggi lengkap den
 
 ---
 
-## 📥 Download Aplikasi Langsung (Siap Pakai)
+## Download Aplikasi Langsung (Siap Pakai)
 
 Bagi pengguna yang ingin langsung memakai aplikasi tanpa perlu menginstall Python:
 
 1. Klik tombol download di bawah untuk mengunduh versi terbaru:
    
-   [![Download Windows (.exe)](https://img.shields.io/badge/📥_Download_YT_Playlist_Downloader_(ZIP)-4f46e5?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/naufalpratomo/yt-playlist-downloader/releases/latest)
+   [![Download Windows (.exe)](https://img.shields.io/badge/Download_YT_Playlist_Downloader_(ZIP)-4f46e5?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/naufalpratomo/yt-playlist-downloader/releases/latest)
 
 2. Ekstrak file zip yang didownload.
 3. Jalankan **`YTPlaylistDownloader.exe`**.
@@ -103,6 +103,6 @@ Hasil build akan otomatis tersedia di folder `dist/YTPlaylistDownloader/`.
 
 ## Creator & License
 
-Developed with ❤️ by **[Naufal Pratomo](https://naufalpratomo.my.id)**
+Developed by **[Naufal Pratomo](https://naufalpratomo.my.id)**
 
 Didistribusikan di bawah lisensi MIT. Silakan gunakan, pelajari, dan kembangkan sesuai kebutuhan.

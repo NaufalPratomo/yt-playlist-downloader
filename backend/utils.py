@@ -55,3 +55,28 @@ def open_in_explorer(folder_path: str) -> bool:
     except Exception as e:
         print(f"Error opening folder {folder_path}: {e}")
         return False
+
+
+def get_ffmpeg_path() -> Optional[str]:
+    """Find the path or directory of ffmpeg binary."""
+    import sys
+
+    # 1. Check next to executable (for PyInstaller frozen app)
+    if getattr(sys, "frozen", False):
+        exe_dir = os.path.dirname(sys.executable)
+        ffmpeg_exe = os.path.join(exe_dir, "ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+        if os.path.exists(ffmpeg_exe):
+            return ffmpeg_exe
+        if hasattr(sys, "_MEIPASS"):
+            meipass_ffmpeg = os.path.join(sys._MEIPASS, "ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+            if os.path.exists(meipass_ffmpeg):
+                return meipass_ffmpeg
+
+    # 2. Check project root directory
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    root_ffmpeg = os.path.join(base_dir, "ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+    if os.path.exists(root_ffmpeg):
+        return root_ffmpeg
+
+    return None
+

@@ -4,36 +4,46 @@ Starts FastAPI backend server on port 8585 and opens web browser automatically.
 Compatible with PyInstaller standalone .exe builds.
 """
 
+import io
 import multiprocessing
 import os
 import sys
 import threading
 import time
-import webbrowser
+
+# Fix for PyInstaller windowed/noconsole mode where sys.stdout, sys.stderr, sys.stdin are None
+class NullWriter:
+    def write(self, text):
+        pass
+
+    def flush(self):
+        pass
+
+    def isatty(self):
+        return False
+
+if sys.stdout is None:
+    sys.stdout = NullWriter()
+if sys.stderr is None:
+    sys.stderr = NullWriter()
+if sys.stdin is None:
+    sys.stdin = io.StringIO()
+
+# Ensure application directory is in PATH for finding bundled ffmpeg.exe
+if getattr(sys, "frozen", False):
+    exe_dir = os.path.dirname(sys.executable)
+    if exe_dir not in os.environ.get("PATH", ""):
+        os.environ["PATH"] = exe_dir + os.pathsep + os.environ.get("PATH", "")
+
 import uvicorn
+import webview
 
 PORT = 8585
 HOST = "127.0.0.1"
 
 
-def open_browser():
-    """Wait for server to start, then open the UI in default browser."""
-    time.sleep(1.2)
-    url = f"http://{HOST}:{PORT}"
-    print(f"\n========================================================")
-    print(f" YouTube Playlist Downloader siap dibuka di:")
-    print(f" {url}")
-    print(f"========================================================\n")
-    try:
-        webbrowser.open(url)
-    except Exception as e:
-        print(f"Tidak dapat membuka browser secara otomatis: {e}")
-
-
-def main():
-    multiprocessing.freeze_support()
-
-    # Ensure base directory is in sys.path
+def run_server():
+    """Run uvicorn server in background thread."""
     if getattr(sys, "frozen", False):
         base_dir = sys._MEIPASS
     else:
@@ -44,17 +54,43 @@ def main():
 
     from backend.app import app
 
-    print("Memulai YouTube Playlist Downloader Server...")
-    threading.Thread(target=open_browser, daemon=True).start()
-
-    uvicorn.run(
-        app,
+    config = uvicorn.Config(
+        app=app,
         host=HOST,
         port=PORT,
-        log_level="info",
+        log_level="warning",
         reload=False,
     )
+    server = uvicorn.Server(config)
+    server.run()
+
+
+def main():
+    multiprocessing.freeze_support()
+
+    # Start FastAPI backend in background daemon thread
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+
+    # Wait briefly for backend server to be ready
+    time.sleep(0.8)
+
+    url = f"http://{HOST}:{PORT}"
+
+    # Create and display native standalone desktop window
+    webview.create_window(
+        title="YouTube Playlist Downloader HD",
+        url=url,
+        width=1180,
+        height=780,
+        min_size=(920, 620),
+        text_select=True,
+    )
+
+    # Blocks until the desktop window is closed by the user
+    webview.start(private_mode=False)
 
 
 if __name__ == "__main__":
     main()
+

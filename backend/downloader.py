@@ -17,7 +17,7 @@ import yt_dlp
 from .cover_processor import cover_processor
 from .lyrics_fetcher import lyrics_fetcher
 from .metadata_tagger import metadata_tagger
-from .utils import sanitize_filename
+from .utils import get_ffmpeg_path, sanitize_filename
 
 logger = logging.getLogger("downloader")
 
@@ -258,6 +258,10 @@ class PlaylistDownloader:
                         "Accept-Language": "en-US,en;q=0.9",
                     },
                 }
+
+                ffmpeg_path = get_ffmpeg_path()
+                if ffmpeg_path:
+                    ydl_opts["ffmpeg_location"] = ffmpeg_path
 
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     ydl.download([video_url])

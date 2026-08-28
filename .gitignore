@@ -2,8 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
 
 # Distribution / packaging / PyInstaller
@@ -14,6 +12,17 @@ dist/
 *.egg-info/
 *.egg
 
+# Standalone / External Binaries (Jangan push FFmpeg ke Git karena file >80MB)
+ffmpeg.exe
+ffprobe.exe
+*.exe
+
+# Archive files
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
 # Virtual environments
 venv/
 .venv/
@@ -22,7 +31,7 @@ ENV/
 env.bak/
 venv.bak/
 
-# Downloaded music / output files
+# Downloaded music & media output
 *.mp3
 *.lrc
 *.jpg
@@ -32,6 +41,12 @@ venv.bak/
 !app_icon.ico
 downloads/
 temp_downloads/
+
+# Secrets, Cookies & Local Configs
+*.env
+.env.*
+cookies.txt
+*.session
 
 # IDE & Editor files
 .vscode/
@@ -47,3 +62,4 @@ desktop.ini
 .pytest_cache/
 .coverage
 htmlcov/
+
