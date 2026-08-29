@@ -126,8 +126,14 @@
               <input type="text" id="input-album" class="text-input" placeholder="Nama playlist">
             </div>
 
-            <!-- Subfolder Name -->
+            <!-- Album Artist Override -->
             <div class="field-item">
+              <label for="input-album-artist" class="field-label">Tag Artis Album (TPE2)</label>
+              <input type="text" id="input-album-artist" class="text-input" placeholder="Various Artists" title="Setel ke 'Various Artists' agar Windows Media Player menyatukan semua lagu ke dalam 1 album">
+            </div>
+
+            <!-- Subfolder Name -->
+            <div class="field-item col-span-2">
               <label for="input-folder-name" class="field-label">Nama Subfolder Playlist</label>
               <input type="text" id="input-folder-name" class="text-input" placeholder="Nama playlist">
             </div>
@@ -316,6 +322,48 @@
               <div class="log-row text-muted">[Sistem] Siap menerima proses download...</div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- Section: Fix Local Album Grouping Tool -->
+      <section class="panel fix-tags-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+            <h2>Perbaiki Tag Folder Musik Lokal</h2>
+          </div>
+          <button type="button" id="btn-toggle-fix-panel" class="btn-link">Tampilkan Alat</button>
+        </div>
+        <div class="panel-body hidden" id="fix-panel-body">
+          <p class="section-desc">
+            Punya folder playlist/lagu yang sudah didownload sebelumnya dan terpecah menjadi banyak album di Windows Media Player? 
+            Gunakan alat ini untuk memperbaiki tag <code>Album Artist (Various Artists)</code> dan <code>Compilation Flag</code> secara instan tanpa download ulang.
+          </p>
+          <form id="fix-tags-form" class="form-grid" style="margin-top: 10px;">
+            <div class="field-item col-span-2">
+              <label for="fix-folder-path" class="field-label">Path Folder Musik Lokal</label>
+              <input type="text" id="fix-folder-path" class="text-input" placeholder="Contoh: C:\Users\USER\Music\MELOW MELOWWWW" required>
+            </div>
+            <div class="field-item">
+              <label for="fix-album-name" class="field-label">Nama Album (Kosongkan jika sesuai nama folder)</label>
+              <input type="text" id="fix-album-name" class="text-input" placeholder="Otomatis dari nama folder">
+            </div>
+            <div class="field-item">
+              <label for="fix-album-artist" class="field-label">Artis Album (TPE2)</label>
+              <input type="text" id="fix-album-artist" class="text-input" value="Various Artists" placeholder="Various Artists">
+            </div>
+            <div class="field-item col-span-2" style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+              <span id="fix-tags-status" class="status-msg hidden"></span>
+              <button type="submit" id="btn-run-fix" class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Perbaiki Tag Album Sekarang</span>
+              </button>
+            </div>
+          </form>
         </div>
       </section>
 

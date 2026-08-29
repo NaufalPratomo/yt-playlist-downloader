@@ -27,11 +27,22 @@ const elements = {
   chipBitrate: document.getElementById('chip-bitrate'),
   selectTemplate: document.getElementById('select-template'),
   inputAlbum: document.getElementById('input-album'),
+  inputAlbumArtist: document.getElementById('input-album-artist'),
   inputFolderName: document.getElementById('input-folder-name'),
   toggleCover: document.getElementById('toggle-cover'),
   toggleSaveCover: document.getElementById('toggle-save-cover'),
   toggleLyrics: document.getElementById('toggle-lyrics'),
   toggleLrc: document.getElementById('toggle-lrc'),
+
+  // Fix Local Tags Tool
+  btnToggleFixPanel: document.getElementById('btn-toggle-fix-panel'),
+  fixPanelBody: document.getElementById('fix-panel-body'),
+  fixTagsForm: document.getElementById('fix-tags-form'),
+  fixFolderPath: document.getElementById('fix-folder-path'),
+  fixAlbumName: document.getElementById('fix-album-name'),
+  fixAlbumArtist: document.getElementById('fix-album-artist'),
+  fixTagsStatus: document.getElementById('fix-tags-status'),
+  btnRunFix: document.getElementById('btn-run-fix'),
 
   // Playlist Banner & Tracklist
   playlistSection: document.getElementById('playlist-section'),
@@ -178,6 +189,48 @@ function setupEventListeners() {
   elements.btnClearLogs.addEventListener('click', () => {
     elements.terminalLogs.innerHTML = '';
   });
+
+  // Toggle Fix Tags Panel
+  elements.btnToggleFixPanel.addEventListener('click', () => {
+    const isHidden = elements.fixPanelBody.classList.toggle('hidden');
+    elements.btnToggleFixPanel.textContent = isHidden ? 'Tampilkan Alat' : 'Sembunyikan Alat';
+  });
+
+  // Fix Tags Form Submit
+  elements.fixTagsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const folderPath = elements.fixFolderPath.value.trim();
+    if (!folderPath) return;
+
+    elements.btnRunFix.disabled = true;
+    elements.fixTagsStatus.classList.remove('hidden', 'success', 'error');
+    elements.fixTagsStatus.textContent = 'Memproses perbaikan tag ID3...';
+
+    try {
+      const res = await fetch('/api/fix-tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          folder_path: folderPath,
+          album_name: elements.fixAlbumName.value.trim() || null,
+          album_artist: elements.fixAlbumArtist.value.trim() || 'Various Artists',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || 'Gagal memperbaiki tag');
+      }
+
+      elements.fixTagsStatus.className = 'status-msg success';
+      elements.fixTagsStatus.textContent = `Berhasil! ${data.updated_files} lagu diperbarui menjadi 1 album "${data.album}" (${data.album_artist}).`;
+    } catch (err) {
+      elements.fixTagsStatus.className = 'status-msg error';
+      elements.fixTagsStatus.textContent = `Gagal: ${err.message}`;
+    } finally {
+      elements.btnRunFix.disabled = false;
+    }
+  });
 }
 
 // Analyze Playlist via Backend API
@@ -200,6 +253,7 @@ async function analyzePlaylist(url) {
 
     // Autofill settings
     elements.inputAlbum.value = data.title;
+    elements.inputAlbumArtist.value = data.album_artist || 'Various Artists';
     elements.inputFolderName.value = data.title;
 
     // Render Banner
@@ -335,6 +389,7 @@ async function startDownload() {
       fetch_lyrics: elements.toggleLyrics.checked,
       save_lrc_file: elements.toggleLrc.checked,
       album_name: elements.inputAlbum.value.trim() || state.playlistData.title,
+      album_artist: elements.inputAlbumArtist.value.trim() || 'Various Artists',
     },
   };
 

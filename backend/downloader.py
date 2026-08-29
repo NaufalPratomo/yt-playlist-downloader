@@ -99,6 +99,14 @@ class PlaylistDownloader:
                 "selected": True,
             })
 
+        unique_artists = list(dict.fromkeys(t["artist"] for t in tracks if t.get("artist") and t["artist"] != "Unknown Artist"))
+        if len(unique_artists) == 1:
+            suggested_album_artist = unique_artists[0]
+            is_compilation = False
+        else:
+            suggested_album_artist = "Various Artists"
+            is_compilation = len(tracks) > 1
+
         return {
             "is_playlist": is_playlist,
             "playlist_id": info.get("id", ""),
@@ -106,6 +114,8 @@ class PlaylistDownloader:
             "uploader": info.get("uploader") or info.get("channel") or "YouTube",
             "track_count": len(tracks),
             "thumbnail": tracks[0]["thumbnail"] if tracks else "",
+            "album_artist": suggested_album_artist,
+            "is_compilation": is_compilation,
             "tracks": tracks,
         }
 
@@ -178,9 +188,14 @@ class PlaylistDownloader:
         fetch_lyrics = options.get("fetch_lyrics", True)
         save_lrc_file = options.get("save_lrc_file", True)
         album_name = options.get("album_name") or job["playlist_title"]
+        album_artist = options.get("album_artist")
+        if not album_artist:
+            unique_artists = {t.get("artist") for t in tracks if t.get("artist")}
+            album_artist = "Various Artists" if len(unique_artists) > 1 else (list(unique_artists)[0] if unique_artists else "Various Artists")
+        is_compilation = options.get("is_compilation", True if len(tracks) > 1 else False)
 
         self._add_log(job, f"[Download] Memulai proses {len(tracks)} lagu ke: {target_dir}")
-        self._add_log(job, f"[Konfigurasi] Format: MP3 {bitrate} kbps | Album: '{album_name}'")
+        self._add_log(job, f"[Konfigurasi] Format: MP3 {bitrate} kbps | Album: '{album_name}' | Artis Album: '{album_artist}'")
 
         playlist_cover_saved = False
 
@@ -332,6 +347,9 @@ class PlaylistDownloader:
                     title=title,
                     artist=artist,
                     album=album_name,
+                    album_artist=album_artist,
+                    is_compilation=is_compilation,
+                    total_tracks=len(tracks),
                     year=time.strftime("%Y"),
                     genre="Music",
                     cover_bytes=cover_bytes,

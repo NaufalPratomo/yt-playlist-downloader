@@ -958,6 +958,43 @@ body {
   height: 36px;
 }
 
+/* Section Descriptions and Status Messages */
+.section-desc {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.section-desc code {
+  background: var(--bg-panel-subtle);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  color: #818cf8;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.status-msg {
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel-subtle);
+  color: var(--text-secondary);
+}
+
+.status-msg.success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.status-msg.error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
 /* Footer */
 .app-footer {
   text-align: center;

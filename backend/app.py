@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .downloader import ACTIVE_JOBS, downloader
+from .metadata_tagger import metadata_tagger
 from .utils import get_default_music_dir, open_in_explorer, sanitize_filename
 
 logging.basicConfig(
@@ -52,6 +53,13 @@ class DownloadOptions(BaseModel):
     fetch_lyrics: Optional[bool] = True
     save_lrc_file: Optional[bool] = True
     album_name: Optional[str] = None
+    album_artist: Optional[str] = None
+
+
+class FixFolderTagsRequest(BaseModel):
+    folder_path: str
+    album_name: Optional[str] = None
+    album_artist: Optional[str] = "Various Artists"
 
 
 class TrackItem(BaseModel):
@@ -209,6 +217,24 @@ async def open_folder(req: OpenFolderRequest):
 
     success = open_in_explorer(path)
     return {"success": success, "path": path}
+
+
+@app.post("/api/fix-tags")
+async def fix_folder_tags(req: FixFolderTagsRequest):
+    """Fix ID3 tags for existing folder so Windows Media Player groups it as a single album."""
+    folder = req.folder_path.strip()
+    if not folder or not os.path.exists(folder):
+        raise HTTPException(status_code=400, detail="Folder tidak ditemukan.")
+
+    res = await asyncio.to_thread(
+        metadata_tagger.retag_folder,
+        folder_path=folder,
+        album_name=req.album_name,
+        album_artist=req.album_artist or "Various Artists",
+    )
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "Gagal memperbarui tag."))
+    return res
 
 
 @app.get("/api/audio-stream")
