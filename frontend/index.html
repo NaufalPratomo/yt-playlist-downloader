@@ -88,11 +88,19 @@
               <label for="output-dir" class="field-label">Direktori Output Utama</label>
               <div class="field-action-group">
                 <input type="text" id="output-dir" class="text-input" placeholder="C:\Users\USER\Music">
-                <button type="button" id="btn-open-base-folder" class="btn btn-secondary">
+                <button type="button" id="btn-browse-base-folder" class="btn btn-secondary" title="Pilih folder penyimpanan">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                   </svg>
-                  <span>Buka Folder</span>
+                  <span>Pilih Folder</span>
+                </button>
+                <button type="button" id="btn-open-base-folder" class="btn btn-secondary" title="Buka di File Explorer">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                  <span>Buka</span>
                 </button>
               </div>
             </div>
@@ -325,45 +333,213 @@
         </div>
       </section>
 
-      <!-- Section: Fix Local Album Grouping Tool -->
+      <!-- Section: Fix Local Tags & Sync with YouTube Panel -->
       <section class="panel fix-tags-panel">
         <div class="panel-header">
           <div class="panel-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
             </svg>
-            <h2>Perbaiki Tag Folder Musik Lokal</h2>
+            <h2>Manajer & Sinkronisasi Folder Musik Lokal</h2>
           </div>
           <button type="button" id="btn-toggle-fix-panel" class="btn-link">Tampilkan Alat</button>
         </div>
         <div class="panel-body hidden" id="fix-panel-body">
           <p class="section-desc">
-            Punya folder playlist/lagu yang sudah didownload sebelumnya dan terpecah menjadi banyak album di Windows Media Player? 
-            Gunakan alat ini untuk memperbaiki tag <code>Album Artist (Various Artists)</code> dan <code>Compilation Flag</code> secara instan tanpa download ulang.
+            Pilih folder musik lokal untuk menginspeksi tag ID3, memperbaiki kekurangan info (Artis Unknown, Album, Cover, Lirik), atau cek lagu-lagu terbaru dari playlist YouTube yang belum diunduh ke folder tersebut.
           </p>
-          <form id="fix-tags-form" class="form-grid" style="margin-top: 10px;">
-            <div class="field-item col-span-2">
+
+          <!-- Folder Selection Bar -->
+          <div class="folder-picker-bar">
+            <div class="field-item full-width">
               <label for="fix-folder-path" class="field-label">Path Folder Musik Lokal</label>
-              <input type="text" id="fix-folder-path" class="text-input" placeholder="Contoh: C:\Users\USER\Music\MELOW MELOWWWW" required>
+              <div class="field-action-group">
+                <input type="text" id="fix-folder-path" class="text-input" placeholder="Pilih atau tempel path folder musik lokal..." required>
+                <button type="button" id="btn-browse-fix-folder" class="btn btn-secondary" title="Pilih folder dari File Explorer">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  <span>Pilih Folder</span>
+                </button>
+                <button type="button" id="btn-scan-folder" class="btn btn-primary" title="Pindai file MP3 di folder ini">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <span>Scan Folder</span>
+                </button>
+                <button type="button" id="btn-open-fix-folder" class="btn btn-secondary" title="Buka folder di File Explorer">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                  <span>Buka</span>
+                </button>
+              </div>
             </div>
-            <div class="field-item">
-              <label for="fix-album-name" class="field-label">Nama Album (Kosongkan jika sesuai nama folder)</label>
-              <input type="text" id="fix-album-name" class="text-input" placeholder="Otomatis dari nama folder">
+          </div>
+
+          <!-- Folder Inspection Result Card -->
+          <div id="folder-inspection-card" class="folder-card hidden">
+            <div class="folder-card-header">
+              <div class="folder-card-meta">
+                <h3 id="folder-stat-title" class="folder-name-title">Nama Folder</h3>
+                <p id="folder-stat-path" class="folder-path-subtitle">C:\...</p>
+              </div>
+              <div class="folder-health-badges">
+                <span class="health-chip" id="chip-total-files">0 Lagu</span>
+                <span class="health-chip" id="chip-cover-status">Cover: --</span>
+                <span class="health-chip chip-warning hidden" id="chip-missing-artists">0 Unknown Artist</span>
+                <span class="health-chip chip-warning hidden" id="chip-missing-lyrics">0 Tanpa Lirik</span>
+              </div>
             </div>
-            <div class="field-item">
-              <label for="fix-album-artist" class="field-label">Artis Album (TPE2)</label>
-              <input type="text" id="fix-album-artist" class="text-input" value="Various Artists" placeholder="Various Artists">
-            </div>
-            <div class="field-item col-span-2" style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
-              <span id="fix-tags-status" class="status-msg hidden"></span>
-              <button type="submit" id="btn-run-fix" class="btn btn-primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+            <!-- Tab Buttons -->
+            <div class="folder-tabs-header">
+              <button type="button" class="tab-btn active" id="tab-btn-repair" data-tab="tab-repair">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-                <span>Perbaiki Tag Album Sekarang</span>
+                <span>Perbaiki Tag & Metadata</span>
+              </button>
+              <button type="button" class="tab-btn" id="tab-btn-sync" data-tab="tab-sync">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+                <span>Sinkronisasi Lagu Baru YouTube</span>
+                <span class="badge-pill hidden" id="sync-new-count-pill">0</span>
               </button>
             </div>
-          </form>
+
+            <!-- Tab Content: Repair Metadata -->
+            <div class="tab-content" id="tab-repair-content">
+              <form id="fix-tags-form" class="form-grid" style="margin-top: 12px;">
+                <div class="field-item">
+                  <label for="fix-album-name" class="field-label">Nama Album (TALB)</label>
+                  <input type="text" id="fix-album-name" class="text-input" placeholder="Otomatis dari nama folder">
+                </div>
+                <div class="field-item">
+                  <label for="fix-album-artist" class="field-label">Artis Album (TPE2)</label>
+                  <input type="text" id="fix-album-artist" class="text-input" value="Various Artists" placeholder="Various Artists">
+                </div>
+
+                <div class="field-item col-span-2 repair-options-row">
+                  <label class="custom-checkbox">
+                    <input type="checkbox" id="chk-auto-artist" checked>
+                    <span>Perbaiki nama artis/judul dari nama file jika Unknown</span>
+                  </label>
+                  <label class="custom-checkbox">
+                    <input type="checkbox" id="chk-embed-cover" checked>
+                    <span>Sematkan cover.jpg folder ke seluruh MP3</span>
+                  </label>
+                  <label class="custom-checkbox">
+                    <input type="checkbox" id="chk-fetch-lyrics" checked>
+                    <span>Ambil lirik otomatis (.lrc / USLT) untuk lagu yang belum punya lirik</span>
+                  </label>
+                </div>
+
+                <div class="field-item col-span-2 repair-action-bar">
+                  <span id="fix-tags-status" class="status-msg hidden"></span>
+                  <button type="submit" id="btn-run-fix" class="btn btn-accent">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Perbaiki Semua Tag di Folder Ini</span>
+                  </button>
+                </div>
+              </form>
+
+              <!-- Local Tracklist Preview Table -->
+              <div class="mini-table-container" style="margin-top: 14px;">
+                <table class="data-table mini-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 40px; text-align: center;">#</th>
+                      <th>Nama File</th>
+                      <th>Artis (TPE1)</th>
+                      <th>Judul (TIT2)</th>
+                      <th style="width: 70px; text-align: center;">Cover</th>
+                      <th style="width: 70px; text-align: center;">Lirik</th>
+                    </tr>
+                  </thead>
+                  <tbody id="folder-files-tbody">
+                    <!-- Dynamic -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab Content: Sync YouTube Playlist -->
+            <div class="tab-content hidden" id="tab-sync-content">
+              <div class="sync-input-row" style="margin-top: 12px;">
+                <div class="url-input-container">
+                  <div class="input-icon-slot">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                  </div>
+                  <input type="text" id="sync-playlist-url" class="text-input" placeholder="Masukkan Link Playlist YouTube untuk cek lagu baru...">
+                  <button type="button" id="btn-sync-paste" class="btn-paste" title="Tempel URL">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span>Tempel</span>
+                  </button>
+                </div>
+                <button type="button" id="btn-check-sync" class="btn btn-primary">
+                  <span class="btn-text">Cek Lagu Baru</span>
+                  <span class="spinner hidden" id="sync-spinner"></span>
+                </button>
+              </div>
+
+              <!-- Sync Comparison Result -->
+              <div id="sync-result-card" class="sync-result-card hidden">
+                <div class="sync-stats-bar">
+                  <div class="sync-stat-item">
+                    <span class="stat-num text-success" id="sync-existing-count">0</span>
+                    <span class="stat-lbl">Sudah Ada di Folder</span>
+                  </div>
+                  <div class="sync-stat-divider"></div>
+                  <div class="sync-stat-item">
+                    <span class="stat-num text-accent" id="sync-new-count">0</span>
+                    <span class="stat-lbl">Lagu Baru di YouTube</span>
+                  </div>
+                  <div class="sync-action-slot">
+                    <button type="button" id="btn-download-new-only" class="btn btn-accent">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                      </svg>
+                      <span>Download <span id="sync-btn-count">0</span> Lagu Baru Saja</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mini-table-container" style="margin-top: 14px;">
+                  <table class="data-table mini-table">
+                    <thead>
+                      <tr>
+                        <th style="width: 40px; text-align: center;">#</th>
+                        <th>Judul di YouTube</th>
+                        <th>Artis</th>
+                        <th style="width: 140px; text-align: center;">Status di Folder</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sync-comparison-tbody">
+                      <!-- Dynamic -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
         </div>
       </section>
 

@@ -78,5 +78,51 @@ def get_ffmpeg_path() -> Optional[str]:
     if os.path.exists(root_ffmpeg):
         return root_ffmpeg
 
+def browse_folder_dialog(initial_dir: Optional[str] = None) -> Optional[str]:
+    """
+    Open native OS folder selection dialog (Tkinter with PowerShell fallback on Windows).
+    Returns the selected folder path, or None if cancelled.
+    """
+    # 1. Try Tkinter
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        folder = filedialog.askdirectory(
+            initialdir=initial_dir or get_default_music_dir(),
+            title="Pilih Folder Musik",
+        )
+        root.destroy()
+        if folder:
+            return os.path.normpath(folder)
+    except Exception:
+        pass
+
+    # 2. Windows PowerShell FolderBrowserDialog fallback
+    if platform.system() == "Windows":
+        try:
+            ps_script = """
+            Add-Type -AssemblyName System.Windows.Forms
+            $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+            $dialog.Description = 'Pilih Folder Musik'
+            $dialog.ShowNewFolderButton = $true
+            if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+                [Console]::Out.Write($dialog.SelectedPath)
+            }
+            """
+            res = subprocess.run(
+                ["powershell", "-NoProfile", "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            selected = res.stdout.strip()
+            if selected and os.path.exists(selected):
+                return os.path.normpath(selected)
+        except Exception:
+            pass
+
     return None
 

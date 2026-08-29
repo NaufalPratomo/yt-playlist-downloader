@@ -68,8 +68,13 @@ class PlaylistDownloader:
         tracks = []
         for idx, entry in enumerate(tracks_raw, start=1):
             raw_title = entry.get("title", "Unknown Title")
-            raw_artist = entry.get("artist") or entry.get("creator") or entry.get("uploader")
-            raw_uploader = entry.get("uploader")
+            raw_artist = (
+                entry.get("artist")
+                or entry.get("creator")
+                or entry.get("uploader")
+                or entry.get("channel")
+            )
+            raw_uploader = entry.get("uploader") or entry.get("channel")
             
             clean_title, clean_artist = metadata_tagger.clean_title_and_artist(
                 raw_title, raw_artist=raw_artist, raw_uploader=raw_uploader
@@ -278,8 +283,36 @@ class PlaylistDownloader:
                 if ffmpeg_path:
                     ydl_opts["ffmpeg_location"] = ffmpeg_path
 
+                info_dict = None
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    ydl.download([video_url])
+                    info_dict = ydl.extract_info(video_url, download=True)
+
+                # Auto-resolve artist / title if Unknown Artist
+                if (not artist or artist.lower() in ["unknown artist", "unknown", ""]) and info_dict:
+                    fetched_artist = (
+                        info_dict.get("artist")
+                        or info_dict.get("creator")
+                        or info_dict.get("channel")
+                        or info_dict.get("uploader")
+                    )
+                    if fetched_artist:
+                        clean_fetched = metadata_tagger.strip_video_tags(fetched_artist)
+                        clean_fetched = re.sub(r"\s*-\s*Topic$", "", clean_fetched, flags=re.IGNORECASE).strip()
+                        if clean_fetched:
+                            artist = clean_fetched
+                            track_state["artist"] = artist
+                            job["current_track_title"] = f"{artist} - {title}"
+                            self._add_log(job, f"[Metadata] Menemukan artis otomatis: {artist}")
+
+                # Update final filename with resolved metadata
+                final_filename = metadata_tagger.format_filename(
+                    template=filename_template,
+                    track_number=track_num,
+                    title=title,
+                    artist=artist,
+                    video_id=track_id,
+                )
+                final_mp3_path = os.path.join(target_dir, final_filename)
 
                 if not os.path.exists(expected_intermediate_mp3):
                     found = False
@@ -411,5 +444,88 @@ class PlaylistDownloader:
         secs = int(seconds % 60)
         return f"{mins}:{secs:02d}"
 
+    def sync_playlist_with_folder(self, playlist_url: str, folder_path: str) -> Dict[str, Any]:
+        """
+        Compare a YouTube Playlist with an existing local music folder.
+        Identifies which songs already exist locally and which are new and missing.
+        """
+        playlist_data = self.analyze_url(playlist_url)
+        folder_scan = metadata_tagger.scan_folder(folder_path)
+
+        if not folder_scan.get("success"):
+            raise ValueError(folder_scan.get("error", "Gagal memindai folder lokal."))
+
+        local_files = folder_scan.get("files", [])
+        
+        # Build lookup set of existing video IDs and normalized title strings
+        existing_ids = set()
+        local_titles = []
+
+        for f in local_files:
+            if f.get("youtube_id"):
+                existing_ids.add(f["youtube_id"])
+            # Normalize title for fallback matching
+            clean_t = re.sub(r"[^a-zA-Z0-9]", "", (f.get("title") or f.get("file") or "").lower())
+            if clean_t:
+                local_titles.append((clean_t, f["file"]))
+
+        new_tracks = []
+        existing_tracks = []
+        all_comparison = []
+
+        playlist_tracks = playlist_data.get("tracks", [])
+        for track in playlist_tracks:
+            v_id = track.get("id")
+            norm_title = re.sub(r"[^a-zA-Z0-9]", "", (track.get("title") or "").lower())
+            
+            is_existing = False
+            matching_file = None
+
+            # 1. Match by YouTube ID
+            if v_id and v_id in existing_ids:
+                is_existing = True
+                for f in local_files:
+                    if f.get("youtube_id") == v_id:
+                        matching_file = f["file"]
+                        break
+            
+            # 2. Match by normalized title if ID not matched
+            if not is_existing and norm_title and len(norm_title) >= 4:
+                for lt, fname in local_titles:
+                    if norm_title in lt or lt in norm_title:
+                        is_existing = True
+                        matching_file = fname
+                        break
+
+            item_info = {
+                **track,
+                "is_existing": is_existing,
+                "matching_file": matching_file,
+            }
+
+            all_comparison.append(item_info)
+            if is_existing:
+                existing_tracks.append(item_info)
+            else:
+                new_tracks.append(item_info)
+
+        return {
+            "success": True,
+            "playlist_title": playlist_data.get("title", "YouTube Playlist"),
+            "playlist_uploader": playlist_data.get("uploader", "YouTube"),
+            "playlist_thumbnail": playlist_data.get("thumbnail", ""),
+            "folder_path": folder_path,
+            "folder_name": folder_scan.get("folder_name", ""),
+            "total_playlist_tracks": len(playlist_tracks),
+            "total_local_tracks": len(local_files),
+            "existing_count": len(existing_tracks),
+            "new_count": len(new_tracks),
+            "new_tracks": new_tracks,
+            "existing_tracks": existing_tracks,
+            "all_comparison": all_comparison,
+            "album_artist": playlist_data.get("album_artist", "Various Artists"),
+        }
+
 
 downloader = PlaylistDownloader()
+

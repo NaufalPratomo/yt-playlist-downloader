@@ -54,18 +54,31 @@ class MetadataTagger:
         if raw_uploader:
             clean_uploader = re.sub(r"\s*-\s*Topic$", "", raw_uploader, flags=re.IGNORECASE).strip()
 
-        # If artist is not provided or generic, try extracting from "Artist - Title" pattern
-        if " - " in title:
-            parts = title.split(" - ", 1)
+        # Normalize unicode dashes and quotes in title
+        normalized_title = re.sub(r"[\u2010\u2012\u2013\u2014\u2015\u2212\ufe63\uff0d]", "-", title)
+
+        candidate_artist = ""
+        candidate_title = normalized_title
+
+        # Check for common separators: " - ", " | ", " ~ ", " • ", " // ", " : "
+        sep_match = re.search(r"\s+(?:-+|\||~|•|//|:)\s+", normalized_title)
+        if sep_match:
+            parts = normalized_title.split(sep_match.group(0), 1)
             candidate_artist = parts[0].strip()
             candidate_title = parts[1].strip()
-            
-            # Use candidate artist if not already present
-            if not artist or artist.lower() in ["unknown", "various artists", ""]:
-                artist = candidate_artist
+        elif re.search(r"\s+by\s+", normalized_title, re.IGNORECASE):
+            parts = re.split(r"\s+by\s+", normalized_title, maxsplit=1, flags=re.IGNORECASE)
+            candidate_title = parts[0].strip()
+            candidate_artist = parts[1].strip()
+
+        # Use candidate artist if not already present or if artist is generic
+        if candidate_artist and (not artist or artist.lower() in ["unknown", "unknown artist", "various artists", ""]):
+            artist = candidate_artist
             title = candidate_title
         elif not artist and clean_uploader:
             artist = clean_uploader
+        else:
+            title = normalized_title
 
         # Clean extraneous video tags from title
         title = MetadataTagger.strip_video_tags(title)
@@ -239,15 +252,185 @@ class MetadataTagger:
             return False
 
     @staticmethod
-    def retag_folder(
+    def parse_filename_metadata(filename: str) -> Tuple[str, str, Optional[str]]:
+        """
+        Extract title, artist, and optional YouTube Video ID from filename.
+        Example: '01. NIKI - lowkey-HaZRGYd9mh4.mp3' -> ('lowkey', 'NIKI', 'HaZRGYd9mh4')
+        """
+        base = os.path.splitext(filename)[0]
+        yt_id = None
+
+        # Look for 11-char YouTube ID pattern near end
+        yt_match = re.search(r"[-_\[\(]([A-Za-z0-9_-]{11})[\]\)]?$", base)
+        if yt_match:
+            yt_id = yt_match.group(1)
+            base = base[:yt_match.start()].strip(" -_()[]")
+
+        # Strip leading numbering like '1. ', '01 - ', '01. '
+        clean_base = re.sub(r"^\d+[\.\s\-_]+", "", base).strip()
+        clean_title, clean_artist = MetadataTagger.clean_title_and_artist(clean_base)
+        return clean_title, clean_artist, yt_id
+
+    @staticmethod
+    def scan_folder(folder_path: str) -> Dict[str, Any]:
+        """
+        Inspect all MP3 files in a folder and return detailed metadata analysis,
+        including missing tags, cover art, lyrics, and health score.
+        """
+        if not os.path.exists(folder_path):
+            return {"success": False, "error": f"Folder tidak ditemukan: {folder_path}"}
+
+        mp3_files = [f for f in os.listdir(folder_path) if f.lower().endswith(".mp3")]
+        if not mp3_files:
+            return {
+                "success": True,
+                "folder": folder_path,
+                "folder_name": os.path.basename(os.path.normpath(folder_path)),
+                "total_files": 0,
+                "files": [],
+                "issues_summary": {
+                    "missing_artists": 0,
+                    "missing_covers": 0,
+                    "missing_lyrics": 0,
+                    "inconsistent_album": 0,
+                },
+                "has_cover_file": False,
+                "cover_path": None,
+            }
+
+        def sort_key(name):
+            match = re.match(r"^(\d+)", name)
+            return (int(match.group(1)), name) if match else (9999, name)
+
+        mp3_files.sort(key=sort_key)
+        total_files = len(mp3_files)
+        folder_name = os.path.basename(os.path.normpath(folder_path))
+
+        # Check for local cover.jpg / folder.jpg
+        cover_path = None
+        for img_name in ["cover.jpg", "cover.png", "folder.jpg", "folder.png"]:
+            candidate = os.path.join(folder_path, img_name)
+            if os.path.exists(candidate):
+                cover_path = candidate
+                break
+
+        files_info = []
+        missing_artists_count = 0
+        missing_covers_count = 0
+        missing_lyrics_count = 0
+        inconsistent_album_count = 0
+
+        detected_albums = {}
+        detected_album_artists = {}
+
+        for idx, filename in enumerate(mp3_files, start=1):
+            file_path = os.path.join(folder_path, filename)
+            s_title, s_artist, yt_id = MetadataTagger.parse_filename_metadata(filename)
+            
+            title = s_title
+            artist = s_artist
+            album = ""
+            album_artist = ""
+            track_str = f"{idx}/{total_files}"
+            has_cover = False
+            has_lyrics = False
+
+            # Check for companion .lrc file
+            lrc_candidate = os.path.splitext(file_path)[0] + ".lrc"
+            if os.path.exists(lrc_candidate):
+                has_lyrics = True
+
+            try:
+                audio = MP3(file_path, ID3=ID3)
+                if audio.tags:
+                    tags = audio.tags
+                    if "TIT2" in tags and str(tags["TIT2"]).strip():
+                        title = str(tags["TIT2"]).strip()
+                    if "TPE1" in tags and str(tags["TPE1"]).strip():
+                        artist = str(tags["TPE1"]).strip()
+                    if "TALB" in tags:
+                        album = str(tags["TALB"]).strip()
+                    if "TPE2" in tags:
+                        album_artist = str(tags["TPE2"]).strip()
+                    if "TRCK" in tags:
+                        track_str = str(tags["TRCK"]).strip()
+                    if "APIC:" in tags or any(k.startswith("APIC") for k in tags.keys()):
+                        has_cover = True
+                    if "USLT:" in tags or any(k.startswith("USLT") for k in tags.keys()):
+                        has_lyrics = True
+            except Exception:
+                pass
+
+            if album:
+                detected_albums[album] = detected_albums.get(album, 0) + 1
+            if album_artist:
+                detected_album_artists[album_artist] = detected_album_artists.get(album_artist, 0) + 1
+
+            # Detect issues
+            is_unknown_artist = not artist or artist.lower() in ["unknown artist", "unknown", ""]
+            if is_unknown_artist:
+                missing_artists_count += 1
+            if not has_cover:
+                missing_covers_count += 1
+            if not has_lyrics:
+                missing_lyrics_count += 1
+            if not album or album != folder_name:
+                inconsistent_album_count += 1
+
+            files_info.append({
+                "index": idx,
+                "file": filename,
+                "file_path": file_path,
+                "title": title,
+                "artist": artist,
+                "album": album or folder_name,
+                "album_artist": album_artist or "Various Artists",
+                "track": track_str,
+                "has_cover": has_cover,
+                "has_lyrics": has_lyrics,
+                "youtube_id": yt_id,
+                "suggested_title": s_title if is_unknown_artist else title,
+                "suggested_artist": s_artist if is_unknown_artist else artist,
+                "is_unknown_artist": is_unknown_artist,
+            })
+
+        main_album = max(detected_albums, key=detected_albums.get) if detected_albums else folder_name
+        main_album_artist = max(detected_album_artists, key=detected_album_artists.get) if detected_album_artists else "Various Artists"
+
+        return {
+            "success": True,
+            "folder": folder_path,
+            "folder_name": folder_name,
+            "total_files": total_files,
+            "detected_album": main_album,
+            "detected_album_artist": main_album_artist,
+            "has_cover_file": bool(cover_path),
+            "cover_path": cover_path,
+            "issues_summary": {
+                "missing_artists": missing_artists_count,
+                "missing_covers": missing_covers_count,
+                "missing_lyrics": missing_lyrics_count,
+                "inconsistent_album": inconsistent_album_count,
+            },
+            "files": files_info,
+        }
+
+    @staticmethod
+    def repair_folder_metadata(
         folder_path: str,
         album_name: Optional[str] = None,
         album_artist: str = "Various Artists",
         is_compilation: bool = True,
+        auto_fix_artists: bool = True,
+        embed_local_cover: bool = True,
+        fetch_missing_lyrics: bool = True,
     ) -> Dict[str, Any]:
         """
-        Retag all existing MP3 files in a directory to fix album grouping in Windows Media Player.
-        Updates Album Name, Album Artist (TPE2='Various Artists'), and sets Compilation Flag (TCMP=1).
+        Perform smart comprehensive repair on all MP3 files in a directory:
+        - Unifies Album Name, Album Artist (TPE2='Various Artists'), and sets Compilation Flag (TCMP=1).
+        - Fixes Unknown Artist & Title by parsing filename patterns.
+        - Embeds local cover.jpg if MP3 lacks embedded APIC.
+        - Fetches synchronized lyrics from LRCLIB if missing.
         """
         if not os.path.exists(folder_path):
             return {"success": False, "error": f"Folder tidak ditemukan: {folder_path}", "updated_files": 0}
@@ -256,7 +439,6 @@ class MetadataTagger:
         if not mp3_files:
             return {"success": False, "error": "Tidak ada file MP3 di folder ini.", "updated_files": 0}
 
-        # Natural sort if filename starts with numbers
         def sort_key(name):
             match = re.match(r"^(\d+)", name)
             return (int(match.group(1)), name) if match else (9999, name)
@@ -265,29 +447,57 @@ class MetadataTagger:
         total_files = len(mp3_files)
         target_album = album_name or os.path.basename(os.path.normpath(folder_path))
 
+        # Check local cover image
+        cover_bytes = None
+        if embed_local_cover:
+            for img_name in ["cover.jpg", "cover.png", "folder.jpg", "folder.png"]:
+                cand = os.path.join(folder_path, img_name)
+                if os.path.exists(cand):
+                    try:
+                        with open(cand, "rb") as f_img:
+                            cover_bytes = f_img.read()
+                        break
+                    except Exception:
+                        pass
+
         updated_count = 0
         details = []
 
         for idx, filename in enumerate(mp3_files, start=1):
             file_path = os.path.join(folder_path, filename)
+            s_title, s_artist, yt_id = MetadataTagger.parse_filename_metadata(filename)
+
             try:
                 audio = MP3(file_path, ID3=ID3)
                 if audio.tags is None:
                     audio.add_tags()
                 tags = audio.tags
 
-                # Read existing title and artist if available
-                existing_title = str(tags.get("TIT2", os.path.splitext(filename)[0]))
-                existing_artist = str(tags.get("TPE1", "Unknown Artist"))
+                existing_title = str(tags.get("TIT2", s_title or os.path.splitext(filename)[0]))
+                existing_artist = str(tags.get("TPE1", s_artist or "Unknown Artist"))
 
-                # 1. Album
+                # Auto fix unknown artist/title from parsed filename if enabled
+                if auto_fix_artists:
+                    if not existing_artist or existing_artist.lower() in ["unknown artist", "unknown", ""]:
+                        if s_artist and s_artist.lower() not in ["unknown artist", "unknown", ""]:
+                            existing_artist = s_artist
+                    if not existing_title or existing_title.lower() in ["unknown title", ""]:
+                        if s_title:
+                            existing_title = s_title
+
+                # 1. Title & Artist
+                tags.add(TIT2(encoding=3, text=existing_title))
+                tags.add(TPE1(encoding=3, text=[existing_artist]))
+
+                # 2. Album & Album Artist
                 tags.add(TALB(encoding=3, text=target_album))
-                # 2. Album Artist
                 tags.add(TPE2(encoding=3, text=[album_artist]))
+
                 # 3. Compilation Flag
                 if is_compilation or (album_artist and album_artist.lower() in ["various artists", "various"]):
                     tags.add(TCMP(encoding=3, text="1"))
-                # 4. Track Number
+
+                # 4. Track Number (1/N, 2/N)
                 existing_trck = tags.get("TRCK")
                 track_num = idx
                 if existing_trck:
@@ -295,6 +505,44 @@ class MetadataTagger:
                     if trck_val.isdigit():
                         track_num = int(trck_val)
                 tags.add(TRCK(encoding=3, text=f"{track_num}/{total_files}"))
+
+                # 5. Embed cover if missing and available
+                has_apic = any(k.startswith("APIC") for k in tags.keys())
+                if not has_apic and cover_bytes:
+                    tags.add(
+                        APIC(
+                            encoding=3,
+                            mime="image/jpeg",
+                            type=3,
+                            desc="Cover",
+                            data=cover_bytes,
+                        )
+                    )
+
+                # 6. Fetch lyrics if missing
+                has_lyrics = any(k.startswith("USLT") for k in tags.keys())
+                if fetch_missing_lyrics and not has_lyrics and existing_title:
+                    try:
+                        lrc_res = lyrics_fetcher.fetch_lyrics(title=existing_title, artist=existing_artist)
+                        synced_lrc = lrc_res.get("synced_lyrics")
+                        plain_lrc = lrc_res.get("plain_lyrics")
+                        if synced_lrc or plain_lrc:
+                            tags.add(
+                                USLT(
+                                    encoding=3,
+                                    lang="eng",
+                                    desc="",
+                                    text=plain_lrc or synced_lrc,
+                                )
+                            )
+                            # Save companion .lrc file if synced
+                            if synced_lrc:
+                                lrc_path = os.path.splitext(file_path)[0] + ".lrc"
+                                if not os.path.exists(lrc_path):
+                                    with open(lrc_path, "w", encoding="utf-8") as f_lrc:
+                                        f_lrc.write(synced_lrc)
+                    except Exception as e_lrc:
+                        logger.warning(f"Failed to fetch lyrics for {existing_title}: {e_lrc}")
 
                 audio.save(v2_version=3)
                 updated_count += 1
@@ -307,7 +555,7 @@ class MetadataTagger:
                     "track": f"{track_num}/{total_files}",
                 })
             except Exception as e:
-                logger.error(f"Failed to retag {filename}: {e}")
+                logger.error(f"Failed to repair metadata for {filename}: {e}")
 
         return {
             "success": True,
@@ -319,5 +567,24 @@ class MetadataTagger:
             "details": details,
         }
 
+    @staticmethod
+    def retag_folder(
+        folder_path: str,
+        album_name: Optional[str] = None,
+        album_artist: str = "Various Artists",
+        is_compilation: bool = True,
+    ) -> Dict[str, Any]:
+        """Backwards compatibility alias for repair_folder_metadata."""
+        return MetadataTagger.repair_folder_metadata(
+            folder_path=folder_path,
+            album_name=album_name,
+            album_artist=album_artist,
+            is_compilation=is_compilation,
+            auto_fix_artists=True,
+            embed_local_cover=True,
+            fetch_missing_lyrics=False,
+        )
+
 
 metadata_tagger = MetadataTagger()
+

@@ -20,7 +20,12 @@ from pydantic import BaseModel
 
 from .downloader import ACTIVE_JOBS, downloader
 from .metadata_tagger import metadata_tagger
-from .utils import get_default_music_dir, open_in_explorer, sanitize_filename
+from .utils import (
+    browse_folder_dialog,
+    get_default_music_dir,
+    open_in_explorer,
+    sanitize_filename,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,6 +65,29 @@ class FixFolderTagsRequest(BaseModel):
     folder_path: str
     album_name: Optional[str] = None
     album_artist: Optional[str] = "Various Artists"
+
+
+class BrowseFolderRequest(BaseModel):
+    initial_dir: Optional[str] = None
+
+
+class ScanFolderRequest(BaseModel):
+    folder_path: str
+
+
+class RepairFolderRequest(BaseModel):
+    folder_path: str
+    album_name: Optional[str] = None
+    album_artist: Optional[str] = "Various Artists"
+    is_compilation: Optional[bool] = True
+    auto_fix_artists: Optional[bool] = True
+    embed_local_cover: Optional[bool] = True
+    fetch_missing_lyrics: Optional[bool] = True
+
+
+class SyncPlaylistRequest(BaseModel):
+    playlist_url: str
+    folder_path: str
 
 
 class TrackItem(BaseModel):
@@ -217,6 +245,71 @@ async def open_folder(req: OpenFolderRequest):
 
     success = open_in_explorer(path)
     return {"success": success, "path": path}
+
+
+@app.post("/api/browse-folder")
+async def browse_folder(req: Optional[BrowseFolderRequest] = None):
+    """Open native Windows folder dialog to choose a folder."""
+    initial = req.initial_dir if req else None
+    selected = await asyncio.to_thread(browse_folder_dialog, initial_dir=initial)
+    return {"selected_path": selected}
+
+
+@app.post("/api/scan-folder")
+async def scan_folder(req: ScanFolderRequest):
+    """Scan and inspect local music folder for metadata issues."""
+    folder = req.folder_path.strip()
+    if not folder or not os.path.exists(folder):
+        raise HTTPException(status_code=400, detail="Folder tidak ditemukan.")
+
+    res = await asyncio.to_thread(metadata_tagger.scan_folder, folder_path=folder)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "Gagal memindai folder."))
+    return res
+
+
+@app.post("/api/repair-folder")
+async def repair_folder(req: RepairFolderRequest):
+    """Smart repair for local music folder (tags, album unity, cover, lyrics)."""
+    folder = req.folder_path.strip()
+    if not folder or not os.path.exists(folder):
+        raise HTTPException(status_code=400, detail="Folder tidak ditemukan.")
+
+    res = await asyncio.to_thread(
+        metadata_tagger.repair_folder_metadata,
+        folder_path=folder,
+        album_name=req.album_name,
+        album_artist=req.album_artist or "Various Artists",
+        is_compilation=req.is_compilation if req.is_compilation is not None else True,
+        auto_fix_artists=req.auto_fix_artists if req.auto_fix_artists is not None else True,
+        embed_local_cover=req.embed_local_cover if req.embed_local_cover is not None else True,
+        fetch_missing_lyrics=req.fetch_missing_lyrics if req.fetch_missing_lyrics is not None else True,
+    )
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "Gagal memperbaiki folder."))
+    return res
+
+
+@app.post("/api/sync-playlist")
+async def sync_playlist(req: SyncPlaylistRequest):
+    """Compare a YouTube playlist with local folder to detect missing/new songs."""
+    url = req.playlist_url.strip()
+    folder = req.folder_path.strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="URL Playlist tidak boleh kosong.")
+    if not folder or not os.path.exists(folder):
+        raise HTTPException(status_code=400, detail="Folder lokal tidak ditemukan.")
+
+    try:
+        res = await asyncio.to_thread(
+            downloader.sync_playlist_with_folder,
+            playlist_url=url,
+            folder_path=folder,
+        )
+        return res
+    except Exception as e:
+        logger.error(f"Failed to sync playlist with folder: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/api/fix-tags")

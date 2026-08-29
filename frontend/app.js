@@ -4,12 +4,15 @@
  */
 
 // Application State
+// Application State
 const state = {
   playlistData: null,
   activeJobId: null,
   eventSource: null,
   targetDirectory: '',
   selectedBitrate: '192',
+  scannedFolderData: null,
+  syncComparisonData: null,
 };
 
 // DOM Elements
@@ -22,6 +25,7 @@ const elements = {
 
   // Settings
   outputDir: document.getElementById('output-dir'),
+  btnBrowseBaseFolder: document.getElementById('btn-browse-base-folder'),
   btnOpenBaseFolder: document.getElementById('btn-open-base-folder'),
   selectBitrate: document.getElementById('select-bitrate'),
   chipBitrate: document.getElementById('chip-bitrate'),
@@ -34,15 +38,44 @@ const elements = {
   toggleLyrics: document.getElementById('toggle-lyrics'),
   toggleLrc: document.getElementById('toggle-lrc'),
 
-  // Fix Local Tags Tool
+  // Fix & Sync Local Folder Suite
   btnToggleFixPanel: document.getElementById('btn-toggle-fix-panel'),
   fixPanelBody: document.getElementById('fix-panel-body'),
-  fixTagsForm: document.getElementById('fix-tags-form'),
   fixFolderPath: document.getElementById('fix-folder-path'),
+  btnBrowseFixFolder: document.getElementById('btn-browse-fix-folder'),
+  btnScanFolder: document.getElementById('btn-scan-folder'),
+  btnOpenFixFolder: document.getElementById('btn-open-fix-folder'),
+  folderInspectionCard: document.getElementById('folder-inspection-card'),
+  folderStatTitle: document.getElementById('folder-stat-title'),
+  folderStatPath: document.getElementById('folder-stat-path'),
+  chipTotalFiles: document.getElementById('chip-total-files'),
+  chipCoverStatus: document.getElementById('chip-cover-status'),
+  chipMissingArtists: document.getElementById('chip-missing-artists'),
+  chipMissingLyrics: document.getElementById('chip-missing-lyrics'),
+  tabBtnRepair: document.getElementById('tab-btn-repair'),
+  tabBtnSync: document.getElementById('tab-btn-sync'),
+  tabRepairContent: document.getElementById('tab-repair-content'),
+  tabSyncContent: document.getElementById('tab-sync-content'),
+  syncNewCountPill: document.getElementById('sync-new-count-pill'),
+  fixTagsForm: document.getElementById('fix-tags-form'),
   fixAlbumName: document.getElementById('fix-album-name'),
   fixAlbumArtist: document.getElementById('fix-album-artist'),
+  chkAutoArtist: document.getElementById('chk-auto-artist'),
+  chkEmbedCover: document.getElementById('chk-embed-cover'),
+  chkFetchLyrics: document.getElementById('chk-fetch-lyrics'),
   fixTagsStatus: document.getElementById('fix-tags-status'),
   btnRunFix: document.getElementById('btn-run-fix'),
+  folderFilesTbody: document.getElementById('folder-files-tbody'),
+  syncPlaylistUrl: document.getElementById('sync-playlist-url'),
+  btnSyncPaste: document.getElementById('btn-sync-paste'),
+  btnCheckSync: document.getElementById('btn-check-sync'),
+  syncSpinner: document.getElementById('sync-spinner'),
+  syncResultCard: document.getElementById('sync-result-card'),
+  syncExistingCount: document.getElementById('sync-existing-count'),
+  syncNewCount: document.getElementById('sync-new-count'),
+  syncBtnCount: document.getElementById('sync-btn-count'),
+  btnDownloadNewOnly: document.getElementById('btn-download-new-only'),
+  syncComparisonTbody: document.getElementById('sync-comparison-tbody'),
 
   // Playlist Banner & Tracklist
   playlistSection: document.getElementById('playlist-section'),
@@ -87,6 +120,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
 });
 
+// Helper: Browse Folder Dialog via Native Backend API
+async function browseFolder(initialDir = '') {
+  try {
+    const res = await fetch('/api/browse-folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initial_dir: initialDir }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.selected_path;
+    }
+  } catch (err) {
+    console.error('Failed to browse folder:', err);
+  }
+  return null;
+}
+
 // Load Config from Backend
 async function loadConfig() {
   try {
@@ -103,7 +154,7 @@ async function loadConfig() {
 
 // Setup Event Listeners
 function setupEventListeners() {
-  // Paste button
+  // Paste button for main analyze
   elements.btnPaste.addEventListener('click', async () => {
     try {
       const text = await navigator.clipboard.readText();
@@ -151,6 +202,17 @@ function setupEventListeners() {
     startDownload();
   });
 
+  // Browse Base Output Directory
+  if (elements.btnBrowseBaseFolder) {
+    elements.btnBrowseBaseFolder.addEventListener('click', async () => {
+      const path = await browseFolder(elements.outputDir.value.trim());
+      if (path) {
+        elements.outputDir.value = path;
+        state.targetDirectory = path;
+      }
+    });
+  }
+
   // Open Base Folder
   elements.btnOpenBaseFolder.addEventListener('click', async () => {
     const path = elements.outputDir.value.trim();
@@ -196,7 +258,61 @@ function setupEventListeners() {
     elements.btnToggleFixPanel.textContent = isHidden ? 'Tampilkan Alat' : 'Sembunyikan Alat';
   });
 
-  // Fix Tags Form Submit
+  // Browse Fix Folder
+  if (elements.btnBrowseFixFolder) {
+    elements.btnBrowseFixFolder.addEventListener('click', async () => {
+      const path = await browseFolder(elements.fixFolderPath.value.trim());
+      if (path) {
+        elements.fixFolderPath.value = path;
+        await scanLocalFolder(path);
+      }
+    });
+  }
+
+  // Scan Folder Button
+  if (elements.btnScanFolder) {
+    elements.btnScanFolder.addEventListener('click', async () => {
+      const path = elements.fixFolderPath.value.trim();
+      if (!path) {
+        alert('Silakan masukkan atau pilih path folder terlebih dahulu.');
+        return;
+      }
+      await scanLocalFolder(path);
+    });
+  }
+
+  // Open Fix Folder
+  if (elements.btnOpenFixFolder) {
+    elements.btnOpenFixFolder.addEventListener('click', async () => {
+      const path = elements.fixFolderPath.value.trim();
+      if (path) {
+        await fetch('/api/open-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path }),
+        });
+      }
+    });
+  }
+
+  // Tab switching: Repair vs Sync
+  if (elements.tabBtnRepair && elements.tabBtnSync) {
+    elements.tabBtnRepair.addEventListener('click', () => {
+      elements.tabBtnRepair.classList.add('active');
+      elements.tabBtnSync.classList.remove('active');
+      elements.tabRepairContent.classList.remove('hidden');
+      elements.tabSyncContent.classList.add('hidden');
+    });
+
+    elements.tabBtnSync.addEventListener('click', () => {
+      elements.tabBtnSync.classList.add('active');
+      elements.tabBtnRepair.classList.remove('active');
+      elements.tabSyncContent.classList.remove('hidden');
+      elements.tabRepairContent.classList.add('hidden');
+    });
+  }
+
+  // Fix Tags Form Submit (Repair Folder)
   elements.fixTagsForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const folderPath = elements.fixFolderPath.value.trim();
@@ -204,16 +320,19 @@ function setupEventListeners() {
 
     elements.btnRunFix.disabled = true;
     elements.fixTagsStatus.classList.remove('hidden', 'success', 'error');
-    elements.fixTagsStatus.textContent = 'Memproses perbaikan tag ID3...';
+    elements.fixTagsStatus.textContent = 'Memproses perbaikan tag ID3 & lirik...';
 
     try {
-      const res = await fetch('/api/fix-tags', {
+      const res = await fetch('/api/repair-folder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           folder_path: folderPath,
           album_name: elements.fixAlbumName.value.trim() || null,
           album_artist: elements.fixAlbumArtist.value.trim() || 'Various Artists',
+          auto_fix_artists: elements.chkAutoArtist ? elements.chkAutoArtist.checked : true,
+          embed_local_cover: elements.chkEmbedCover ? elements.chkEmbedCover.checked : true,
+          fetch_missing_lyrics: elements.chkFetchLyrics ? elements.chkFetchLyrics.checked : true,
         }),
       });
 
@@ -223,7 +342,10 @@ function setupEventListeners() {
       }
 
       elements.fixTagsStatus.className = 'status-msg success';
-      elements.fixTagsStatus.textContent = `Berhasil! ${data.updated_files} lagu diperbarui menjadi 1 album "${data.album}" (${data.album_artist}).`;
+      elements.fixTagsStatus.textContent = `Berhasil! ${data.updated_files} lagu diperbarui ke 1 album "${data.album}".`;
+
+      // Re-scan folder to update UI table
+      await scanLocalFolder(folderPath);
     } catch (err) {
       elements.fixTagsStatus.className = 'status-msg error';
       elements.fixTagsStatus.textContent = `Gagal: ${err.message}`;
@@ -231,7 +353,235 @@ function setupEventListeners() {
       elements.btnRunFix.disabled = false;
     }
   });
+
+  // Sync Tab: Paste URL
+  if (elements.btnSyncPaste) {
+    elements.btnSyncPaste.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          elements.syncPlaylistUrl.value = text;
+        }
+      } catch (err) {
+        alert('Tidak dapat mengakses clipboard. Silakan paste manual (Ctrl+V).');
+      }
+    });
+  }
+
+  // Sync Tab: Check Sync with YouTube
+  if (elements.btnCheckSync) {
+    elements.btnCheckSync.addEventListener('click', async () => {
+      const url = elements.syncPlaylistUrl.value.trim();
+      const folderPath = elements.fixFolderPath.value.trim();
+      if (!url) {
+        alert('Masukkan link playlist YouTube untuk dicek.');
+        return;
+      }
+      if (!folderPath) {
+        alert('Pilih folder musik lokal terlebih dahulu.');
+        return;
+      }
+
+      elements.btnCheckSync.disabled = true;
+      elements.syncSpinner.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/sync-playlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playlist_url: url, folder_path: folderPath }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || 'Gagal memeriksa sinkronisasi');
+        }
+
+        state.syncComparisonData = data;
+        renderSyncResult(data);
+      } catch (err) {
+        alert(`Error sinkronisasi: ${err.message}`);
+      } finally {
+        elements.btnCheckSync.disabled = false;
+        elements.syncSpinner.classList.add('hidden');
+      }
+    });
+  }
+
+  // Sync Tab: Download New Songs Only Button
+  if (elements.btnDownloadNewOnly) {
+    elements.btnDownloadNewOnly.addEventListener('click', async () => {
+      if (!state.syncComparisonData || !state.syncComparisonData.new_tracks || state.syncComparisonData.new_tracks.length === 0) {
+        alert('Tidak ada lagu baru yang perlu diunduh.');
+        return;
+      }
+
+      const newTracks = state.syncComparisonData.new_tracks.map((t) => ({ ...t, selected: true }));
+      const folderPath = state.syncComparisonData.folder_path;
+      const folderName = state.syncComparisonData.folder_name || state.syncComparisonData.playlist_title;
+
+      // Use folderPath directly as base or parent
+      const parentDir = folderPath.substring(0, folderPath.lastIndexOf('\\')) || folderPath;
+
+      const payload = {
+        tracks: newTracks,
+        playlist_title: state.syncComparisonData.playlist_title,
+        output_base_dir: parentDir,
+        options: {
+          folder_name: folderName,
+          bitrate: elements.selectBitrate.value,
+          filename_template: elements.selectTemplate.value,
+          embed_cover: elements.toggleCover.checked,
+          save_cover_file: elements.toggleSaveCover.checked,
+          fetch_lyrics: elements.toggleLyrics.checked,
+          save_lrc_file: elements.toggleLrc.checked,
+          album_name: elements.fixAlbumName.value.trim() || folderName,
+          album_artist: elements.fixAlbumArtist.value.trim() || 'Various Artists',
+        },
+      };
+
+      try {
+        const res = await fetch('/api/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Gagal memulai download.');
+        }
+
+        const data = await res.json();
+        state.activeJobId = data.job_id;
+
+        // Show Progress Section
+        elements.progressSection.classList.remove('hidden');
+        elements.progressSection.scrollIntoView({ behavior: 'smooth' });
+
+        renderInitialQueue(newTracks);
+        listenToJobProgress(data.job_id);
+      } catch (err) {
+        alert(`Error download lagu baru: ${err.message}`);
+      }
+    });
+  }
 }
+
+// Scan Local Folder Function
+async function scanLocalFolder(folderPath) {
+  try {
+    if (elements.btnScanFolder) elements.btnScanFolder.disabled = true;
+    const res = await fetch('/api/scan-folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder_path: folderPath }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Gagal memindai folder');
+    }
+
+    state.scannedFolderData = data;
+    renderFolderInspection(data);
+  } catch (err) {
+    alert(`Error scan folder: ${err.message}`);
+  } finally {
+    if (elements.btnScanFolder) elements.btnScanFolder.disabled = false;
+  }
+}
+
+// Render Folder Inspection Card & Local Table
+function renderFolderInspection(data) {
+  elements.folderInspectionCard.classList.remove('hidden');
+  elements.folderStatTitle.textContent = data.folder_name;
+  elements.folderStatPath.textContent = data.folder;
+
+  elements.chipTotalFiles.textContent = `${data.total_files} File MP3`;
+  elements.chipCoverStatus.textContent = data.has_cover_file ? 'Cover: Ada di Folder' : 'Cover: Belum Ada';
+  elements.chipCoverStatus.className = `health-chip ${data.has_cover_file ? 'chip-success' : ''}`;
+
+  // Autofill album fields if empty
+  if (!elements.fixAlbumName.value.trim()) {
+    elements.fixAlbumName.value = data.detected_album || data.folder_name;
+  }
+  elements.fixAlbumArtist.value = data.detected_album_artist || 'Various Artists';
+
+  // Warnings
+  const missingArtists = data.issues_summary.missing_artists;
+  const missingLyrics = data.issues_summary.missing_lyrics;
+
+  if (missingArtists > 0) {
+    elements.chipMissingArtists.textContent = `${missingArtists} Unknown Artist`;
+    elements.chipMissingArtists.classList.remove('hidden');
+  } else {
+    elements.chipMissingArtists.classList.add('hidden');
+  }
+
+  if (missingLyrics > 0) {
+    elements.chipMissingLyrics.textContent = `${missingLyrics} Tanpa Lirik`;
+    elements.chipMissingLyrics.classList.remove('hidden');
+  } else {
+    elements.chipMissingLyrics.classList.add('hidden');
+  }
+
+  // Render local tracks table
+  elements.folderFilesTbody.innerHTML = '';
+  data.files.forEach((f) => {
+    const tr = document.createElement('tr');
+    const isArtistUnknown = f.is_unknown_artist;
+    tr.innerHTML = `
+      <td style="text-align: center;">${f.index}</td>
+      <td style="font-family: var(--font-mono); font-size: 0.78rem;">${escapeHtml(f.file)}</td>
+      <td>
+        ${isArtistUnknown ? `<span class="tag-pill tag-warn">Unknown Artist</span>` : escapeHtml(f.artist)}
+      </td>
+      <td>${escapeHtml(f.title)}</td>
+      <td style="text-align: center;">
+        <span class="tag-pill ${f.has_cover ? 'tag-ok' : 'tag-danger'}">${f.has_cover ? 'Ada' : 'Kosong'}</span>
+      </td>
+      <td style="text-align: center;">
+        <span class="tag-pill ${f.has_lyrics ? 'tag-ok' : 'tag-warn'}">${f.has_lyrics ? 'Ada' : 'Kosong'}</span>
+      </td>
+    `;
+    elements.folderFilesTbody.appendChild(tr);
+  });
+}
+
+// Render Sync Comparison Result
+function renderSyncResult(data) {
+  elements.syncResultCard.classList.remove('hidden');
+  elements.syncExistingCount.textContent = data.existing_count;
+  elements.syncNewCount.textContent = data.new_count;
+  elements.syncBtnCount.textContent = data.new_count;
+
+  // Badge pill on tab
+  if (data.new_count > 0) {
+    elements.syncNewCountPill.textContent = `${data.new_count} Baru`;
+    elements.syncNewCountPill.classList.remove('hidden');
+    elements.btnDownloadNewOnly.disabled = false;
+  } else {
+    elements.syncNewCountPill.classList.add('hidden');
+    elements.btnDownloadNewOnly.disabled = true;
+  }
+
+  // Render table
+  elements.syncComparisonTbody.innerHTML = '';
+  data.all_comparison.forEach((t, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align: center;">${idx + 1}</td>
+      <td><strong>${escapeHtml(t.title)}</strong></td>
+      <td>${escapeHtml(t.artist)}</td>
+      <td style="text-align: center;">
+        <span class="tag-pill ${t.is_existing ? 'tag-ok' : 'tag-new'}">
+          ${t.is_existing ? '✓ Sudah Ada' : '★ Lagu Baru'}
+        </span>
+      </td>
+    `;
+    elements.syncComparisonTbody.appendChild(tr);
+  });
+}
+
 
 // Analyze Playlist via Backend API
 async function analyzePlaylist(url) {
