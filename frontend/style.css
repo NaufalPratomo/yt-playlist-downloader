@@ -2228,3 +2228,211 @@ input, select, textarea, button {
     grid-template-columns: 220px 1fr 200px;
   }
 }
+
+/* ==========================================================================
+   MOBILE BOTTOM NAVIGATION & RESPONSIVE LAYOUT (<= 768px / ANDROID)
+   ========================================================================== */
+.app-mobile-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .app-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    grid-template-columns: none;
+  }
+
+  .app-sidebar {
+    display: none;
+  }
+
+  .app-main-viewport {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    padding-bottom: 145px;
+  }
+
+  .app-topbar {
+    height: 56px;
+    padding: 0 12px;
+  }
+
+  .search-box-global {
+    width: 100%;
+    max-width: none;
+  }
+
+  .view-container {
+    padding: 16px 12px;
+  }
+
+  .playlists-grid {
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+    gap: 10px;
+  }
+
+  .card-pl-cover-box {
+    height: 135px;
+  }
+
+  /* Compact Mobile Player Bar */
+  .app-player-bar {
+    position: fixed;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    height: 72px;
+    z-index: 40;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--bg-player);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .player-timeline-row {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 0;
+    gap: 0;
+  }
+
+  .time-label {
+    display: none;
+  }
+
+  .timeline-slider-wrap {
+    height: 3px;
+    border-radius: 0;
+  }
+  .timeline-slider-wrap::before {
+    height: 3px;
+    border-radius: 0;
+  }
+  .slider-fill-track {
+    height: 3px;
+    border-radius: 0;
+  }
+
+  .player-track-meta {
+    max-width: 60%;
+    gap: 10px;
+  }
+
+  .player-cover-frame {
+    width: 44px;
+    height: 44px;
+  }
+
+  .player-title {
+    font-size: 0.82rem;
+  }
+
+  .player-artist {
+    font-size: 0.7rem;
+  }
+
+  .player-center-controls {
+    max-width: none;
+    width: auto;
+    margin: 0;
+  }
+
+  .player-buttons-row {
+    gap: 10px;
+  }
+
+  #btn-player-shuffle, #btn-player-repeat {
+    display: none;
+  }
+
+  .player-right-actions {
+    display: none;
+  }
+
+  /* Mobile Bottom Navigation Bar */
+  .app-mobile-nav {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: var(--bg-sidebar);
+    border-top: 1px solid var(--border-subtle);
+    z-index: 50;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    color: var(--text-subtle);
+    cursor: pointer;
+    font-size: 0.65rem;
+    font-weight: 600;
+    transition: color var(--transition-fast);
+    padding: 6px 0;
+  }
+
+  .mobile-nav-item svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .mobile-nav-item.active {
+    color: var(--accent-primary);
+  }
+
+  /* Full Page Lyrics on Mobile */
+  .lyrics-full-layout {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  .lyrics-full-meta-card {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 16px;
+  }
+
+  .lyrics-full-cover-box {
+    width: 120px;
+    height: 120px;
+  }
+
+  .lyrics-full-stream-card {
+    height: 500px;
+  }
+
+  .lyric-line-full {
+    font-size: 1.2rem;
+  }
+  .lyric-line-full.active {
+    font-size: 1.5rem;
+  }
+
+  /* Sync & Forms */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .field-item.col-span-2 {
+    grid-column: 1;
+  }
+}

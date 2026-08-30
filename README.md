@@ -1,116 +1,174 @@
-<div align="center">
+﻿<div align="center">
 
 # MusicGit
 
-**Desktop Music Player, Real-Time Synchronized Lyrics, and YouTube Playlist Git-Like Sync Engine**
+**Cross-Platform (Desktop & Android) Music Player, Real-Time Synchronized Lyrics, and YouTube Playlist Git-Like Sync Engine**
 
-Unduh playlist atau video YouTube menjadi file MP3 berkualitas tinggi lengkap dengan metadata ID3v2, cover art 1:1, lirik lagu otomatis (.lrc), pemutar musik desktop bawaan (*Built-in Music Player*), tampilan lirik karaoke (*Time-Synced LRC*), serta fitur sinkronisasi cerdas playlist YouTube (*Git Pull for Music*).
+Download YouTube playlists or videos into high-quality MP3 files with complete ID3v2 metadata, 1:1 center-cropped album artwork, automatic synchronized lyrics (.lrc), built-in desktop & mobile music player, real-time karaoke lyrics display (*Time-Synced LRC*), intelligent playlist synchronization (*Git Pull for Music*), and full support for both **Desktop Windows (.exe)** and **Android Mobile (.apk)**.
 
-[![Download Windows (.exe)](https://img.shields.io/badge/Download_Aplikasi-Windows_(.exe)-0288d1?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/naufalpratomo/yt-playlist-downloader/releases/latest)
+[English](README.md) • [Bahasa Indonesia](README.id.md)
+
+<br/>
+
+[![Download Windows (.exe)](https://img.shields.io/badge/Download_App-Windows_(.exe)-0288d1?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/naufalpratomo/yt-playlist-downloader/releases/latest)
+[![Download Android (.apk)](https://img.shields.io/badge/Download_App-Android_(.apk)-3ddc84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/naufalpratomo/yt-playlist-downloader/releases/latest)
 [![Website](https://img.shields.io/badge/Author-Naufal_Pratomo-10b981?style=for-the-badge&logo=googlechrome&logoColor=white)](https://naufalpratomo.my.id)
 
 <br/>
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Android](https://img.shields.io/badge/Mobile-Android_(Chaquopy)-3ddc84?style=flat-square&logo=android)](https://developer.android.com/)
 [![pywebview](https://img.shields.io/badge/GUI-pywebview-4B0082?style=flat-square)](https://pywebview.flowrl.com/)
 [![yt-dlp](https://img.shields.io/badge/Engine-yt--dlp-red?style=flat-square)](https://github.com/yt-dlp/yt-dlp)
+[![LRCLIB](https://img.shields.io/badge/Lyrics-LRCLIB-blueviolet?style=flat-square)](https://lrclib.net/)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 </div>
 
 ---
 
-## Konsep Filosofi MusicGit
+## MusicGit Philosophy & Concept
 
-MusicGit memperlakukan **YouTube Playlist** seperti *Remote Repository* dan folder musik lokal di PC Anda sebagai *Local Repository*:
-- **Remote Mapping**: Setiap folder playlist lokal otomatis menyimpan tautan remote YouTube dalam file `.musicgit.json`.
-- **Git Pull / Sync**: Bandingkan perbedaan (*Diff*) antara lagu di YouTube dengan file lokal. Cukup 1-klik tombol **"Sync with YouTube"** untuk mengunduh lagu-lagu baru yang belum tersimpan di lokal tanpa perlu mengunduh ulang yang sudah ada.
-- **Built-in Music Player**: Dengarkan seluruh koleksi musik langsung di dalam aplikasi tanpa player pihak ketiga.
-- **Real-Time Synchronized Lyrics**: Menampilkan lirik lagu berjalan dengan sorotan baris aktif secara otomatis dan fitur interaktif *click-to-seek* (klik baris lirik untuk langsung lompat ke detik lagu tersebut).
-
----
-
-## Fitur Utama
-
-### 1. Built-in Desktop Music Player & Real-time LRC Lyrics
-- Pemutar musik persisten di bagian bawah aplikasi dengan kontrol lengkap: *Play/Pause, Next, Previous, Shuffle, Repeat (All / One / Off), Timeline Seekbar, Volume Booster*.
-- Panel lirik bersinkronisasi waktu (*Time-Synced LRC*) dengan auto-scroll dan penanda baris aktif yang elegan.
-- **Click-to-Seek**: Klik pada baris lirik mana saja untuk langsung melompat ke detik audio tersebut.
-- Antrian putar (*Playback Queue*) dan pintasan keyboard global (`Space`, `ArrowLeft/Right`, `ArrowUp/Down`).
-
-### 2. Sinkronisasi Playlist YouTube (Git Pull for Music)
-- Tautkan playlist lokal ke YouTube Playlist ID / URL.
-- Deteksi otomatis lagu baru yang baru saja ditambahkan di YouTube.
-- Diff perbandingan status lagu (*Lokal OK* vs *+ Baru*).
-- Unduh selektif lagu baru dengan 1 klik saja.
-
-### 3. Downloader Audio Berkualitas Tinggi
-- Mendukung tautan playlist YouTube maupun single video.
-- Pilihan bitrate MP3: **192 kbps**, **256 kbps**, **320 kbps**, dan **128 kbps**.
-- Template penamaan file kustom (`{num}. {title}-{id}.mp3`, `{artist} - {title}.mp3`, dll).
-- Real-time progress bar, kecepatan unduh, perkiraan sisa waktu (ETA), dan log aktivitas SSE.
-
-### 4. ID3v2 Metadata & Album Unity
-- Otomatis memotong (*center-crop*) cover art resolusi tinggi menjadi rasio 1:1.
-- Menulis metadata ID3v2 lengkap: Track Number (`TRCK`), Judul (`TIT2`), Artis (`TPE1`), Album (`TALB`), Artis Album (`TPE2`), dan Tahun rilis (`TDRC`).
-- Menggabungkan lagu dalam 1 playlist menjadi 1 album utuh di Windows Media Player / Groove Music / Apple Music / Head Unit Mobil.
-
-### 5. Manajer Tag & Perbaikan Folder Lokal (Repair Toolkit)
-- Inspeksi kesehatan metadata folder musik: deteksi lagu tanpa artis (*Unknown Artist*), tanpa cover art, atau tanpa lirik.
-- Perbaikan massal 1-klik untuk menyematkan `cover.jpg` dan mengambil lirik otomatis dari database LRCLIB.
+MusicGit treats your **YouTube Playlist** like a *Remote Repository* and your local music folder on PC / Android as the *Local Repository*:
+- **Remote Mapping**: Each local playlist directory automatically stores the remote YouTube link in a `.musicgit.json` metadata file.
+- **Git Pull / Sync Engine**: Compares the difference (*Diff*) between the tracks on YouTube and your local storage. Click the **"Sync with YouTube"** button to download only newly added songs without re-downloading existing ones.
+- **Built-in Music Player**: Listen to your entire music collection directly inside the application (Desktop & Mobile) without requiring third-party media players.
+- **Real-Time Synchronized Lyrics**: Displays synchronized scrolling lyrics with automated active line highlighting and interactive *click-to-seek* (click any lyric line to instantly jump to that exact audio timestamp).
+- **Cross-Platform Ready**: Enjoy a consistent experience across Windows PC and Android smartphones with local music storage synchronization (`Music/` directory).
 
 ---
 
-## Cara Menjalankan untuk Developer (Source Code)
+## Key Features
 
-### 1. Clone Repository
+### 1. Multi-Platform Support (Desktop Windows & Android APK)
+- **Desktop (Windows)**: Lightweight native window powered by `pywebview` and local FastAPI server.
+- **Mobile (Android APK)**: Powered by an embedded Python runtime (`Chaquopy`) executing the FastAPI backend natively on your Android device.
+- **Background Media Playback (Android)**: Features an Android Foreground Service and system media notification so music keeps playing seamlessly when the screen is locked or while multitasking.
+- **Mobile Responsive UI**: Adaptive glassmorphism UI with *Bottom Navigation Bar*, *compact player bar*, and touch-optimized navigation for smartphone screens.
+
+### 2. Built-in Music Player & Real-Time LRC Lyrics (Karaoke Mode)
+- Persistent audio player bar with full controls: *Play/Pause, Next, Previous, Shuffle, Repeat (All / One / Off), Timeline Seekbar, Volume Booster*.
+- Time-synchronized LRC lyric stream panel with smooth auto-scrolling and active line highlighting.
+- **Click-to-Seek**: Click on any lyric line to instantly seek and jump playback to that timestamp.
+- Playback queue manager, full-screen immersive karaoke view, and desktop keyboard shortcuts (`Space`, `ArrowLeft/Right`, `ArrowUp/Down`).
+
+### 3. YouTube Playlist Synchronization (Git Pull for Music)
+- Link local playlist directories to YouTube Playlist IDs / URLs.
+- Automatically detect newly added tracks on YouTube.
+- Visual diff comparison (*Local OK* vs *+ New*).
+- 1-Click selective batch download for new tracks.
+
+### 4. High-Quality Audio Downloader
+- Supports both YouTube playlists and individual video URLs.
+- MP3 bitrate options: **192 kbps**, **256 kbps**, **320 kbps**, and **128 kbps**.
+- Custom filename templates (`{num}. {title}-{id}.mp3`, `{artist} - {title}.mp3`, etc.).
+- Real-time download progress bar, network speed, estimated time remaining (ETA), and Server-Sent Events (SSE) activity log.
+
+### 5. ID3v2 Metadata & Album Unity
+- Automatically center-crops high-resolution YouTube thumbnails into clean 1:1 square cover art.
+- Embeds complete ID3v2 tags: Track Number (`TRCK`), Title (`TIT2`), Artist (`TPE1`), Album (`TALB`), Album Artist (`TPE2`), and Release Year (`TDRC`).
+- Unifies playlist tracks under one coherent album for Windows Media Player, Apple Music, car head units, and Android music players.
+
+### 6. Tag Manager & Repair Toolkit
+- Inspect metadata health across your local music folders: detects missing artists (*Unknown Artist*), missing cover art, or missing lyric files.
+- 1-Click mass repair tool to embed local `cover.jpg` artwork and auto-fetch missing `.lrc` lyrics from the LRCLIB database.
+
+---
+
+## Installation & Build Guide
+
+### 1. Developer Setup (Source Code - Desktop)
+
 ```bash
+# Clone the repository
 git clone https://github.com/naufalpratomo/yt-playlist-downloader.git
 cd yt-playlist-downloader
-```
 
-### 2. Install Dependensi
-```bash
+# Install Python dependencies
 pip install -r requirements.txt
 ```
 
-> **Catatan FFmpeg**: Pastikan `ffmpeg.exe` telah terpasang di sistem Anda atau berada di PATH sistem (`winget install Gyan.FFmpeg`), atau letakkan file `ffmpeg.exe` di folder root project.
+> **FFmpeg Requirement**: Ensure `ffmpeg.exe` is installed on your system PATH (`winget install Gyan.FFmpeg`) or placed directly in the project root directory.
 
-### 3. Jalankan Aplikasi
-- **Opsi A (Windows Batch)**: Double-click file `start.bat`.
-- **Opsi B (Terminal)**:
+**Run the Application:**
+- **Option A (Windows Batch)**: Double-click `start.bat`.
+- **Option B (Terminal)**:
   ```bash
   python run.py
   ```
 
 ---
 
-## Struktur Proyek
+### 2. Build Standalone Windows Executable (.exe)
+
+To generate a standalone `.exe` and portable `.zip` archive using PyInstaller:
+```bash
+# Double-click build_exe.bat or execute in CMD:
+build_exe.bat
+```
+The compiled output will be generated in `dist/MusicGit.exe` and `dist/MusicGit-v2.0-Windows.zip`.
+
+---
+
+### 3. Build Android APK (.apk)
+
+The Android app is built with Gradle and Chaquopy, bundling the Python backend and web frontend into a native APK.
+
+**Prerequisites:**
+- Java Development Kit (JDK 17+)
+- Android SDK / Android Studio
+
+**Build Instructions:**
+- **Option A (Automated Script)**: Double-click `build_apk.bat`.
+- **Option B (Terminal / Gradle)**:
+  ```bash
+  cd android
+  ./gradlew assembleDebug
+  ```
+
+> The compiled debug APK will be located at:
+> `android/app/build/outputs/apk/debug/app-debug.apk`
+
+---
+
+## Project Structure
 
 ```
 yt-playlist-downloader/
+├── android/                  # Native Android project (Chaquopy + WebView)
+│   ├── app/
+│   │   ├── build.gradle      # Android dependencies & Chaquopy Python config
+│   │   └── src/main/
+│   │       ├── AndroidManifest.xml
+│   │       ├── java/         # MainActivity & MusicGitBackgroundService
+│   │       └── python/       # Embedded backend runner android_server.py
+│   ├── build.gradle          # Root Gradle build script
+│   └── gradlew.bat           # Gradle wrapper script
 ├── backend/
-│   ├── app.py                # Server FastAPI & endpoint REST / SSE
-│   ├── library_manager.py    # Pemindai library musik, .musicgit metadata, & LRC parser
-│   ├── cover_processor.py    # Pemrosesan & cropping cover art 1:1
-│   ├── downloader.py         # Engine download yt-dlp & sync playlist
-│   ├── lyrics_fetcher.py     # Integrasi API LRCLIB (lirik plain & .lrc)
-│   ├── metadata_tagger.py    # Penulisan tag ID3v2 & album unity
-│   └── utils.py              # Helper dialog Windows, sanitasi path, dll.
+│   ├── app.py                # FastAPI server, REST endpoints & SSE streaming
+│   ├── library_manager.py    # Music library scanner, .musicgit metadata & LRC parser
+│   ├── cover_processor.py    # 1:1 center-cropping & artwork processing
+│   ├── downloader.py         # yt-dlp download engine & playlist diff sync
+│   ├── lyrics_fetcher.py     # LRCLIB API integration (plain & synced .lrc)
+│   ├── metadata_tagger.py    # ID3v2 tagging & album unity writer
+│   └── utils.py              # Cross-platform path helpers (Windows / Android)
 ├── frontend/
 │   ├── assets/
-│   │   └── MusicGit-logo.png # Logo resmi MusicGit
-│   ├── app.js                # Logika audio player, LRC lyrics loop, sync UI, & SSE stream
-│   ├── index.html            # Layout desktop 4-panel (Sidebar, Main View, Lyrics, Player)
-│   └── style.css             # Desain UI modern dark navy glassmorphism (100% SVG)
-├── public/image/             # Aset gambar & logo master
-├── tests/                    # Unit testing (ID3 tagging, Library manager, API endpoints)
-├── build_exe.bat             # Skrip otomatis build PyInstaller ke .exe & .zip
-├── fix_existing_tags.py      # Skrip CLI perbaikan ID3 tags folder lokal
-├── requirements.txt          # Dependensi Python
-├── run.py                    # Launcher aplikasi desktop (pywebview + server)
-└── start.bat                 # Skrip launcher cepat untuk development
+│   │   └── MusicGit-logo.png # Official MusicGit logo
+│   ├── app.js                # Audio player, Time-Synced LRC, sync UI & SSE stream
+│   ├── index.html            # Desktop & mobile layout (Sidebar, Bottom Nav, Lyrics, Player)
+│   └── style.css             # Dark navy glassmorphism UI & responsive mobile styles
+├── public/image/             # Master images & branding assets
+├── tests/                    # Unit tests (ID3 tagging, Library manager, API endpoints)
+├── build_apk.bat             # Automated script to build Android APK (.apk)
+├── build_exe.bat             # Automated script to build Windows Executable (.exe & .zip)
+├── capacitor.config.json     # Cross-platform Capacitor configuration
+├── fix_existing_tags.py      # CLI script for repairing local folder ID3 tags
+├── package.json              # Capacitor / Android package config & scripts
+├── requirements.txt          # Python dependencies
+├── run.py                    # Desktop app launcher (pywebview + local server)
+└── start.bat                 # Quick launch script for development
 ```
 
 ---
@@ -119,4 +177,4 @@ yt-playlist-downloader/
 
 Developed by **[Naufal Pratomo](https://naufalpratomo.my.id)**
 
-Didistribusikan di bawah lisensi MIT. Silakan gunakan, pelajari, dan kembangkan sesuai kebutuhan.
+Distributed under the MIT License. Feel free to use, study, and build upon this project.

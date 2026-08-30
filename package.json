@@ -1,0 +1,26 @@
+{
+  "name": "musicgit",
+  "version": "2.0.0",
+  "description": "YouTube Playlist Remote Sync & Desktop/Android Music Player",
+  "author": "Naufal Pratomo",
+  "main": "frontend/app.js",
+  "scripts": {
+    "dev": "python run.py",
+    "cap:add": "cap add android",
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android",
+    "cap:build": "cap build android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  },
+  "keywords": [
+    "music-player",
+    "youtube-downloader",
+    "karaoke-lyrics",
+    "android-apk"
+  ],
+  "license": "MIT"
+}

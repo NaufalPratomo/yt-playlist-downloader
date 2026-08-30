@@ -180,11 +180,17 @@ async def get_config():
     }
 
 
+def dump_model(model, **kwargs):
+    if hasattr(model, "model_dump"):
+        return model.model_dump(**kwargs)
+    return model.dict(**kwargs)
+
+
 @app.post("/api/config")
 async def save_config(req: SaveConfigRequest):
     """Save user config to persistent config.json file."""
     current = load_saved_config()
-    update_data = req.model_dump(exclude_unset=True)
+    update_data = dump_model(req, exclude_unset=True)
     current.update(update_data)
     ok = write_saved_config(current)
     if not ok:
@@ -210,7 +216,7 @@ async def analyze_url(req: AnalyzeRequest):
 @app.post("/api/download")
 async def start_download(req: StartDownloadRequest):
     """Start background download job."""
-    selected_tracks = [t.model_dump() for t in req.tracks if t.selected]
+    selected_tracks = [dump_model(t) for t in req.tracks if t.selected]
     if not selected_tracks:
         raise HTTPException(status_code=400, detail="Tidak ada lagu yang dipilih untuk didownload.")
 
@@ -223,7 +229,7 @@ async def start_download(req: StartDownloadRequest):
             tracks=selected_tracks,
             playlist_title=req.playlist_title,
             output_base_dir=base_dir,
-            options=req.options.model_dump(),
+            options=dump_model(req.options),
         )
         return {"job_id": job_id, "status": "started", "total_tracks": len(selected_tracks)}
     except Exception as e:

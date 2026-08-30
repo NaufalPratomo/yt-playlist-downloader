@@ -12,7 +12,12 @@ from typing import Optional
 
 
 def get_default_music_dir() -> str:
-    """Get the user's default Music folder."""
+    """Get the user's default Music folder (Windows, Mac, Linux, Android)."""
+    # Android storage check
+    android_music = Path("/storage/emulated/0/Music")
+    if android_music.exists() and android_music.is_dir():
+        return str(android_music)
+
     user_home = Path.home()
     music_dir = user_home / "Music"
     if music_dir.exists():

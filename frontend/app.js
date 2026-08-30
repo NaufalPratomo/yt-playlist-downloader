@@ -1869,8 +1869,8 @@ const ViewController = {
     I18nManager.init();
     ThemeManager.init();
 
-    // Nav menu switching
-    document.querySelectorAll(".nav-item").forEach((btn) => {
+    // Nav menu switching (Desktop Sidebar & Mobile Bottom Nav)
+    document.querySelectorAll(".nav-item, .mobile-nav-item").forEach((btn) => {
       btn.addEventListener("click", () => {
         const viewId = btn.dataset.view;
         this.switchView(viewId);
@@ -1994,7 +1994,7 @@ const ViewController = {
       this.previousView = MusicGitState.activeView;
     }
 
-    document.querySelectorAll(".nav-item").forEach((n) => {
+    document.querySelectorAll(".nav-item, .mobile-nav-item").forEach((n) => {
       n.classList.toggle("active", n.dataset.view === viewId);
     });
 

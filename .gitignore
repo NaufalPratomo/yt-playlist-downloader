@@ -12,6 +12,31 @@ dist/
 *.egg-info/
 *.egg
 
+# Android / Gradle build artifacts & caches
+.gradle/
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/local.properties
+android/captures/
+android/.navigation/
+android/app/src/main/assets/public/
+*.apk
+*.ap_
+*.aab
+*.dex
+*.keystore
+*.jks
+
+# Node / NPM / Capacitor
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+package-lock.json
+
 # Standalone / External Binaries (Jangan push FFmpeg ke Git karena file >80MB)
 ffmpeg.exe
 ffprobe.exe
@@ -38,6 +63,7 @@ venv.bak/
 *.jpeg
 *.png
 !frontend/
+!public/
 !app_icon.ico
 downloads/
 temp_downloads/
@@ -47,6 +73,7 @@ temp_downloads/
 .env.*
 cookies.txt
 *.session
+config.json
 
 # IDE & Editor files
 .vscode/
