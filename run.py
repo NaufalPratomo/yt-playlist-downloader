@@ -79,16 +79,17 @@ def main():
 
     # Create and display native standalone desktop window
     webview.create_window(
-        title="YouTube Playlist Downloader HD",
+        title="MusicGit - Music Player & Playlist Sync",
         url=url,
-        width=1180,
-        height=780,
-        min_size=(920, 620),
+        width=1240,
+        height=820,
+        min_size=(960, 640),
         text_select=True,
     )
 
-    # Blocks until the desktop window is closed by the user
-    webview.start(private_mode=False)
+    # Blocks until the desktop window is closed by the user (debug=True enables F12 DevTools & F5 reload)
+    is_dev = not getattr(sys, "frozen", False)
+    webview.start(debug=is_dev, private_mode=False)
 
 
 if __name__ == "__main__":

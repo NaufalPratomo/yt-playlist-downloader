@@ -12,13 +12,16 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+import mutagen
+from mutagen.id3 import ID3
 
 from .downloader import ACTIVE_JOBS, downloader
+from .library_manager import library_manager
 from .metadata_tagger import metadata_tagger
 from .utils import (
     browse_folder_dialog,
@@ -33,7 +36,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("app")
 
-app = FastAPI(title="YouTube Playlist Downloader API")
+app = FastAPI(title="MusicGit API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -90,6 +93,13 @@ class SyncPlaylistRequest(BaseModel):
     folder_path: str
 
 
+class LinkRemoteRequest(BaseModel):
+    folder_path: str
+    remote_url: str
+    playlist_title: Optional[str] = None
+    auto_sync: Optional[bool] = True
+
+
 class TrackItem(BaseModel):
     index: int
     id: str
@@ -109,6 +119,35 @@ class StartDownloadRequest(BaseModel):
     options: DownloadOptions
 
 
+CONFIG_FILE = Path(__file__).resolve().parent.parent / "config.json"
+
+
+class SaveConfigRequest(BaseModel):
+    default_music_dir: Optional[str] = None
+    default_bitrate: Optional[str] = "192"
+    default_template: Optional[str] = "{num}. {title}-{id}.mp3"
+    theme: Optional[str] = "dark"
+    language: Optional[str] = "id"
+
+
+def load_saved_config() -> dict:
+    if CONFIG_FILE.exists():
+        try:
+            return json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        except Exception as e:
+            logger.warning(f"Failed to read config.json: {e}")
+    return {}
+
+
+def write_saved_config(data: dict) -> bool:
+    try:
+        CONFIG_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to write config.json: {e}")
+        return False
+
+
 class OpenFolderRequest(BaseModel):
     path: str
 
@@ -116,11 +155,15 @@ class OpenFolderRequest(BaseModel):
 # Endpoints
 @app.get("/api/config")
 async def get_config():
-    """Get system default config and paths."""
+    """Get system default config and paths, merging with config.json."""
     default_dir = get_default_music_dir()
+    saved = load_saved_config()
     return {
-        "default_music_dir": default_dir,
-        "default_template": "{num}. {title}-{id}.mp3",
+        "default_music_dir": saved.get("default_music_dir") or default_dir,
+        "default_template": saved.get("default_template") or "{num}. {title}-{id}.mp3",
+        "default_bitrate": saved.get("default_bitrate") or "192",
+        "theme": saved.get("theme") or "dark",
+        "language": saved.get("language") or "id",
         "available_templates": [
             {"label": "1. Judul-VideoID.mp3", "value": "{num}. {title}-{id}.mp3"},
             {"label": "1. Judul.mp3", "value": "{num}. {title}.mp3"},
@@ -129,12 +172,24 @@ async def get_config():
             {"label": "1. Artis - Judul.mp3", "value": "{num}. {artist} - {title}.mp3"},
         ],
         "available_bitrates": [
+            {"label": "128 kbps (Standar)", "value": "128"},
             {"label": "192 kbps (Standard HD)", "value": "192"},
             {"label": "256 kbps (High Quality)", "value": "256"},
             {"label": "320 kbps (Extreme Ultra)", "value": "320"},
-            {"label": "128 kbps (Standar)", "value": "128"},
         ],
     }
+
+
+@app.post("/api/config")
+async def save_config(req: SaveConfigRequest):
+    """Save user config to persistent config.json file."""
+    current = load_saved_config()
+    update_data = req.model_dump(exclude_unset=True)
+    current.update(update_data)
+    ok = write_saved_config(current)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Gagal menyimpan config.json ke disk.")
+    return {"status": "ok", "config": current}
 
 
 @app.post("/api/analyze")
@@ -336,6 +391,126 @@ async def stream_audio(file_path: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File audio tidak ditemukan.")
     return FileResponse(file_path, media_type="audio/mpeg")
+
+
+# --- MusicGit Library Endpoints ---
+@app.get("/api/library/playlists")
+async def get_library_playlists(base_dir: Optional[str] = None):
+    """Scan and list all local playlist directories."""
+    target_dir = base_dir or get_default_music_dir()
+    playlists = await asyncio.to_thread(library_manager.scan_library, base_dir=target_dir)
+    return playlists
+
+
+@app.get("/api/library/playlist")
+async def get_playlist_details(folder_path: str):
+    """Get full tracklist and metadata for a specific playlist folder."""
+    folder = folder_path.strip()
+    if not folder or not os.path.exists(folder):
+        raise HTTPException(status_code=400, detail="Folder playlist tidak ditemukan.")
+
+    try:
+        details = await asyncio.to_thread(library_manager.get_playlist_details, folder_path_str=folder)
+        return details
+    except Exception as e:
+        logger.error(f"Failed to get playlist details for {folder}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/library/link-remote")
+async def link_playlist_remote(req: LinkRemoteRequest):
+    """Link a local playlist folder with a remote YouTube playlist."""
+    folder = req.folder_path.strip()
+    url = req.remote_url.strip()
+    if not folder or not os.path.exists(folder):
+        raise HTTPException(status_code=400, detail="Folder playlist tidak ditemukan.")
+    if not url:
+        raise HTTPException(status_code=400, detail="URL Playlist YouTube tidak boleh kosong.")
+
+    try:
+        res = await asyncio.to_thread(
+            library_manager.link_playlist_remote,
+            folder_path=folder,
+            remote_url=url,
+            playlist_title=req.playlist_title,
+            auto_sync=req.auto_sync if req.auto_sync is not None else True,
+        )
+        return res
+    except Exception as e:
+        logger.error(f"Failed to link remote playlist: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/library/track-lyrics")
+async def get_track_lyrics(file_path: str, auto_fetch: bool = True):
+    """Get synchronized or plain lyrics for a track."""
+    path = file_path.strip()
+    if not path or not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="File audio tidak ditemukan.")
+
+    try:
+        res = await asyncio.to_thread(
+            library_manager.get_track_lyrics,
+            file_path_str=path,
+            auto_fetch_online=auto_fetch,
+        )
+        return res
+    except Exception as e:
+        logger.error(f"Failed to load lyrics for {path}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/library/track-cover")
+async def get_track_cover(file_path: str):
+    """Extract and stream embedded cover art from MP3 file."""
+    path = file_path.strip()
+    if not path or not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="File audio tidak ditemukan.")
+
+    try:
+        audio = ID3(path)
+        for key in audio.keys():
+            if key.startswith("APIC"):
+                apic = audio[key]
+                return Response(content=apic.data, media_type=apic.mime or "image/jpeg")
+    except Exception:
+        pass
+
+    # Fallback to local folder cover image
+    folder = Path(path).parent
+    for name in ["cover.jpg", "cover.png", "folder.jpg", "folder.png"]:
+        img = folder / name
+        if img.exists():
+            return FileResponse(str(img))
+
+    raise HTTPException(status_code=404, detail="Cover tidak ditemukan.")
+
+
+@app.get("/api/library/playlist-cover")
+async def get_playlist_cover(folder_path: str):
+    """Get folder cover image or first track's cover."""
+    folder = Path(folder_path.strip())
+    if not folder.exists() or not folder.is_dir():
+        raise HTTPException(status_code=404, detail="Folder tidak ditemukan.")
+
+    for name in ["cover.jpg", "cover.png", "folder.jpg", "folder.png", "album.jpg", "album.png"]:
+        img = folder / name
+        if img.exists():
+            return FileResponse(str(img))
+
+    # Try first MP3
+    mp3s = list(folder.glob("*.mp3"))
+    if mp3s:
+        try:
+            audio = ID3(str(mp3s[0]))
+            for key in audio.keys():
+                if key.startswith("APIC"):
+                    apic = audio[key]
+                    return Response(content=apic.data, media_type=apic.mime or "image/jpeg")
+        except Exception:
+            pass
+
+    raise HTTPException(status_code=404, detail="Cover playlist tidak ditemukan.")
 
 
 # Serve Frontend Static Assets (Supports PyInstaller frozen bundle and standard dev)
