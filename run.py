@@ -72,7 +72,9 @@ def open_app_window_fallback(url):
     Opens a dedicated standalone Chromium App Window (via Edge/Chrome) with no address bar or tabs.
     Works instantly on 100% of Windows 10/11 machines without requiring .NET or DLL unblocking.
     """
-    profile_dir = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")), "musicgit_app_profile")
+    # Store profile permanently in LocalAppData so localStorage and user settings are never lost
+    profile_dir = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "MusicGit", "profile")
+    os.makedirs(profile_dir, exist_ok=True)
 
     candidates = [
         os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),

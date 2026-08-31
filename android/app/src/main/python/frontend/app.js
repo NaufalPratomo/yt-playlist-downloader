@@ -659,6 +659,7 @@ class LibraryEngine {
     // Modal elements
     this.modalLink = document.getElementById("modal-link-remote");
     this.modalSyncDiff = document.getElementById("modal-sync-diff");
+    this.currentPlaylistPath = null;
 
     this._initListeners();
   }
@@ -876,6 +877,7 @@ class LibraryEngine {
   }
 
   async openPlaylist(folderPath) {
+    this.currentPlaylistPath = folderPath;
     this.masterView.classList.add("hidden");
     this.detailView.classList.remove("hidden");
     this.tracksTbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px;"><span class="spinner"></span> Memuat lagu...</td></tr>`;
@@ -994,7 +996,15 @@ class LibraryEngine {
   showMaster() {
     this.detailView.classList.add("hidden");
     this.masterView.classList.remove("hidden");
+    this.currentPlaylistPath = null;
     MusicGitState.currentPlaylist = null;
+  }
+
+  async refreshCurrentView() {
+    await this.loadPlaylists();
+    if (this.currentPlaylistPath) {
+      await this.openPlaylist(this.currentPlaylistPath);
+    }
   }
 
   openLinkRemoteModal(playlist) {
@@ -1235,6 +1245,7 @@ class DownloaderSyncEngine {
       playlist_title: MusicGitState.analyzedData.title,
       output_base_dir: MusicGitState.config.defaultMusicDir || null,
       options,
+      remote_url: this.urlInput.value.trim(),
     };
 
     try {
@@ -1319,9 +1330,11 @@ class DownloaderSyncEngine {
       if (["completed", "failed", "cancelled"].includes(data.status)) {
         evt.close();
         badge.classList.add("hidden");
-        // Refresh library when completed
+        // Live auto-refresh library and active playlist when completed
         if (data.status === "completed") {
-          LibraryManagerEngine.loadPlaylists();
+          if (window.LibraryManagerEngine) {
+            window.LibraryManagerEngine.refreshCurrentView();
+          }
         }
       }
     };
@@ -2040,6 +2053,14 @@ const ViewController = {
     if (footerLyricsBtn) footerLyricsBtn.classList.toggle("active", isLyrics);
 
     MusicGitState.activeView = viewId;
+
+    // Live auto-refresh library when navigating to Library View
+    if (viewId === "view-library" && window.LibraryManagerEngine) {
+      window.LibraryManagerEngine.loadPlaylists();
+      if (window.LibraryManagerEngine.currentPlaylistPath) {
+        window.LibraryManagerEngine.openPlaylist(window.LibraryManagerEngine.currentPlaylistPath);
+      }
+    }
   },
 };
 
@@ -2089,5 +2110,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // 3. Load Library Playlists
+  window.LibraryManagerEngine = LibraryManagerEngine;
   LibraryManagerEngine.loadPlaylists();
+
+  // Auto-refresh when window regains focus (e.g. user returns from Explorer/Browser)
+  window.addEventListener("focus", () => {
+    if (window.LibraryManagerEngine) {
+      window.LibraryManagerEngine.loadPlaylists();
+    }
+  });
 });

@@ -128,9 +128,13 @@ class StartDownloadRequest(BaseModel):
     playlist_title: str
     output_base_dir: Optional[str] = None
     options: DownloadOptions
+    remote_url: Optional[str] = None
 
 
-CONFIG_FILE = Path(__file__).resolve().parent.parent / "config.json"
+if getattr(sys, "frozen", False):
+    CONFIG_FILE = Path(sys.executable).resolve().parent / "config.json"
+else:
+    CONFIG_FILE = Path(__file__).resolve().parent.parent / "config.json"
 
 
 class SaveConfigRequest(BaseModel):
@@ -234,15 +238,22 @@ async def start_download(req: StartDownloadRequest):
     base_dir = req.output_base_dir or get_default_music_dir()
     job_id = str(uuid.uuid4())[:8]
 
+    options = dump_model(req.options)
+    if req.remote_url:
+        options["remote_url"] = req.remote_url
+
     try:
         downloader.start_download_job(
             job_id=job_id,
             tracks=selected_tracks,
             playlist_title=req.playlist_title,
             output_base_dir=base_dir,
-            options=dump_model(req.options),
+            options=options,
         )
         return {"job_id": job_id, "status": "started", "total_tracks": len(selected_tracks)}
+    except Exception as e:
+        logger.error(f"Failed to start download job: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to start download job: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

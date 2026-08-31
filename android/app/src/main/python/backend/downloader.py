@@ -413,6 +413,21 @@ class PlaylistDownloader:
             f"[Selesai Semua] Berhasil: {job['completed_tracks']}, Gagal: {job['failed_tracks']}. Lokasi: {target_dir}",
         )
 
+        # Auto-create or update .musicgit.json in playlist folder
+        try:
+            from .library_manager import library_manager
+            remote_url = options.get("remote_url") or ""
+            playlist_title = job.get("playlist_title") or album_name
+            library_manager.link_playlist_remote(
+                folder_path=target_dir,
+                remote_url=remote_url,
+                playlist_title=playlist_title,
+                auto_sync=True,
+            )
+            library_manager.update_sync_timestamp(target_dir, time.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        except Exception as e:
+            logger.warning(f"Failed to auto-link .musicgit.json in {target_dir}: {e}")
+
     def _update_overall_progress(self, job: Dict[str, Any]):
         total = job["total_tracks"]
         if total == 0:
