@@ -47,6 +47,17 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def add_no_cache_header(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path.lower()
+    if path.endswith((".html", ".js", ".css", ".png", ".jpg", ".jpeg", ".ico")) or path == "/":
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 # Pydantic Request Models
 class AnalyzeRequest(BaseModel):
     url: str
