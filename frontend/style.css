@@ -1733,7 +1733,7 @@ input, select, textarea, button {
 }
 
 .lyric-line-full.active {
-  color: var(--accent-primary);
+  color: var(--text-main);
   font-size: 1.95rem;
   font-weight: 800;
   opacity: 1;
@@ -1910,7 +1910,7 @@ input, select, textarea, button {
 }
 
 .lyric-line.active {
-  color: var(--accent-primary);
+  color: var(--text-main);
   font-size: 1.18rem;
   font-weight: 700;
   opacity: 1;

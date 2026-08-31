@@ -593,7 +593,15 @@ class LyricsSyncEngine {
         return;
       }
 
+      if (this.isSynced) {
+        this._ensureLineWords(this.lines);
+      }
+
       this._renderLines();
+
+      // Trigger instant initial highlight
+      const curTime = window.MusicPlayer ? (window.MusicPlayer.audio.currentTime || 0) : 0;
+      this.onAudioTimeUpdate(curTime);
     } catch (err) {
       console.warn("Failed to load lyrics:", err);
       const errHtml = `
@@ -603,6 +611,39 @@ class LyricsSyncEngine {
       `;
       if (this.container) this.container.innerHTML = errHtml;
       if (this.fullContainer) this.fullContainer.innerHTML = errHtml;
+    }
+  }
+
+  _ensureLineWords(lines) {
+    if (!Array.isArray(lines)) return;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line.words || line.words.length === 0) {
+        const tStart = line.time || 0;
+        const tNext = (i + 1 < lines.length) ? lines[i + 1].time : (tStart + 4.0);
+        const lineDuration = Math.max(0.6, Math.min(14.0, tNext - tStart));
+        line.endTime = line.endTime || (tStart + lineDuration);
+
+        const rawWords = (line.text || "").trim().split(/\s+/).filter(Boolean);
+        if (rawWords.length > 0) {
+          const totalChars = rawWords.reduce((acc, w) => acc + Math.max(1, w.length), 0);
+          let currTime = tStart;
+          line.words = rawWords.map((w) => {
+            const weight = Math.max(1, w.length) / totalChars;
+            const wDur = Math.max(0.12, weight * lineDuration);
+            const wStart = currTime;
+            const wEnd = currTime + wDur;
+            currTime += wDur;
+            return {
+              time: Math.round(wStart * 100) / 100,
+              endTime: Math.round(wEnd * 100) / 100,
+              text: w,
+            };
+          });
+        } else {
+          line.words = [];
+        }
+      }
     }
   }
 
