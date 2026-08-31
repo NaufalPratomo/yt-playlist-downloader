@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="public/image/logo-lightmode.jpg" alt="MusicGit Logo" width="120" style="border-radius: 20px;" />
+
 # MusicGit
 
 **Cross-Platform (Desktop & Android) Music Player, Real-Time Synchronized Lyrics, and YouTube Playlist Git-Like Sync Engine**
@@ -43,9 +45,10 @@ MusicGit memperlakukan **YouTube Playlist** seperti *Remote Repository* dan fold
 
 ### 1. Dukungan Multi-Platform (Desktop Windows & Android APK)
 - **Desktop (Windows)**: Aplikasi native ringan menggunakan framework `pywebview` dan server FastAPI lokal.
-- **Mobile (Android APK)**: Ditenagai embedded Python engine (`Chaquopy`) yang menjalankan backend FastAPI langsung di dalam perangkat Android.
+- **Mobile (Android APK)**: Ditenagai embedded Python engine (`Chaquopy`) yang menjalankan backend FastAPI langsung di dalam perangkat Android. Python dijalankan langsung dari `MainActivity` dengan diagnostik error lengkap dan polling server otomatis.
 - **Background Media Playback (Android)**: Dilengkapi Android Foreground Service dan notifikasi media sehingga musik tetap berputar mulus saat layar mati atau berpindah aplikasi.
 - **Mobile Responsive UI**: Tampilan adaptif dengan *Bottom Navigation Bar*, *compact player bar*, dan navigasi sentuh yang dioptimalkan untuk layar ponsel.
+- **Tema Gelap / Terang**: Pergantian tema lengkap dengan pertukaran logo dinamis (aset branding dark mode & light mode), preferensi disimpan via `localStorage`.
 
 ### 2. Built-in Music Player & Real-time LRC Lyrics (Karaoke Mode)
 - Pemutar musik persisten dengan kontrol lengkap: *Play/Pause, Next, Previous, Shuffle, Repeat (All / One / Off), Timeline Seekbar, Volume Booster*.
@@ -97,6 +100,11 @@ pip install -r requirements.txt
   ```bash
   python run.py
   ```
+- **Opsi C (Mode Pengembangan Browser dengan Hot Reload)**:
+  ```bash
+  npm run dev:web
+  # atau double-click start_web.bat
+  ```
 
 ---
 
@@ -141,11 +149,13 @@ yt-playlist-downloader/
 │   │   ├── build.gradle      # Konfigurasi dependensi Android & Chaquopy Python
 │   │   └── src/main/
 │   │       ├── AndroidManifest.xml
-│   │       ├── java/         # MainActivity & MusicGitBackgroundService
-│   │       └── python/       # Runner backend embedded android_server.py
+│   │       ├── java/         # MainActivity (boot Python langsung) & BackgroundService
+│   │       ├── python/       # Runner backend embedded (android_server.py)
+│   │       └── res/          # Ikon launcher (mipmap), tema & konfigurasi XML
 │   ├── build.gradle          # Root Gradle build script
 │   └── gradlew.bat           # Gradle wrapper script
 ├── backend/
+│   ├── __init__.py           # Penanda package Python
 │   ├── app.py                # Server FastAPI, endpoint REST & SSE event streaming
 │   ├── library_manager.py    # Pemindai library musik, .musicgit metadata, & LRC parser
 │   ├── cover_processor.py    # Pemrosesan & center-cropping cover art 1:1
@@ -156,20 +166,22 @@ yt-playlist-downloader/
 ├── frontend/
 │   ├── assets/
 │   │   ├── logo-lightmode.jpg # Logo mode terang & icon aplikasi
-│   │   └── logo-darkmode.jpg  # Logo mode gelap
-│   ├── app.js                # Logika player, Time-Synced LRC, sync UI, & SSE stream
+│   │   ├── logo-darkmode.jpg  # Logo mode gelap
+│   │   └── MusicGit-logo.png  # Logo fallback legacy
+│   ├── app.js                # Logika player, Time-Synced LRC, manajer tema & SSE stream
 │   ├── index.html            # Layout desktop & mobile (Sidebar, Bottom Nav, Lyrics, Player)
 │   └── style.css             # Tema dark navy glassmorphism & styling mobile responsive
-├── public/image/             # Aset gambar & logo master
+├── public/image/             # Aset branding master (logo-lightmode.jpg, logo-darkmode.jpg)
 ├── tests/                    # Unit testing (ID3 tagging, Library manager, API endpoints)
+├── app_icon.ico              # Ikon Windows multi-resolusi (generated dari logo)
 ├── build_apk.bat             # Skrip otomatis build Android APK (.apk)
 ├── build_exe.bat             # Skrip otomatis build Windows Executable (.exe & .zip)
-├── capacitor.config.json     # Konfigurasi Capacitor cross-platform
 ├── fix_existing_tags.py      # Skrip CLI perbaikan ID3 tags folder lokal
-├── package.json              # Konfigurasi package & scripts Capacitor / Android
+├── package.json              # Konfigurasi package & scripts (dev:web, capacitor)
 ├── requirements.txt          # Dependensi Python
 ├── run.py                    # Launcher aplikasi desktop (pywebview + server)
-└── start.bat                 # Skrip launcher cepat untuk development
+├── start.bat                 # Skrip launcher cepat untuk development desktop
+└── start_web.bat             # Skrip launcher cepat untuk mode browser (hot reload)
 ```
 
 ---

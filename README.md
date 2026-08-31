@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="public/image/logo-lightmode.jpg" alt="MusicGit Logo" width="120" style="border-radius: 20px;" />
+
 # MusicGit
 
 **Cross-Platform (Desktop & Android) Music Player, Real-Time Synchronized Lyrics, and YouTube Playlist Git-Like Sync Engine**
@@ -43,9 +45,10 @@ MusicGit treats your **YouTube Playlist** like a *Remote Repository* and your lo
 
 ### 1. Multi-Platform Support (Desktop Windows & Android APK)
 - **Desktop (Windows)**: Lightweight native window powered by `pywebview` and local FastAPI server.
-- **Mobile (Android APK)**: Powered by an embedded Python runtime (`Chaquopy`) executing the FastAPI backend natively on your Android device.
+- **Mobile (Android APK)**: Powered by an embedded Python runtime (`Chaquopy`) executing the FastAPI backend natively on your Android device. Python boots directly from `MainActivity` with full error diagnostics and automatic server polling.
 - **Background Media Playback (Android)**: Features an Android Foreground Service and system media notification so music keeps playing seamlessly when the screen is locked or while multitasking.
 - **Mobile Responsive UI**: Adaptive glassmorphism UI with *Bottom Navigation Bar*, *compact player bar*, and touch-optimized navigation for smartphone screens.
+- **Dark / Light Theme**: Full theme switching with dynamic logo swap (dark mode & light mode branding assets), persistent user preference via `localStorage`.
 
 ### 2. Built-in Music Player & Real-Time LRC Lyrics (Karaoke Mode)
 - Persistent audio player bar with full controls: *Play/Pause, Next, Previous, Shuffle, Repeat (All / One / Off), Timeline Seekbar, Volume Booster*.
@@ -97,6 +100,11 @@ pip install -r requirements.txt
   ```bash
   python run.py
   ```
+- **Option C (Browser Dev Mode with Hot Reload)**:
+  ```bash
+  npm run dev:web
+  # or double-click start_web.bat
+  ```
 
 ---
 
@@ -141,11 +149,13 @@ yt-playlist-downloader/
 │   │   ├── build.gradle      # Android dependencies & Chaquopy Python config
 │   │   └── src/main/
 │   │       ├── AndroidManifest.xml
-│   │       ├── java/         # MainActivity & MusicGitBackgroundService
-│   │       └── python/       # Embedded backend runner android_server.py
+│   │       ├── java/         # MainActivity (direct Python boot) & BackgroundService
+│   │       ├── python/       # Embedded backend runner (android_server.py)
+│   │       └── res/          # Launcher icons (mipmap), themes & XML configs
 │   ├── build.gradle          # Root Gradle build script
 │   └── gradlew.bat           # Gradle wrapper script
 ├── backend/
+│   ├── __init__.py           # Python package marker
 │   ├── app.py                # FastAPI server, REST endpoints & SSE streaming
 │   ├── library_manager.py    # Music library scanner, .musicgit metadata & LRC parser
 │   ├── cover_processor.py    # 1:1 center-cropping & artwork processing
@@ -155,21 +165,23 @@ yt-playlist-downloader/
 │   └── utils.py              # Cross-platform path helpers (Windows / Android)
 ├── frontend/
 │   ├── assets/
-│   │   ├── logo-lightmode.jpg # Logo mode terang & icon aplikasi
-│   │   └── logo-darkmode.jpg  # Logo mode gelap
-│   ├── app.js                # Audio player, Time-Synced LRC, sync UI & SSE stream
+│   │   ├── logo-lightmode.jpg # Light mode logo & app icon
+│   │   ├── logo-darkmode.jpg  # Dark mode logo
+│   │   └── MusicGit-logo.png  # Fallback legacy logo
+│   ├── app.js                # Audio player, Time-Synced LRC, theme manager & SSE stream
 │   ├── index.html            # Desktop & mobile layout (Sidebar, Bottom Nav, Lyrics, Player)
 │   └── style.css             # Dark navy glassmorphism UI & responsive mobile styles
-├── public/image/             # Master images & branding assets
+├── public/image/             # Master branding assets (logo-lightmode.jpg, logo-darkmode.jpg)
 ├── tests/                    # Unit tests (ID3 tagging, Library manager, API endpoints)
+├── app_icon.ico              # Multi-resolution Windows icon (generated from logo)
 ├── build_apk.bat             # Automated script to build Android APK (.apk)
 ├── build_exe.bat             # Automated script to build Windows Executable (.exe & .zip)
-├── capacitor.config.json     # Cross-platform Capacitor configuration
 ├── fix_existing_tags.py      # CLI script for repairing local folder ID3 tags
-├── package.json              # Capacitor / Android package config & scripts
+├── package.json              # Package config & scripts (dev:web, capacitor)
 ├── requirements.txt          # Python dependencies
 ├── run.py                    # Desktop app launcher (pywebview + local server)
-└── start.bat                 # Quick launch script for development
+├── start.bat                 # Quick launch script for desktop development
+└── start_web.bat             # Quick launch script for browser dev mode (hot reload)
 ```
 
 ---
