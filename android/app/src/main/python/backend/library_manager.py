@@ -364,40 +364,106 @@ class LibraryManager:
 
     def parse_lrc(self, lrc_text: str) -> List[Dict[str, Any]]:
         """
-        Parse LRC format string into ordered list of time/text objects.
-        Format: [mm:ss.xx] or [mm:ss:xx] or [mm:ss]
+        Parse LRC & Enhanced LRC format string into ordered list of time/text/words objects.
+        Supports:
+        1. Enhanced LRC (<mm:ss.xx>word) for precise word timestamps.
+        2. Standard line LRC ([mm:ss.xx]line) with intelligent syllable/char-weighted word timing.
         """
         lines = []
-        time_pattern = re.compile(r"\[(\d{1,2}):(\d{2})(?:[\.:](\d{2,3}))?\]")
+        line_time_pattern = re.compile(r"\[(\d{1,2}):(\d{2})(?:[\.:](\d{2,3}))?\]")
+        word_time_pattern = re.compile(r"<(\d{1,2}):(\d{2})(?:[\.:](\d{2,3}))?>")
+
+        def _to_seconds(m_str, s_str, f_str):
+            minutes = int(m_str)
+            seconds = int(s_str)
+            frac_str = f_str or "0"
+            if len(frac_str) == 2:
+                fraction = int(frac_str) / 100.0
+            elif len(frac_str) == 3:
+                fraction = int(frac_str) / 1000.0
+            else:
+                fraction = 0.0
+            return round(minutes * 60 + seconds + fraction, 2)
 
         for raw_line in lrc_text.splitlines():
             raw_line = raw_line.strip()
             if not raw_line:
                 continue
 
-            matches = list(time_pattern.finditer(raw_line))
+            matches = list(line_time_pattern.finditer(raw_line))
             if not matches:
                 continue
 
-            # Strip all timestamp tags to get pure lyric text
-            lyric_text = time_pattern.sub("", raw_line).strip()
+            # Check if this line has word-level timestamps <mm:ss.xx>
+            raw_content = line_time_pattern.sub("", raw_line).strip()
+            clean_lyric_text = word_time_pattern.sub("", raw_content).strip()
 
             for m in matches:
-                minutes = int(m.group(1))
-                seconds = int(m.group(2))
-                frac_str = m.group(3) or "0"
-                if len(frac_str) == 2:
-                    fraction = int(frac_str) / 100.0
-                elif len(frac_str) == 3:
-                    fraction = int(frac_str) / 1000.0
-                else:
-                    fraction = 0.0
+                total_seconds = _to_seconds(m.group(1), m.group(2), m.group(3))
 
-                total_seconds = minutes * 60 + seconds + fraction
-                lines.append({"time": round(total_seconds, 2), "text": lyric_text})
+                # Extract word timestamps if enhanced LRC
+                words = []
+                if word_time_pattern.search(raw_content):
+                    # Format: <00:12.34>Word1 <00:13.00>Word2
+                    parts = re.split(r"(<\d{1,2}:\d{2}(?:[\.:]\d{2,3})?>)", raw_content)
+                    current_w_time = total_seconds
+                    for p in parts:
+                        p = p.strip()
+                        if not p:
+                            continue
+                        wm = word_time_pattern.match(p)
+                        if wm:
+                            current_w_time = _to_seconds(wm.group(1), wm.group(2), wm.group(3))
+                        else:
+                            words.append({
+                                "time": current_w_time,
+                                "text": p,
+                            })
+
+                lines.append({
+                    "time": total_seconds,
+                    "text": clean_lyric_text,
+                    "words": words,
+                })
 
         # Sort chronologically
         lines.sort(key=lambda x: x["time"])
+
+        # Compute endTime and word-level timings for all lines
+        for i, line in enumerate(lines):
+            t_start = line["time"]
+            t_next = lines[i + 1]["time"] if (i + 1 < len(lines)) else (t_start + 4.0)
+            line_duration = max(0.6, min(14.0, t_next - t_start))
+            line["endTime"] = round(t_start + line_duration, 2)
+
+            # If words not explicitly tagged (standard LRC), apply smart syllable/char weighting
+            if not line.get("words"):
+                raw_words = line["text"].split()
+                if raw_words:
+                    total_chars = sum(max(1, len(w)) for w in raw_words)
+                    curr_time = t_start
+                    word_objs = []
+                    for w in raw_words:
+                        w_weight = max(1, len(w)) / total_chars
+                        w_dur = max(0.12, w_weight * line_duration)
+                        w_start = round(curr_time, 2)
+                        w_end = round(curr_time + w_dur, 2)
+                        word_objs.append({
+                            "time": w_start,
+                            "endTime": w_end,
+                            "text": w,
+                        })
+                        curr_time += w_dur
+                    line["words"] = word_objs
+                else:
+                    line["words"] = []
+            else:
+                # Ensure each word has endTime
+                for wi, w in enumerate(line["words"]):
+                    if "endTime" not in w:
+                        w_next_time = line["words"][wi + 1]["time"] if (wi + 1 < len(line["words"])) else line["endTime"]
+                        w["endTime"] = round(max(w["time"] + 0.1, w_next_time), 2)
+
         return lines
 
     def _format_seconds(self, seconds: float) -> str:

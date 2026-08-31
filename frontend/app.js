@@ -553,33 +553,47 @@ class LyricsSyncEngine {
   }
 
   _renderLines() {
+    const renderLineHtml = (line, idx, isFull) => {
+      const clsName = isFull ? "lyric-line-full" : "lyric-line";
+      if (line.words && line.words.length > 0) {
+        const wordsHtml = line.words
+          .map((w, wIdx) => `<span class="lyric-word word-upcoming" data-line-idx="${idx}" data-word-idx="${wIdx}" data-word-time="${w.time}" data-word-end="${w.endTime}">${this._escape(w.text)}</span>`)
+          .join(" ");
+        return `<div class="${clsName}" data-idx="${idx}" data-time="${line.time}">${wordsHtml}</div>`;
+      }
+      return `<div class="${clsName}" data-idx="${idx}" data-time="${line.time}">${this._escape(line.text || "•••")}</div>`;
+    };
+
     // 1. Render Drawer lines
     if (this.container) {
-      this.container.innerHTML = this.lines
-        .map((line, idx) => `<div class="lyric-line" data-idx="${idx}" data-time="${line.time}">${this._escape(line.text || "•••")}</div>`)
-        .join("");
-
-      this.container.querySelectorAll(".lyric-line").forEach((el) => {
-        el.addEventListener("click", () => {
-          const t = parseFloat(el.dataset.time);
-          if (!isNaN(t) && window.MusicPlayer) window.MusicPlayer.seek(t);
-        });
-      });
+      this.container.innerHTML = this.lines.map((l, idx) => renderLineHtml(l, idx, false)).join("");
+      this._attachLineAndWordEvents(this.container);
     }
 
     // 2. Render Full Page Main Viewport lines
     if (this.fullContainer) {
-      this.fullContainer.innerHTML = this.lines
-        .map((line, idx) => `<div class="lyric-line-full" data-idx="${idx}" data-time="${line.time}">${this._escape(line.text || "•••")}</div>`)
-        .join("");
-
-      this.fullContainer.querySelectorAll(".lyric-line-full").forEach((el) => {
-        el.addEventListener("click", () => {
-          const t = parseFloat(el.dataset.time);
-          if (!isNaN(t) && window.MusicPlayer) window.MusicPlayer.seek(t);
-        });
-      });
+      this.fullContainer.innerHTML = this.lines.map((l, idx) => renderLineHtml(l, idx, true)).join("");
+      this._attachLineAndWordEvents(this.fullContainer);
     }
+  }
+
+  _attachLineAndWordEvents(parentEl) {
+    // Click on individual word seeks to that exact word's timestamp
+    parentEl.querySelectorAll(".lyric-word").forEach((wEl) => {
+      wEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const t = parseFloat(wEl.dataset.wordTime);
+        if (!isNaN(t) && window.MusicPlayer) window.MusicPlayer.seek(t);
+      });
+    });
+
+    // Click on line container seeks to line start
+    parentEl.querySelectorAll(".lyric-line, .lyric-line-full").forEach((lineEl) => {
+      lineEl.addEventListener("click", () => {
+        const t = parseFloat(lineEl.dataset.time);
+        if (!isNaN(t) && window.MusicPlayer) window.MusicPlayer.seek(t);
+      });
+    });
   }
 
   onAudioTimeUpdate(currentTime) {
@@ -595,6 +609,7 @@ class LyricsSyncEngine {
       }
     }
 
+    // Update active line highlighting and scrolling
     if (matchIdx !== this.activeLineIdx && matchIdx !== -1) {
       this.activeLineIdx = matchIdx;
 
@@ -607,6 +622,11 @@ class LyricsSyncEngine {
             el.scrollIntoView({ behavior: "smooth", block: "center" });
           } else {
             el.classList.remove("active");
+            // Set past vs future words for inactive lines
+            const wordEls = el.querySelectorAll(".lyric-word");
+            wordEls.forEach((w) => {
+              w.className = idx < matchIdx ? "lyric-word word-passed" : "lyric-word word-upcoming";
+            });
           }
         });
       }
@@ -620,9 +640,38 @@ class LyricsSyncEngine {
             el.scrollIntoView({ behavior: "smooth", block: "center" });
           } else {
             el.classList.remove("active");
+            // Set past vs future words for inactive lines
+            const wordEls = el.querySelectorAll(".lyric-word");
+            wordEls.forEach((w) => {
+              w.className = idx < matchIdx ? "lyric-word word-passed" : "lyric-word word-upcoming";
+            });
           }
         });
       }
+    }
+
+    // Dynamic Word-by-Word Karaoke Highlighting in the active line
+    if (matchIdx !== -1) {
+      const activeContainers = [this.container, this.fullContainer].filter(Boolean);
+      activeContainers.forEach((container) => {
+        const activeLineEl = container.querySelector(".lyric-line.active, .lyric-line-full.active");
+        if (activeLineEl) {
+          const wordEls = activeLineEl.querySelectorAll(".lyric-word");
+          wordEls.forEach((wEl) => {
+            const wStart = parseFloat(wEl.dataset.wordTime);
+            const wEnd = parseFloat(wEl.dataset.wordEnd);
+            if (!isNaN(wStart) && !isNaN(wEnd)) {
+              if (effectiveTime >= wEnd) {
+                wEl.className = "lyric-word word-passed";
+              } else if (effectiveTime >= wStart && effectiveTime < wEnd) {
+                wEl.className = "lyric-word word-current";
+              } else {
+                wEl.className = "lyric-word word-upcoming";
+              }
+            }
+          });
+        }
+      });
     }
   }
 
