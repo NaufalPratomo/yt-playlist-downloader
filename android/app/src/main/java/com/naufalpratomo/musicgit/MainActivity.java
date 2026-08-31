@@ -7,43 +7,50 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
+import android.util.Log;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.chaquo.python.Python;
+import com.chaquo.python.android.AndroidPlatform;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "MusicGitActivity";
     private WebView webView;
     private static final int PERMISSION_REQ_CODE = 101;
-    private boolean isServerReady = false;
-    private int retryCount = 0;
-    private static final int MAX_RETRIES = 30;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private boolean serverReady = false;
+    private String pythonError = null;
+
+    private static final String SERVER_URL = "http://127.0.0.1:8585/";
+    private static final int MAX_POLL_ATTEMPTS = 60;   // 60 seconds max wait
+    private static final int POLL_INTERVAL_MS = 1000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 1. Request Storage Permissions
+        // 1. Request storage permissions
         checkAndRequestPermissions();
 
-        // 2. Start Background Python FastAPI Service
-        Intent serviceIntent = new Intent(this, MusicGitBackgroundService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
-        }
-
-        // 3. Setup Native WebView
+        // 2. Setup WebView
         webView = new WebView(this);
         setContentView(webView);
 
@@ -55,77 +62,161 @@ public class MainActivity extends AppCompatActivity {
         settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
             @Override
-            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                handleConnectionFailure(view, failingUrl);
-            }
-
-            @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                // Suppress: we handle connectivity via polling, not via WebView error callbacks
                 if (request.isForMainFrame()) {
-                    handleConnectionFailure(view, request.getUrl().toString());
-                }
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                if (url != null && url.contains("127.0.0.1:8585")) {
-                    isServerReady = true;
-                    retryCount = 0;
+                    Log.w(TAG, "WebView main frame error (suppressed, polling handles this)");
                 }
             }
         });
 
-        // 4. Show initial splash / connecting screen and start polling
-        showLoadingScreen();
-        webView.postDelayed(this::attemptLoadServer, 800);
+        // 3. Show loading splash
+        showSplash("Memulai MusicGit Engine...", "Menginisialisasi Python runtime");
+
+        // 4. Start Python backend in a background thread (directly, no Service)
+        new Thread(this::startPythonBackend, "MusicGit-PythonInit").start();
     }
 
-    private void showLoadingScreen() {
-        String loadingHtml = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'>"
+    /**
+     * Starts Chaquopy Python and calls android_server.start_server().
+     * Runs on a background thread. On error, captures the traceback and
+     * pushes it to the WebView so the user/developer can see it.
+     */
+    private void startPythonBackend() {
+        try {
+            Log.i(TAG, "Initializing Chaquopy Python...");
+            if (!Python.isStarted()) {
+                Python.start(new AndroidPlatform(this));
+            }
+            Python py = Python.getInstance();
+            Log.i(TAG, "Python initialized. Loading android_server module...");
+
+            // This call blocks — it runs the uvicorn event loop.
+            // If there's an import error or crash, we'll catch it.
+            py.getModule("android_server").callAttr("start_server");
+
+            // If we reach here, the server has stopped (shouldn't normally happen)
+            Log.w(TAG, "android_server.start_server() returned unexpectedly");
+        } catch (Throwable t) {
+            StringWriter sw = new StringWriter();
+            t.printStackTrace(new PrintWriter(sw));
+            String errorDetail = sw.toString();
+            Log.e(TAG, "Python backend failed:\n" + errorDetail);
+
+            pythonError = errorDetail;
+            mainHandler.post(() -> showErrorPage(errorDetail));
+        }
+    }
+
+    /**
+     * After Python thread starts, begin polling the server URL.
+     * This runs on the main thread and uses a background check.
+     */
+    private void startPolling() {
+        new Thread(() -> {
+            for (int attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
+                if (serverReady) return;
+
+                // Check for Python crash before wasting time
+                if (pythonError != null) {
+                    mainHandler.post(() -> showErrorPage(pythonError));
+                    return;
+                }
+
+                final int att = attempt;
+                mainHandler.post(() -> showSplash(
+                        "Memulai MusicGit Engine...",
+                        "Menunggu server siap... (" + att + "s)"
+                ));
+
+                try {
+                    HttpURLConnection conn = (HttpURLConnection) new URL(SERVER_URL).openConnection();
+                    conn.setConnectTimeout(800);
+                    conn.setReadTimeout(800);
+                    conn.setRequestMethod("GET");
+                    int code = conn.getResponseCode();
+                    conn.disconnect();
+
+                    if (code >= 200 && code < 500) {
+                        serverReady = true;
+                        Log.i(TAG, "Server ready after " + att + " seconds!");
+                        mainHandler.post(() -> webView.loadUrl(SERVER_URL));
+                        return;
+                    }
+                } catch (Exception ignored) {
+                    // Server not ready yet
+                }
+
+                try { Thread.sleep(POLL_INTERVAL_MS); } catch (InterruptedException e) { return; }
+            }
+
+            // All attempts exhausted
+            if (!serverReady) {
+                String msg = pythonError != null ? pythonError : "Server tidak merespons setelah " + MAX_POLL_ATTEMPTS + " detik.";
+                mainHandler.post(() -> showErrorPage(msg));
+            }
+        }, "MusicGit-ServerPoll").start();
+    }
+
+    private void showSplash(String title, String subtitle) {
+        String html = "<!DOCTYPE html><html><head>"
+                + "<meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'>"
                 + "<style>"
-                + "body{background:#0a0e17;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;}"
-                + ".spinner{width:46px;height:46px;border:3px solid rgba(255,255,255,0.1);border-top:3px solid #38bdf8;border-radius:50%;animation:spin 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;margin-bottom:20px;}"
-                + "h2{font-size:1.15rem;font-weight:700;margin:0 0 8px 0;letter-spacing:-0.02em;color:#f1f5f9;}"
+                + "body{background:#0a0e17;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"
+                + "display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;}"
+                + ".spinner{width:46px;height:46px;border:3px solid rgba(255,255,255,0.1);border-top:3px solid #38bdf8;"
+                + "border-radius:50%;animation:spin 0.9s cubic-bezier(.4,0,.2,1) infinite;margin-bottom:20px;}"
+                + "h2{font-size:1.15rem;font-weight:700;margin:0 0 8px;letter-spacing:-0.02em;color:#f1f5f9;}"
                 + "p{color:#94a3b8;font-size:0.82rem;margin:0;}"
-                + "@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}"
+                + ".ver{position:fixed;bottom:12px;color:#475569;font-size:0.7rem;}"
+                + "@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}"
                 + "</style></head><body>"
                 + "<div class='spinner'></div>"
-                + "<h2>Memulai MusicGit Engine...</h2>"
-                + "<p>Menyiapkan server lokal &amp; library musik</p>"
+                + "<h2>" + escapeHtml(title) + "</h2>"
+                + "<p>" + escapeHtml(subtitle) + "</p>"
+                + "<div class='ver'>MusicGit v2.0 (build-diagnostic)</div>"
                 + "</body></html>";
-        webView.loadDataWithBaseURL(null, loadingHtml, "text/html", "utf-8", null);
-    }
+        webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
 
-    private void attemptLoadServer() {
-        if (!isServerReady && retryCount < MAX_RETRIES) {
-            retryCount++;
-            webView.loadUrl("http://127.0.0.1:8585/");
+        // Start polling after first splash render
+        if (!serverReady && pythonError == null) {
+            mainHandler.postDelayed(this::startPolling, 500);
         }
     }
 
-    private void handleConnectionFailure(WebView view, String failingUrl) {
-        if (isServerReady) return;
+    private void showErrorPage(String errorDetail) {
+        String html = "<!DOCTYPE html><html><head>"
+                + "<meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'>"
+                + "<style>"
+                + "body{background:#0a0e17;color:#f8fafc;font-family:-apple-system,sans-serif;padding:20px;margin:0;}"
+                + "h1{color:#ff6b6b;font-size:1.3em;margin-bottom:8px;}"
+                + "h2{color:#ffa94d;font-size:1em;margin-top:20px;}"
+                + "pre{background:#1a2634;color:#69db7c;padding:14px;border-radius:8px;overflow-x:auto;"
+                + "white-space:pre-wrap;word-break:break-all;font-size:0.78em;border:1px solid #2c3e50;max-height:60vh;overflow-y:auto;}"
+                + ".btn{display:inline-block;background:#2563eb;color:#fff;border:none;padding:10px 20px;"
+                + "border-radius:8px;font-size:0.9rem;font-weight:600;margin-top:16px;text-decoration:none;}"
+                + "</style></head><body>"
+                + "<h1>\u26a0\ufe0f MusicGit Engine Error</h1>"
+                + "<p style='color:#94a3b8'>Python backend gagal dijalankan. Detail error di bawah ini:</p>"
+                + "<pre>" + escapeHtml(errorDetail) + "</pre>"
+                + "<h2>Info Sistem:</h2>"
+                + "<pre>Android SDK: " + Build.VERSION.SDK_INT + "\n"
+                + "Device: " + Build.MANUFACTURER + " " + Build.MODEL + "\n"
+                + "ABI: " + String.join(", ", Build.SUPPORTED_ABIS) + "</pre>"
+                + "<a class='btn' href='" + SERVER_URL + "'>Coba Lagi</a>"
+                + "</body></html>";
+        webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
+    }
 
-        if (retryCount < MAX_RETRIES) {
-            view.postDelayed(this::attemptLoadServer, 1000);
-        } else {
-            String errorHtml = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'>"
-                    + "<style>"
-                    + "body{background:#0a0e17;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;padding:24px;box-sizing:border-box;text-align:center;}"
-                    + "h2{color:#f87171;font-size:1.2rem;margin-bottom:8px;}"
-                    + "p{color:#94a3b8;font-size:0.85rem;margin-bottom:20px;line-height:1.4;}"
-                    + "button{background:#2563eb;color:#ffffff;border:none;padding:10px 20px;border-radius:8px;font-size:0.9rem;font-weight:600;cursor:pointer;}"
-                    + "</style></head><body>"
-                    + "<h2>Gagal Menghubungkan ke Server Lokal</h2>"
-                    + "<p>Layanan background Python tidak merespons. Pastikan izin penyimpanan telah diberikan.</p>"
-                    + "<button onclick='window.location.reload()'>Coba Lagi</button>"
-                    + "</body></html>";
-            view.loadDataWithBaseURL(null, errorHtml, "text/html", "utf-8", null);
-        }
+    private String escapeHtml(String text) {
+        if (text == null) return "";
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;").replace("'", "&#39;");
     }
 
     private void checkAndRequestPermissions() {
@@ -157,7 +248,6 @@ public class MainActivity extends AppCompatActivity {
         if (webView != null && webView.canGoBack()) {
             webView.goBack();
         } else {
-            // Move app to background instead of killing process so music continues playing
             moveTaskToBack(true);
         }
     }
