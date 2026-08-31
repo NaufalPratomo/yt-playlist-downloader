@@ -135,8 +135,13 @@ class PlaylistDownloader:
         """
         Start a background download job for selected tracks.
         """
-        folder_name = sanitize_filename(options.get("folder_name") or playlist_title)
-        target_dir = os.path.join(output_base_dir, folder_name)
+        target_dir = options.get("target_folder") or options.get("folder_path")
+        if not target_dir:
+            folder_name = sanitize_filename(options.get("folder_name") or playlist_title)
+            target_dir = os.path.join(output_base_dir, folder_name)
+        else:
+            folder_name = os.path.basename(target_dir)
+
         os.makedirs(target_dir, exist_ok=True)
 
         job_state = {
@@ -404,7 +409,13 @@ class PlaylistDownloader:
 
             self._update_overall_progress(job)
 
-        job["status"] = "completed"
+        if job["completed_tracks"] > 0:
+            job["status"] = "completed"
+        elif job["failed_tracks"] > 0:
+            job["status"] = "failed"
+        else:
+            job["status"] = "completed"
+
         job["overall_percent"] = 100.0
         job["speed"] = "Selesai"
         job["eta"] = "0s"

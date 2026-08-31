@@ -251,13 +251,75 @@ class LibraryManager:
         success = self._write_musicgit_meta(path, meta)
         return {"success": success, "folder_path": str(path), "metadata": meta}
 
-    def update_sync_timestamp(self, folder_path: str, timestamp: str) -> None:
-        """Update last_sync field in .musicgit.json."""
-        path = Path(folder_path)
-        if path.exists():
-            meta = self._read_musicgit_meta(path)
-            meta["last_sync"] = timestamp
-            self._write_musicgit_meta(path, meta)
+    def sync_playlist_lyrics(
+        self,
+        folder_path_str: str,
+        force_refresh: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Batch sync and download/upgrade synchronized LRC lyrics for all tracks in a playlist folder.
+        """
+        folder_path = Path(folder_path_str)
+        if not folder_path.exists() or not folder_path.is_dir():
+            raise FileNotFoundError(f"Folder not found: {folder_path_str}")
+
+        audio_files = sorted(
+            [f for f in folder_path.iterdir() if f.is_file() and f.suffix.lower() in [".mp3", ".m4a", ".flac", ".ogg", ".wav"]]
+        )
+
+        total_tracks = len(audio_files)
+        updated_count = 0
+        already_synced = 0
+        not_found_count = 0
+
+        for audio_file in audio_files:
+            lrc_file = audio_file.with_suffix(".lrc")
+            has_valid_lrc = False
+
+            if lrc_file.exists() and not force_refresh:
+                try:
+                    raw_text = lrc_file.read_text(encoding="utf-8", errors="replace")
+                    parsed = self.parse_lrc(raw_text)
+                    if parsed and len(parsed) > 0:
+                        has_valid_lrc = True
+                        already_synced += 1
+                except Exception:
+                    pass
+
+            if not has_valid_lrc:
+                # Fetch lyrics
+                title = audio_file.stem
+                artist = ""
+                try:
+                    audio = ID3(str(audio_file))
+                    if "TIT2" in audio:
+                        title = str(audio["TIT2"])
+                    if "TPE1" in audio:
+                        artist = str(audio["TPE1"])
+                except Exception:
+                    pass
+
+                try:
+                    online_res = lyrics_fetcher.fetch_lyrics(title=title, artist=artist)
+                    synced_lrc = online_res.get("synced_lyrics")
+                    if synced_lrc:
+                        lrc_file.write_text(synced_lrc, encoding="utf-8")
+                        updated_count += 1
+                    else:
+                        not_found_count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to fetch lyrics for {audio_file.name}: {e}")
+                    not_found_count += 1
+
+        return {
+            "success": True,
+            "folder_path": str(folder_path),
+            "total_tracks": total_tracks,
+            "updated_count": updated_count,
+            "already_synced": already_synced,
+            "not_found_count": not_found_count,
+            "message": f"Berhasil menyinkronkan lirik untuk {updated_count + already_synced} dari {total_tracks} lagu.",
+        }
 
     def get_track_lyrics(
         self,

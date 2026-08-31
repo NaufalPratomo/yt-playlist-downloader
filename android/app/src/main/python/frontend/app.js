@@ -593,10 +593,6 @@ class LyricsSyncEngine {
         return;
       }
 
-      if (this.isSynced) {
-        this._ensureLineWords(this.lines);
-      }
-
       this._renderLines();
 
       // Trigger instant initial highlight
@@ -614,75 +610,26 @@ class LyricsSyncEngine {
     }
   }
 
-  _ensureLineWords(lines) {
-    if (!Array.isArray(lines)) return;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line.words || line.words.length === 0) {
-        const tStart = line.time || 0;
-        const tNext = (i + 1 < lines.length) ? lines[i + 1].time : (tStart + 4.0);
-        const lineDuration = Math.max(0.6, Math.min(14.0, tNext - tStart));
-        line.endTime = line.endTime || (tStart + lineDuration);
-
-        const rawWords = (line.text || "").trim().split(/\s+/).filter(Boolean);
-        if (rawWords.length > 0) {
-          const totalChars = rawWords.reduce((acc, w) => acc + Math.max(1, w.length), 0);
-          let currTime = tStart;
-          line.words = rawWords.map((w) => {
-            const weight = Math.max(1, w.length) / totalChars;
-            const wDur = Math.max(0.12, weight * lineDuration);
-            const wStart = currTime;
-            const wEnd = currTime + wDur;
-            currTime += wDur;
-            return {
-              time: Math.round(wStart * 100) / 100,
-              endTime: Math.round(wEnd * 100) / 100,
-              text: w,
-            };
-          });
-        } else {
-          line.words = [];
-        }
-      }
-    }
-  }
-
   _renderLines() {
     const renderLineHtml = (line, idx, isFull) => {
       const clsName = isFull ? "lyric-line-full" : "lyric-line";
-      if (line.words && line.words.length > 0) {
-        const wordsHtml = line.words
-          .map((w, wIdx) => `<span class="lyric-word word-upcoming" data-line-idx="${idx}" data-word-idx="${wIdx}" data-word-time="${w.time}" data-word-end="${w.endTime}">${this._escape(w.text)}</span>`)
-          .join(" ");
-        return `<div class="${clsName}" data-idx="${idx}" data-time="${line.time}">${wordsHtml}</div>`;
-      }
       return `<div class="${clsName}" data-idx="${idx}" data-time="${line.time}">${this._escape(line.text || "•••")}</div>`;
     };
 
     // 1. Render Drawer lines
     if (this.container) {
       this.container.innerHTML = this.lines.map((l, idx) => renderLineHtml(l, idx, false)).join("");
-      this._attachLineAndWordEvents(this.container);
+      this._attachLineEvents(this.container);
     }
 
     // 2. Render Full Page Main Viewport lines
     if (this.fullContainer) {
       this.fullContainer.innerHTML = this.lines.map((l, idx) => renderLineHtml(l, idx, true)).join("");
-      this._attachLineAndWordEvents(this.fullContainer);
+      this._attachLineEvents(this.fullContainer);
     }
   }
 
-  _attachLineAndWordEvents(parentEl) {
-    // Click on individual word seeks to that exact word's timestamp
-    parentEl.querySelectorAll(".lyric-word").forEach((wEl) => {
-      wEl.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const t = parseFloat(wEl.dataset.wordTime);
-        if (!isNaN(t) && window.MusicPlayer) window.MusicPlayer.seek(t);
-      });
-    });
-
-    // Click on line container seeks to line start
+  _attachLineEvents(parentEl) {
     parentEl.querySelectorAll(".lyric-line, .lyric-line-full").forEach((lineEl) => {
       lineEl.addEventListener("click", () => {
         const t = parseFloat(lineEl.dataset.time);
@@ -692,7 +639,7 @@ class LyricsSyncEngine {
   }
 
   onAudioTimeUpdate(currentTime) {
-    if (!this.isSynced || this.lines.length === 0) return;
+    if (!this.isSynced || !this.lines || this.lines.length === 0) return;
 
     const effectiveTime = currentTime + (this.offset || 0);
     let matchIdx = -1;
@@ -704,7 +651,7 @@ class LyricsSyncEngine {
       }
     }
 
-    // Update active line highlighting and scrolling
+    // Update active line highlighting and smooth scrolling
     if (matchIdx !== this.activeLineIdx && matchIdx !== -1) {
       this.activeLineIdx = matchIdx;
 
@@ -717,11 +664,6 @@ class LyricsSyncEngine {
             el.scrollIntoView({ behavior: "smooth", block: "center" });
           } else {
             el.classList.remove("active");
-            // Set past vs future words for inactive lines
-            const wordEls = el.querySelectorAll(".lyric-word");
-            wordEls.forEach((w) => {
-              w.className = idx < matchIdx ? "lyric-word word-passed" : "lyric-word word-upcoming";
-            });
           }
         });
       }
@@ -735,38 +677,9 @@ class LyricsSyncEngine {
             el.scrollIntoView({ behavior: "smooth", block: "center" });
           } else {
             el.classList.remove("active");
-            // Set past vs future words for inactive lines
-            const wordEls = el.querySelectorAll(".lyric-word");
-            wordEls.forEach((w) => {
-              w.className = idx < matchIdx ? "lyric-word word-passed" : "lyric-word word-upcoming";
-            });
           }
         });
       }
-    }
-
-    // Dynamic Word-by-Word Karaoke Highlighting in the active line
-    if (matchIdx !== -1) {
-      const activeContainers = [this.container, this.fullContainer].filter(Boolean);
-      activeContainers.forEach((container) => {
-        const activeLineEl = container.querySelector(".lyric-line.active, .lyric-line-full.active");
-        if (activeLineEl) {
-          const wordEls = activeLineEl.querySelectorAll(".lyric-word");
-          wordEls.forEach((wEl) => {
-            const wStart = parseFloat(wEl.dataset.wordTime);
-            const wEnd = parseFloat(wEl.dataset.wordEnd);
-            if (!isNaN(wStart) && !isNaN(wEnd)) {
-              if (effectiveTime >= wEnd) {
-                wEl.className = "lyric-word word-passed";
-              } else if (effectiveTime >= wStart && effectiveTime < wEnd) {
-                wEl.className = "lyric-word word-current";
-              } else {
-                wEl.className = "lyric-word word-upcoming";
-              }
-            }
-          });
-        }
-      });
     }
   }
 
@@ -860,6 +773,11 @@ class LibraryEngine {
       }
     });
 
+    const btnSyncLyrics = document.getElementById("btn-hero-sync-lyrics");
+    if (btnSyncLyrics) {
+      btnSyncLyrics.addEventListener("click", () => this.syncCurrentPlaylistLyrics());
+    }
+
     document.getElementById("btn-hero-git-sync").addEventListener("click", () => {
       if (MusicGitState.currentPlaylist) {
         if (!MusicGitState.currentPlaylist.remote_url) {
@@ -899,12 +817,18 @@ class LibraryEngine {
       this.modalLink.classList.add("hidden");
     });
 
-    document.getElementById("btn-close-modal-sync").addEventListener("click", () => {
+    const closeSyncModal = () => {
+      if (this.activeSyncEvt) {
+        this.activeSyncEvt.close();
+        this.activeSyncEvt = null;
+      }
+      const progBox = document.getElementById("modal-sync-progress-box");
+      if (progBox) progBox.classList.add("hidden");
       this.modalSyncDiff.classList.add("hidden");
-    });
-    document.getElementById("btn-cancel-modal-sync").addEventListener("click", () => {
-      this.modalSyncDiff.classList.add("hidden");
-    });
+    };
+
+    document.getElementById("btn-close-modal-sync").addEventListener("click", closeSyncModal);
+    document.getElementById("btn-cancel-modal-sync").addEventListener("click", closeSyncModal);
   }
 
   async loadPlaylists() {
@@ -1074,6 +998,52 @@ class LibraryEngine {
     }
   }
 
+  async syncCurrentPlaylistLyrics() {
+    if (!MusicGitState.currentPlaylist) return;
+    const btn = document.getElementById("btn-hero-sync-lyrics");
+    const label = document.getElementById("hero-sync-lyrics-label");
+    const originalText = label ? label.textContent : "Update Lirik";
+
+    try {
+      if (btn) btn.disabled = true;
+      if (label) label.textContent = "Menyinkronkan Lirik...";
+
+      const res = await fetch("/api/library/playlist/sync-lyrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          folder_path: MusicGitState.currentPlaylist.folder_path,
+          force_refresh: true,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Gagal menyinkronkan lirik playlist.");
+      }
+
+      const data = await res.json();
+      alert(data.message || `Lirik berhasil disinkronkan (${data.updated_count || 0} lagu diperbarui).`);
+
+      // Refresh current playlist tracks to update LRC badges
+      await this.openPlaylist(MusicGitState.currentPlaylist.folder_path);
+
+      // If current track is in this playlist, refresh its lyrics in player
+      if (window.MusicPlayer && window.MusicPlayer.currentTrack && window.LyricsEngine) {
+        const curPath = window.MusicPlayer.currentTrack.file_path || "";
+        if (curPath.startsWith(MusicGitState.currentPlaylist.folder_path)) {
+          window.LyricsEngine.loadLyrics(window.MusicPlayer.currentTrack, true);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to batch sync lyrics:", err);
+      alert(err.message || "Gagal menyinkronkan lirik playlist.");
+    } finally {
+      if (btn) btn.disabled = false;
+      if (label) label.textContent = originalText;
+    }
+  }
+
   _renderTracksTable(tracks) {
     this.trackStats.textContent = `${tracks.length} Lagu`;
     if (tracks.length === 0) {
@@ -1159,16 +1129,38 @@ class LibraryEngine {
   }
 
   async openSyncDiffModal(playlist) {
+    if (this.activeSyncEvt) {
+      this.activeSyncEvt.close();
+      this.activeSyncEvt = null;
+    }
+
     const modal = this.modalSyncDiff;
     const tbody = document.getElementById("modal-sync-diff-tbody");
     const countBtn = document.getElementById("modal-sync-new-count-btn");
     const countExisting = document.getElementById("modal-sync-existing");
     const countNew = document.getElementById("modal-sync-new");
     const downloadBtn = document.getElementById("btn-execute-sync-download");
+    const cancelBtn = document.getElementById("btn-cancel-modal-sync");
+    const closeBtn = document.getElementById("btn-close-modal-sync");
+    const progBox = document.getElementById("modal-sync-progress-box");
+    const progTitle = document.getElementById("modal-sync-prog-title");
+    const progPercent = document.getElementById("modal-sync-prog-percent");
+    const progBar = document.getElementById("modal-sync-prog-bar");
+
+    // Clean reset of all progress elements
+    if (progBox) progBox.classList.add("hidden");
+    if (progTitle) progTitle.textContent = "Menyiapkan download...";
+    if (progPercent) progPercent.textContent = "0%";
+    if (progBar) {
+      progBar.style.width = "0%";
+      progBar.style.backgroundColor = "var(--accent-primary)";
+    }
+    if (cancelBtn) cancelBtn.disabled = false;
+    if (closeBtn) closeBtn.disabled = false;
+    if (downloadBtn) downloadBtn.disabled = true;
 
     tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 24px;"><span class="spinner"></span> Menghubungi YouTube dan membandingkan playlist...</td></tr>`;
     modal.classList.remove("hidden");
-    downloadBtn.disabled = true;
 
     try {
       const res = await fetch("/api/sync-playlist", {
@@ -1211,12 +1203,137 @@ class LibraryEngine {
     }
   }
 
-  _startSyncDownload(playlist, newTracks) {
-    this.modalSyncDiff.classList.add("hidden");
-    ViewController.switchView("view-downloader");
+  async _startSyncDownload(playlist, newTracks) {
+    const downloadBtn = document.getElementById("btn-execute-sync-download");
+    const cancelBtn = document.getElementById("btn-cancel-modal-sync");
+    const closeBtn = document.getElementById("btn-close-modal-sync");
+    const progBox = document.getElementById("modal-sync-progress-box");
+    const progTitle = document.getElementById("modal-sync-prog-title");
+    const progPercent = document.getElementById("modal-sync-prog-percent");
+    const progBar = document.getElementById("modal-sync-prog-bar");
 
-    // Fill download form
-    DownloaderEngine.startDownloadCustom(newTracks, playlist.name, playlist.folder_path);
+    if (downloadBtn) downloadBtn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (closeBtn) closeBtn.disabled = true;
+    if (progBox) progBox.classList.remove("hidden");
+    if (progTitle) progTitle.textContent = `Menyiapkan download ${newTracks.length} lagu baru...`;
+    if (progPercent) progPercent.textContent = "0%";
+    if (progBar) {
+      progBar.style.width = "0%";
+      progBar.style.backgroundColor = "var(--accent-primary)";
+    }
+
+    const options = {
+      folder_name: playlist.name,
+      folder_path: playlist.folder_path,
+      target_folder: playlist.folder_path,
+      bitrate: MusicGitState.config.defaultBitrate || "192",
+      filename_template: MusicGitState.config.defaultTemplate || "{num2}. {title}.mp3",
+      embed_cover: true,
+      save_cover_file: true,
+      fetch_lyrics: true,
+      save_lrc_file: true,
+    };
+
+    const existingCount = (playlist.tracks ? playlist.tracks.length : (playlist.track_count || 0));
+    const payload = {
+      tracks: newTracks.map((t, idx) => ({
+        index: existingCount + idx + 1,
+        id: t.id,
+        url: t.url || `https://www.youtube.com/watch?v=${t.id}`,
+        title: t.title,
+        artist: t.artist || "Unknown Artist",
+        duration: t.duration || 0,
+        duration_formatted: t.duration_formatted || "--:--",
+        thumbnail: t.thumbnail || "",
+        selected: true,
+      })),
+      playlist_title: playlist.name,
+      output_base_dir: playlist.folder_path,
+      options,
+      remote_url: playlist.remote_url || null,
+    };
+
+    try {
+      const res = await fetch("/api/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Gagal memulai proses download.");
+      const job = await res.json();
+      const jobId = job.job_id;
+
+      // Stream progress in-place
+      const evt = new EventSource(`/api/job/${jobId}/stream`);
+      this.activeSyncEvt = evt;
+      evt.onmessage = async (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          const pct = data.overall_percent || 0;
+          if (progPercent) progPercent.textContent = `${pct}%`;
+          if (progBar) progBar.style.width = `${pct}%`;
+          if (progTitle) {
+            progTitle.textContent = data.current_track_title
+              ? `Mengunduh: ${data.current_track_title} (${data.completed_tracks}/${data.total_tracks})`
+              : `Mengunduh ${data.completed_tracks}/${data.total_tracks} lagu...`;
+          }
+
+          if (data.status === "completed") {
+            evt.close();
+            this.activeSyncEvt = null;
+            if (data.failed_tracks > 0 && data.completed_tracks === 0) {
+              const firstErr = Object.values(data.tracks_status || {}).find(t => t.error)?.error || "Gagal mengunduh lagu.";
+              if (progTitle) progTitle.textContent = `❌ Gagal: ${firstErr}`;
+              if (cancelBtn) cancelBtn.disabled = false;
+              if (closeBtn) closeBtn.disabled = false;
+              if (downloadBtn) downloadBtn.disabled = false;
+              return;
+            }
+
+            if (progTitle) progTitle.textContent = `✅ Selesai! ${data.completed_tracks} lagu baru berhasil ditambahkan.`;
+            if (progBar) {
+              progBar.style.width = "100%";
+              progBar.style.backgroundColor = "var(--accent-success)";
+            }
+            // Auto refresh playlist table
+            await this.openPlaylist(playlist.folder_path);
+            await this.loadPlaylists();
+
+            setTimeout(() => {
+              this.modalSyncDiff.classList.add("hidden");
+              if (progBox) progBox.classList.add("hidden");
+              if (downloadBtn) downloadBtn.disabled = false;
+              if (cancelBtn) cancelBtn.disabled = false;
+              if (closeBtn) closeBtn.disabled = false;
+            }, 1400);
+          } else if (data.status === "failed" || data.status === "cancelled") {
+            evt.close();
+            this.activeSyncEvt = null;
+            const firstErr = Object.values(data.tracks_status || {}).find(t => t.error)?.error || "Gagal mengunduh lagu.";
+            if (progTitle) progTitle.textContent = `❌ Gagal: ${firstErr}`;
+            if (cancelBtn) cancelBtn.disabled = false;
+            if (closeBtn) closeBtn.disabled = false;
+            if (downloadBtn) downloadBtn.disabled = false;
+          }
+        } catch (parseErr) {
+          console.warn("Sync stream parse error:", parseErr);
+        }
+      };
+      evt.onerror = () => {
+        evt.close();
+        this.activeSyncEvt = null;
+        if (cancelBtn) cancelBtn.disabled = false;
+        if (closeBtn) closeBtn.disabled = false;
+        if (downloadBtn) downloadBtn.disabled = false;
+      };
+    } catch (err) {
+      alert(err.message || "Gagal melakukan download sinkronisasi.");
+      if (progBox) progBox.classList.add("hidden");
+      if (downloadBtn) downloadBtn.disabled = false;
+      if (cancelBtn) cancelBtn.disabled = false;
+      if (closeBtn) closeBtn.disabled = false;
+    }
   }
 
   _escape(str) {
@@ -1422,7 +1539,15 @@ class DownloaderSyncEngine {
     }
   }
 
-  async startDownloadCustom(newTracks, playlistTitle, targetFolderPath) {
+  async startDownloadCustom(newTracks, playlistTitle, targetFolderPath, remoteUrl = null) {
+    if (remoteUrl && this.urlInput) {
+      this.urlInput.value = remoteUrl;
+    }
+    const subfolderInput = document.getElementById("input-dl-subfolder");
+    if (subfolderInput) subfolderInput.value = playlistTitle;
+    const albumInput = document.getElementById("input-dl-album");
+    if (albumInput) albumInput.value = playlistTitle;
+
     const options = {
       folder_name: playlistTitle,
       bitrate: "192",
@@ -1438,6 +1563,7 @@ class DownloaderSyncEngine {
       playlist_title: playlistTitle,
       output_base_dir: targetFolderPath ? targetFolderPath.substring(0, targetFolderPath.lastIndexOf("\\")) : null,
       options,
+      remote_url: remoteUrl || (this.urlInput ? this.urlInput.value.trim() : null),
     };
 
     try {

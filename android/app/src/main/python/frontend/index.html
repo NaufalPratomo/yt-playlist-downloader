@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.1.0">
+  <link rel="stylesheet" href="style.css?v=2.2.1">
 </head>
 <body class="theme-dark">
   <div class="app-layout">
@@ -247,6 +247,16 @@
                     <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
                   </svg>
                   <span id="hero-sync-label">Sync with YouTube</span>
+                </button>
+
+                <button type="button" id="btn-hero-sync-lyrics" class="btn btn-secondary btn-md" title="Sinkronkan & Unduh Semua Lirik Playlist">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                  </svg>
+                  <span id="hero-sync-lyrics-label">Update Lirik</span>
                 </button>
 
                 <button type="button" id="btn-hero-link-remote" class="btn btn-secondary btn-md" title="Tautkan URL YouTube Playlist">
@@ -1113,15 +1123,7 @@
     <div id="modal-link-remote" class="modal-overlay hidden">
       <div class="modal-card">
         <div class="modal-header">
-          <div class="modal-title-row">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="18" cy="18" r="3"></circle>
-              <circle cx="6" cy="6" r="3"></circle>
-              <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
-              <line x1="6" y1="9" x2="6" y2="21"></line>
-            </svg>
-            <h3 class="modal-title">Tautkan Remote YouTube Playlist</h3>
-          </div>
+          <h3 class="modal-title">Tautkan Remote YouTube Playlist</h3>
           <button type="button" id="btn-close-modal-link" class="btn-icon-xs">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1160,12 +1162,7 @@
     <div id="modal-sync-diff" class="modal-overlay hidden">
       <div class="modal-card modal-lg">
         <div class="modal-header">
-          <div class="modal-title-row">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-            </svg>
-            <h3 class="modal-title">Sinkronisasi Playlist YouTube (Git Pull)</h3>
-          </div>
+          <h3 class="modal-title">Sinkronisasi Playlist YouTube</h3>
           <button type="button" id="btn-close-modal-sync" class="btn-icon-xs">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1201,6 +1198,16 @@
             </table>
           </div>
 
+          <div id="modal-sync-progress-box" class="hidden" style="margin-top: 14px; padding: 12px; background: var(--bg-main); border-radius: 8px; border: 1px solid var(--border-subtle);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 6px;">
+              <span id="modal-sync-prog-title" style="font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%;">Menyiapkan download...</span>
+              <span id="modal-sync-prog-percent" style="font-family: var(--font-mono); color: var(--accent-primary); font-weight: 700;">0%</span>
+            </div>
+            <div style="height: 6px; background: var(--bg-hover); border-radius: 99px; overflow: hidden;">
+              <div id="modal-sync-prog-bar" style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.25s ease;"></div>
+            </div>
+          </div>
+
           <div class="modal-footer-actions" style="margin-top: 16px;">
             <button type="button" id="btn-cancel-modal-sync" class="btn btn-secondary">Tutup</button>
             <button type="button" id="btn-execute-sync-download" class="btn btn-accent">
@@ -1218,6 +1225,6 @@
 
   </div>
 
-  <script src="app.js?v=2.1.0"></script>
+  <script src="app.js?v=2.2.1"></script>
 </body>
 </html>

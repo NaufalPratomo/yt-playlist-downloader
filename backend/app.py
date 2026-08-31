@@ -495,6 +495,30 @@ async def get_playlist_details(folder_path: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+class SyncPlaylistLyricsRequest(BaseModel):
+    folder_path: str
+    force_refresh: Optional[bool] = False
+
+
+@app.post("/api/library/playlist/sync-lyrics")
+async def sync_playlist_lyrics_api(req: SyncPlaylistLyricsRequest):
+    """Batch fetch/upgrade synchronized lyrics for all songs in a playlist folder."""
+    folder = req.folder_path.strip()
+    if not folder or not os.path.exists(folder):
+        raise HTTPException(status_code=400, detail="Folder playlist tidak ditemukan.")
+
+    try:
+        res = await asyncio.to_thread(
+            library_manager.sync_playlist_lyrics,
+            folder_path_str=folder,
+            force_refresh=bool(req.force_refresh),
+        )
+        return res
+    except Exception as e:
+        logger.error(f"Failed to sync lyrics for {folder}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.post("/api/library/link-remote")
 async def link_playlist_remote(req: LinkRemoteRequest):
     """Link a local playlist folder with a remote YouTube playlist."""
