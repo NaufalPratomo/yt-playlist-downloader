@@ -414,11 +414,61 @@ async def fix_folder_tags(req: FixFolderTagsRequest):
 
 
 @app.get("/api/audio-stream")
-async def stream_audio(file_path: str):
-    """Stream downloaded audio file for mini player."""
+async def stream_audio(request: Request, file_path: str):
+    """
+    Stream downloaded audio file with RFC 7233 HTTP Range support.
+    Enables instant seeking/scrubbing forward and backward without buffering delays.
+    """
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File audio tidak ditemukan.")
-    return FileResponse(file_path, media_type="audio/mpeg")
+
+    file_size = os.path.getsize(file_path)
+    range_header = request.headers.get("range")
+
+    if range_header:
+        # Example Range header: "bytes=1048576-" or "bytes=1048576-2097151"
+        try:
+            byte_range = range_header.replace("bytes=", "").split("-")
+            start = int(byte_range[0]) if byte_range[0] else 0
+            end = int(byte_range[1]) if len(byte_range) > 1 and byte_range[1] else file_size - 1
+            start = max(0, min(start, file_size - 1))
+            end = max(start, min(end, file_size - 1))
+            content_length = (end - start) + 1
+
+            def iter_file(path, offset, length, chunk_size=64 * 1024):
+                with open(path, "rb") as f:
+                    f.seek(offset)
+                    remaining = length
+                    while remaining > 0:
+                        read_bytes = min(remaining, chunk_size)
+                        chunk = f.read(read_bytes)
+                        if not chunk:
+                            break
+                        remaining -= len(chunk)
+                        yield chunk
+
+            headers = {
+                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(content_length),
+                "Content-Type": "audio/mpeg",
+            }
+            return StreamingResponse(
+                iter_file(file_path, start, content_length),
+                status_code=206,
+                headers=headers,
+                media_type="audio/mpeg",
+            )
+        except Exception as e:
+            logger.warning(f"Error handling Range request for {file_path}: {e}")
+
+    # Fallback for full file request with Accept-Ranges
+    headers = {
+        "Accept-Ranges": "bytes",
+        "Content-Length": str(file_size),
+        "Content-Type": "audio/mpeg",
+    }
+    return FileResponse(file_path, media_type="audio/mpeg", headers=headers)
 
 
 # --- MusicGit Library Endpoints ---

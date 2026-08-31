@@ -62,6 +62,9 @@ class AudioPlayerEngine {
 
     this.queueContainer = document.getElementById("player-queue-items");
     this.queueCountBadge = document.getElementById("queue-count-badge");
+    this.timelineWrap = document.querySelector(".timeline-slider-wrap");
+
+    this.isSeeking = false;
 
     this._initListeners();
   }
@@ -98,17 +101,58 @@ class AudioPlayerEngine {
     this.shuffleBtn.addEventListener("click", () => this.toggleShuffle());
     this.repeatBtn.addEventListener("click", () => this.toggleRepeat());
 
-    // Seek slider
+    // Seek slider & timeline scrub interactions (instant, smooth & glitch-free)
+    const startSeek = () => {
+      this.isSeeking = true;
+    };
+
+    const updateSeekPreview = (val) => {
+      const dur = this.audio.duration || 100;
+      const clampedVal = Math.max(0, Math.min(val, dur));
+      this.seekSlider.value = clampedVal;
+      this.seekFill.style.width = `${(clampedVal / dur) * 100}%`;
+      this.currentTimeLabel.textContent = this._formatTime(clampedVal);
+    };
+
+    const commitSeek = (val) => {
+      this.isSeeking = false;
+      const dur = this.audio.duration || 100;
+      const targetTime = Math.max(0, Math.min(val, dur));
+      this.seek(targetTime);
+    };
+
+    this.seekSlider.addEventListener("pointerdown", startSeek);
+    this.seekSlider.addEventListener("mousedown", startSeek);
+    this.seekSlider.addEventListener("touchstart", startSeek, { passive: true });
+
     this.seekSlider.addEventListener("input", (e) => {
-      const val = parseFloat(e.target.value);
-      this.seekFill.style.width = `${(val / (this.audio.duration || 100)) * 100}%`;
-      this.currentTimeLabel.textContent = this._formatTime(val);
+      this.isSeeking = true;
+      updateSeekPreview(parseFloat(e.target.value));
     });
 
     this.seekSlider.addEventListener("change", (e) => {
-      const val = parseFloat(e.target.value);
-      this.seek(val);
+      commitSeek(parseFloat(e.target.value));
     });
+
+    this.seekSlider.addEventListener("pointerup", (e) => {
+      if (this.isSeeking) commitSeek(parseFloat(e.target.value));
+    });
+    this.seekSlider.addEventListener("mouseup", (e) => {
+      if (this.isSeeking) commitSeek(parseFloat(e.target.value));
+    });
+    this.seekSlider.addEventListener("touchend", (e) => {
+      if (this.isSeeking) commitSeek(parseFloat(e.target.value));
+    });
+
+    if (this.timelineWrap) {
+      this.timelineWrap.addEventListener("click", (e) => {
+        if (e.target === this.seekSlider) return;
+        const rect = this.timelineWrap.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const targetTime = ratio * (this.audio.duration || 0);
+        commitSeek(targetTime);
+      });
+    }
 
     // Volume slider
     this.volumeSlider.addEventListener("input", (e) => {
@@ -223,8 +267,14 @@ class AudioPlayerEngine {
   }
 
   seek(seconds) {
-    if (this.audio.duration) {
-      this.audio.currentTime = seconds;
+    const dur = this.audio.duration || 0;
+    if (dur > 0) {
+      const targetTime = Math.max(0, Math.min(seconds, dur));
+      this.audio.currentTime = targetTime;
+      this.seekSlider.value = targetTime;
+      this.seekFill.style.width = `${(targetTime / dur) * 100}%`;
+      this.currentTimeLabel.textContent = this._formatTime(targetTime);
+      LyricsEngine.onAudioTimeUpdate(targetTime);
     }
   }
 
@@ -273,9 +323,13 @@ class AudioPlayerEngine {
   _onTimeUpdate() {
     const cur = this.audio.currentTime || 0;
     const dur = this.audio.duration || 100;
-    this.currentTimeLabel.textContent = this._formatTime(cur);
-    this.seekSlider.value = cur;
-    this.seekFill.style.width = `${(cur / dur) * 100}%`;
+
+    // Only update progress UI if the user is not actively scrubbing/seeking
+    if (!this.isSeeking) {
+      this.currentTimeLabel.textContent = this._formatTime(cur);
+      this.seekSlider.value = cur;
+      this.seekFill.style.width = `${(cur / dur) * 100}%`;
+    }
 
     // Sync lyrics line
     LyricsEngine.onAudioTimeUpdate(cur);
