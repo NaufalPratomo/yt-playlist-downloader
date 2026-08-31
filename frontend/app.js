@@ -158,10 +158,10 @@ class AudioPlayerEngine {
     if (track.cover_url) {
       this.barThumb.src = track.cover_url;
       this.barThumb.onerror = () => {
-        this.barThumb.src = "assets/MusicGit-logo.png";
+        this.barThumb.src = ThemeManager.getLogoUrl();
       };
     } else {
-      this.barThumb.src = "assets/MusicGit-logo.png";
+      this.barThumb.src = ThemeManager.getLogoUrl();
     }
 
     // Set audio source
@@ -1804,6 +1804,12 @@ const I18nManager = {
 const ThemeManager = {
   currentTheme: "dark",
 
+  getLogoUrl(theme = this.currentTheme) {
+    return theme === "light"
+      ? "assets/logo-lightmode.jpg"
+      : "assets/logo-darkmode.jpg";
+  },
+
   init() {
     const saved = localStorage.getItem("musicgit_theme");
     if (saved === "light" || saved === "dark") {
@@ -1855,6 +1861,33 @@ const ThemeManager = {
 
     if (themeSelect && themeSelect.value !== theme) {
       themeSelect.value = theme;
+    }
+
+    // Switch in-app logos dynamically based on active theme
+    const logoUrl = this.getLogoUrl(theme);
+    const reactiveLogos = document.querySelectorAll(".theme-reactive-logo");
+    reactiveLogos.forEach((img) => {
+      img.src = logoUrl;
+    });
+
+    const brandLogo = document.getElementById("app-brand-logo");
+    if (brandLogo) brandLogo.src = logoUrl;
+
+    const aboutLogo = document.getElementById("app-about-logo");
+    if (aboutLogo) aboutLogo.src = logoUrl;
+
+    // Update bottom player bar fallback thumbnail if it is currently displaying the logo
+    const playerThumb = document.getElementById("player-bar-thumb");
+    if (playerThumb) {
+      const currentSrc = playerThumb.getAttribute("src") || "";
+      if (
+        currentSrc.includes("logo-") ||
+        currentSrc.includes("MusicGit-logo") ||
+        !Player.currentTrack ||
+        !Player.currentTrack.cover_url
+      ) {
+        playerThumb.src = logoUrl;
+      }
     }
   },
 };

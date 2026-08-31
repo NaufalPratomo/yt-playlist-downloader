@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # MusicGit
 
@@ -155,7 +155,8 @@ yt-playlist-downloader/
 │   └── utils.py              # Cross-platform path helpers (Windows / Android)
 ├── frontend/
 │   ├── assets/
-│   │   └── MusicGit-logo.png # Official MusicGit logo
+│   │   ├── logo-lightmode.jpg # Logo mode terang & icon aplikasi
+│   │   └── logo-darkmode.jpg  # Logo mode gelap
 │   ├── app.js                # Audio player, Time-Synced LRC, sync UI & SSE stream
 │   ├── index.html            # Desktop & mobile layout (Sidebar, Bottom Nav, Lyrics, Player)
 │   └── style.css             # Dark navy glassmorphism UI & responsive mobile styles

@@ -155,7 +155,8 @@ yt-playlist-downloader/
 │   └── utils.py              # Helper dialog Windows, deteksi path lintas OS (Win/Android)
 ├── frontend/
 │   ├── assets/
-│   │   └── MusicGit-logo.png # Logo resmi MusicGit
+│   │   ├── logo-lightmode.jpg # Logo mode terang & icon aplikasi
+│   │   └── logo-darkmode.jpg  # Logo mode gelap
 │   ├── app.js                # Logika player, Time-Synced LRC, sync UI, & SSE stream
 │   ├── index.html            # Layout desktop & mobile (Sidebar, Bottom Nav, Lyrics, Player)
 │   └── style.css             # Tema dark navy glassmorphism & styling mobile responsive

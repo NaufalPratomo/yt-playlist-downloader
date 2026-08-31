@@ -4,11 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MusicGit - Music Player & Playlist Sync</title>
-  <link rel="icon" type="image/png" href="assets/MusicGit-logo.png">
+  <link rel="icon" type="image/jpeg" href="assets/logo-lightmode.jpg">
+  <link rel="apple-touch-icon" href="assets/logo-lightmode.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.0.1">
 </head>
 <body class="theme-dark">
   <div class="app-layout">
@@ -18,7 +19,7 @@
       <!-- Sidebar Brand -->
       <div class="sidebar-brand">
         <div class="brand-logo-wrap">
-          <img src="assets/MusicGit-logo.png" alt="MusicGit Logo" class="brand-logo-img">
+          <img id="app-brand-logo" src="assets/logo-darkmode.jpg" alt="MusicGit Logo" class="brand-logo-img theme-reactive-logo">
         </div>
         <div class="brand-text">
           <h1 class="brand-title">MusicGit</h1>
@@ -821,7 +822,7 @@
 
         <div class="card-panel about-card">
           <div class="about-header">
-            <img src="assets/MusicGit-logo.png" alt="MusicGit" class="about-logo">
+            <img id="app-about-logo" src="assets/logo-darkmode.jpg" alt="MusicGit" class="about-logo theme-reactive-logo">
             <div>
               <h3 class="about-title">MusicGit</h3>
               <p class="about-desc">YouTube Playlist Remote Sync & Desktop Music Player</p>
@@ -946,7 +947,7 @@
       <!-- Player Left: Track Details -->
       <div class="player-track-meta">
         <div class="player-cover-frame">
-          <img id="player-bar-thumb" src="assets/MusicGit-logo.png" alt="Cover" class="player-bar-img">
+          <img id="player-bar-thumb" src="assets/logo-darkmode.jpg" alt="Cover" class="player-bar-img">
           <div class="player-cover-fallback hidden" id="player-bar-fallback">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 18V5l12-2v13"></path>
@@ -1217,6 +1218,6 @@
 
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.0.1"></script>
 </body>
 </html>
