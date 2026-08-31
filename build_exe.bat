@@ -38,14 +38,32 @@ if exist "android\app\build\outputs\apk\debug\app-debug.apk" (
 )
 
 echo.
+echo.
 echo 6. Membuat file ZIP rilis untuk GitHub Releases...
 python -c "import shutil; shutil.make_archive('dist/MusicGit-v2.0-Windows', 'zip', 'dist', 'MusicGit')"
+
+echo.
+echo 7. Memeriksa Inno Setup untuk membuat file installer Setup (.exe)...
+set "ISCC_EXE="
+if exist "C:\Program Files (x86)\Inno Setup 6\iscc.exe" set "ISCC_EXE=C:\Program Files (x86)\Inno Setup 6\iscc.exe"
+if exist "C:\Program Files\Inno Setup 6\iscc.exe" set "ISCC_EXE=C:\Program Files\Inno Setup 6\iscc.exe"
+if exist "%LocalAppData%\Programs\Inno Setup 6\iscc.exe" set "ISCC_EXE=%LocalAppData%\Programs\Inno Setup 6\iscc.exe"
+
+if defined ISCC_EXE (
+    echo    Inno Setup ditemukan: "%ISCC_EXE%"
+    echo    Mengompilasi dist\MusicGit-v2.0-Setup.exe...
+    "%ISCC_EXE%" installer.iss
+    echo    File Installer: dist\MusicGit-v2.0-Setup.exe
+) else (
+    echo    (Info) Inno Setup tidak terdeteksi. File rilis utama ZIP siap digunakan.
+)
 
 echo.
 echo ========================================================
 echo   BUILD DESKTOP WINDOWS SELESAI!
 echo   Folder App : dist\MusicGit\MusicGit.exe
-echo   File Rilis : dist\MusicGit-v2.0-Windows.zip
+echo   File ZIP   : dist\MusicGit-v2.0-Windows.zip
+if exist "dist\MusicGit-v2.0-Setup.exe" echo   Installer  : dist\MusicGit-v2.0-Setup.exe
 echo ========================================================
 
 
