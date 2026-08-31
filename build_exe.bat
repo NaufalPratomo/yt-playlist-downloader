@@ -32,7 +32,13 @@ if exist "%LOCALAPPDATA%\Microsoft\WinGet\Links\ffmpeg.exe" (
 )
 
 echo.
-echo 5. Membuat file ZIP rilis untuk GitHub Releases...
+echo 5. Menyinkronkan APK Android terbaru jika tersedia...
+if exist "android\app\build\outputs\apk\debug\app-debug.apk" (
+    copy /Y "android\app\build\outputs\apk\debug\app-debug.apk" "dist\MusicGit-v2.0-Android.apk"
+)
+
+echo.
+echo 6. Membuat file ZIP rilis untuk GitHub Releases...
 python -c "import shutil; shutil.make_archive('dist/MusicGit-v2.0-Windows', 'zip', 'dist', 'MusicGit')"
 
 echo.

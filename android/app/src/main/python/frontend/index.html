@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MusicGit - Music Player & Playlist Sync</title>
+  <link rel="icon" type="image/jpeg" href="assets/logo-lightmode.jpg">
+  <link rel="apple-touch-icon" href="assets/logo-lightmode.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=2.0.1">
+</head>
+<body class="theme-dark">
+  <div class="app-layout">
+    
+    <!-- LEFT SIDEBAR -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <!-- Sidebar Brand -->
+      <div class="sidebar-brand">
+        <div class="brand-logo-wrap">
+          <img id="app-brand-logo" src="assets/logo-darkmode.jpg" alt="MusicGit Logo" class="brand-logo-img theme-reactive-logo">
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">MusicGit</h1>
+          <span class="brand-tagline">Music Player & Git Sync</span>
+        </div>
+      </div>
+
+      <!-- Navigation Section -->
+      <div class="sidebar-section">
+        <span class="section-label" data-i18n="nav_menu_main">MENU UTAMA</span>
+        <nav class="sidebar-nav">
+          <button type="button" class="nav-item active" data-view="view-library" id="nav-btn-library">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            <span class="nav-label" data-i18n="nav_library">Library Musik</span>
+          </button>
+          
+          <button type="button" class="nav-item" data-view="view-downloader" id="nav-btn-downloader">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span class="nav-label" data-i18n="nav_downloader">Downloader & Queue</span>
+            <span class="nav-badge hidden" id="badge-download-active">0</span>
+          </button>
+
+          <button type="button" class="nav-item" data-view="view-tag-manager" id="nav-btn-tags">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+            <span class="nav-label" data-i18n="nav_tag_manager">Tag & Sync Manager</span>
+          </button>
+
+          <button type="button" class="nav-item" data-view="view-lyrics" id="nav-btn-lyrics">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+            <span class="nav-label" data-i18n="nav_lyrics">Lirik Lagu</span>
+          </button>
+
+          <button type="button" class="nav-item" data-view="view-settings" id="nav-btn-settings">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span class="nav-label" data-i18n="nav_settings">Pengaturan</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Quick Playlists Sub-List -->
+      <div class="sidebar-section sidebar-playlists-section">
+        <div class="section-header-row">
+          <span class="section-label" data-i18n="nav_local_playlists">PLAYLIST LOKAL</span>
+          <button type="button" class="btn-icon-xs" id="btn-sidebar-refresh-library" title="Pindai Ulang Library">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="sidebar-playlists-scroll" id="sidebar-playlists-list">
+          <div class="sidebar-empty-state" data-i18n="nav_empty_playlists">Memuat playlist...</div>
+        </div>
+      </div>
+
+      <!-- Sidebar Footer Status -->
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-text">MusicGit v2.0</span>
+      </div>
+    </aside>
+
+    <!-- MAIN APP CONTENT -->
+    <main class="app-main-viewport">
+      
+      <!-- Top App Bar -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <div class="search-box-global">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="global-search-input" data-i18n-placeholder="search_placeholder" placeholder="Cari lagu, artis, atau playlist di library...">
+            <button type="button" id="btn-clear-search" class="btn-clear-input hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <button type="button" id="btn-toggle-theme" class="btn btn-secondary btn-sm" title="Ganti Tema Gelap / Terang">
+            <svg id="icon-theme-sun" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg id="icon-theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <span id="theme-btn-label">Tema</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEW 1: LIBRARY & PLAYLISTS -->
+      <section id="view-library" class="view-container active">
+        
+        <!-- Playlist Grid View (Master) -->
+        <div id="library-master-view">
+          <div class="view-header">
+            <div>
+              <h2 class="view-title" data-i18n="lib_title">Library Musik Lokal</h2>
+              <p class="view-subtitle" data-i18n="lib_desc">Koleksi playlist dan lagu tersinkronisasi di komputer Anda</p>
+            </div>
+            <div class="header-actions">
+              <button type="button" id="btn-refresh-library-grid" class="btn btn-secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+                <span data-i18n="lib_btn_scan">Pindai Library</span>
+              </button>
+              <button type="button" id="btn-new-download-shortcut" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span data-i18n="lib_btn_new_dl">Download Playlist Baru</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Playlists Cards Grid -->
+          <div class="playlists-grid" id="playlists-grid">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Playlist Detail View (Slave) -->
+        <div id="library-detail-view" class="hidden">
+          <!-- Back button banner -->
+          <div class="detail-nav-bar">
+            <button type="button" id="btn-back-to-playlists" class="btn-link-back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              <span>Kembali ke Semua Playlist</span>
+            </button>
+          </div>
+
+          <!-- Playlist Hero Banner -->
+          <div class="playlist-hero-card">
+            <div class="hero-cover-wrap">
+              <img id="detail-cover-img" src="" alt="Cover" class="hero-cover">
+              <div class="hero-cover-fallback hidden" id="detail-cover-fallback">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+              </div>
+            </div>
+
+            <div class="hero-info">
+              <div class="hero-badges-row">
+                <span class="pill pill-primary">PLAYLIST LOKAL</span>
+                <span class="pill pill-git hidden" id="hero-remote-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="18" cy="18" r="3"></circle>
+                    <circle cx="6" cy="6" r="3"></circle>
+                    <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                    <line x1="6" y1="9" x2="6" y2="21"></line>
+                  </svg>
+                  <span>Connected to YouTube</span>
+                </span>
+              </div>
+              <h2 id="detail-title" class="hero-title">Nama Playlist</h2>
+              <p id="detail-path" class="hero-path">C:\...</p>
+              
+              <div class="hero-stats-row">
+                <span id="detail-count-badge">0 Lagu</span>
+                <span class="dot-separator">•</span>
+                <span id="detail-duration-badge">0:00</span>
+                <span class="dot-separator hidden" id="detail-sync-dot">•</span>
+                <span class="text-muted hidden" id="detail-sync-date">Terakhir Sync: --</span>
+              </div>
+
+              <!-- Hero Action Buttons -->
+              <div class="hero-actions-row">
+                <button type="button" id="btn-hero-play-all" class="btn btn-accent btn-md">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Putar Semua</span>
+                </button>
+
+                <button type="button" id="btn-hero-shuffle" class="btn btn-secondary btn-md" title="Acak & Putar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 3 21 3 21 8"></polyline>
+                    <line x1="4" y1="20" x2="21" y2="3"></line>
+                    <polyline points="21 16 21 21 16 21"></polyline>
+                    <line x1="15" y1="15" x2="21" y2="21"></line>
+                    <line x1="4" y1="4" x2="9" y2="9"></line>
+                  </svg>
+                  <span>Acak</span>
+                </button>
+
+                <button type="button" id="btn-hero-git-sync" class="btn btn-git btn-md" title="Sinkronisasi dengan YouTube">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                  </svg>
+                  <span id="hero-sync-label">Sync with YouTube</span>
+                </button>
+
+                <button type="button" id="btn-hero-link-remote" class="btn btn-secondary btn-md" title="Tautkan URL YouTube Playlist">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                  </svg>
+                  <span>Tautkan Remote</span>
+                </button>
+
+                <button type="button" id="btn-hero-open-folder" class="btn btn-secondary btn-md" title="Buka Folder di File Explorer">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  <span>Buka Folder</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Playlist Tracks Table -->
+          <div class="table-container-card">
+            <div class="table-header-bar">
+              <div class="table-filter-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="playlist-track-filter" placeholder="Cari dalam playlist ini...">
+              </div>
+              <span class="muted-text" id="playlist-track-stats">0 Lagu</span>
+            </div>
+
+            <div class="tracklist-table-wrap">
+              <table class="tracklist-table">
+                <thead>
+                  <tr>
+                    <th style="width: 48px; text-align: center;">#</th>
+                    <th style="width: 48px; text-align: center;">Putar</th>
+                    <th>Judul Lagu</th>
+                    <th>Artis</th>
+                    <th>Album</th>
+                    <th style="width: 70px; text-align: center;">Lirik</th>
+                    <th style="width: 80px; text-align: right;">Durasi</th>
+                    <th style="width: 60px; text-align: center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="detail-tracks-tbody">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- VIEW 2: DOWNLOADER & QUEUE -->
+      <section id="view-downloader" class="view-container">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Unduh dari YouTube</h2>
+            <p class="view-subtitle">Unduh playlist atau video satuan dengan cover art 1:1, ID3 tags lengkap, dan lirik bersinkronisasi.</p>
+          </div>
+        </div>
+
+        <!-- URL Input Card -->
+        <div class="card-panel">
+          <form id="downloader-analyze-form" class="url-form">
+            <div class="url-input-container">
+              <div class="input-icon-slot">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+              </div>
+              <input type="text" id="input-yt-url" class="text-input" placeholder="Masukkan link Playlist atau Video YouTube..." required autocomplete="off">
+              <button type="button" id="btn-dl-paste" class="btn-paste" title="Tempel dari Clipboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>Tempel</span>
+              </button>
+            </div>
+            <button type="submit" id="btn-run-analyze" class="btn btn-primary">
+              <span class="btn-text">Analisis Link</span>
+              <span class="spinner hidden" id="dl-analyze-spinner"></span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Download Options Card -->
+        <div class="card-panel">
+          <div class="card-header-simple">
+            <h3 class="card-title">Opsi Format & ID3 Tag</h3>
+            <span class="quality-badge" id="badge-selected-bitrate">192 kbps</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="field-item">
+              <label for="select-dl-bitrate" class="field-label">Kualitas Audio (Bitrate MP3)</label>
+              <select id="select-dl-bitrate" class="select-input">
+                <option value="128">128 kbps (Standar)</option>
+                <option value="192" selected>192 kbps (Standard HD)</option>
+                <option value="256">256 kbps (High Quality)</option>
+                <option value="320">320 kbps (Extreme Ultra)</option>
+              </select>
+            </div>
+
+            <div class="field-item">
+              <label for="select-dl-template" class="field-label">Format Penamaan File</label>
+              <select id="select-dl-template" class="select-input">
+                <option value="{num}. {title}-{id}.mp3" selected>1. Judul-VideoID.mp3</option>
+                <option value="{num}. {title}.mp3">1. Judul.mp3</option>
+                <option value="{num2}. {title}.mp3">01. Judul.mp3</option>
+                <option value="{artist} - {title}.mp3">Artis - Judul.mp3</option>
+                <option value="{num}. {artist} - {title}.mp3">1. Artis - Judul.mp3</option>
+              </select>
+            </div>
+
+            <div class="field-item">
+              <label for="input-dl-album" class="field-label">Nama Album (TALB)</label>
+              <input type="text" id="input-dl-album" class="text-input" placeholder="Otomatis nama playlist">
+            </div>
+
+            <div class="field-item">
+              <label for="input-dl-album-artist" class="field-label">Artis Album (TPE2)</label>
+              <input type="text" id="input-dl-album-artist" class="text-input" value="Various Artists" placeholder="Various Artists">
+            </div>
+
+            <div class="field-item col-span-2">
+              <label for="input-dl-subfolder" class="field-label">Nama Subfolder Playlist</label>
+              <input type="text" id="input-dl-subfolder" class="text-input" placeholder="Nama folder">
+            </div>
+          </div>
+
+          <!-- Feature Toggles -->
+          <div class="options-container">
+            <label class="option-toggle" for="toggle-dl-cover">
+              <div class="option-text">
+                <span class="option-title">Embed Cover Art</span>
+                <span class="option-sub">Pasang gambar cover 1:1 ke file MP3</span>
+              </div>
+              <input type="checkbox" id="toggle-dl-cover" checked>
+              <span class="toggle-switch"></span>
+            </label>
+
+            <label class="option-toggle" for="toggle-dl-save-cover">
+              <div class="option-text">
+                <span class="option-title">Simpan cover.jpg</span>
+                <span class="option-sub">Simpan file gambar di folder</span>
+              </div>
+              <input type="checkbox" id="toggle-dl-save-cover" checked>
+              <span class="toggle-switch"></span>
+            </label>
+
+            <label class="option-toggle" for="toggle-dl-lyrics">
+              <div class="option-text">
+                <span class="option-title">Ambil Lirik Lagu</span>
+                <span class="option-sub">Embed lirik otomatis dari database</span>
+              </div>
+              <input type="checkbox" id="toggle-dl-lyrics" checked>
+              <span class="toggle-switch"></span>
+            </label>
+
+            <label class="option-toggle" for="toggle-dl-lrc">
+              <div class="option-text">
+                <span class="option-title">Simpan File .lrc</span>
+                <span class="option-sub">Lirik bersinkronisasi waktu</span>
+              </div>
+              <input type="checkbox" id="toggle-dl-lrc" checked>
+              <span class="toggle-switch"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Download Analyzed Playlist Result -->
+        <div id="dl-result-section" class="card-panel hidden">
+          <div class="playlist-header-card">
+            <div class="playlist-cover-frame">
+              <img id="dl-banner-thumb" src="" alt="Cover Playlist">
+            </div>
+            <div class="playlist-details">
+              <div class="type-pill" id="dl-banner-type">Playlist</div>
+              <h3 id="dl-banner-title" class="playlist-title">Nama Playlist</h3>
+              <p id="dl-banner-author" class="playlist-author">Diupload oleh Channel</p>
+              <div class="playlist-stats">
+                <span id="dl-banner-count">0 Lagu</span>
+                <span class="bullet-dot">•</span>
+                <span id="dl-banner-duration">--:--</span>
+              </div>
+            </div>
+            <div class="playlist-actions">
+              <button type="button" id="btn-start-download-job" class="btn btn-accent btn-large">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Unduh (<span id="dl-selected-count">0</span> Lagu)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Table Toolbar -->
+          <div class="table-toolbar">
+            <div class="toolbar-left">
+              <label class="custom-checkbox">
+                <input type="checkbox" id="dl-check-all" checked>
+                <span>Pilih Semua</span>
+              </label>
+            </div>
+            <div class="toolbar-right">
+              <input type="text" id="dl-track-search" class="text-input-sm" placeholder="Saring judul...">
+            </div>
+          </div>
+
+          <!-- Track List Table -->
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 44px; text-align: center;">Pilih</th>
+                  <th style="width: 48px; text-align: center;">#</th>
+                  <th style="width: 56px;">Cover</th>
+                  <th>Judul Lagu</th>
+                  <th>Artis</th>
+                  <th style="width: 80px; text-align: right;">Durasi</th>
+                </tr>
+              </thead>
+              <tbody id="dl-tracks-tbody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Live Download Progress Card -->
+        <div id="dl-progress-card" class="card-panel hidden">
+          <div class="progress-panel-header">
+            <div class="progress-info-left">
+              <div class="active-pulse"></div>
+              <div>
+                <h3 class="progress-heading">Proses Download Aktif</h3>
+                <p id="dl-current-label" class="progress-subheading">Mempersiapkan antrian...</p>
+              </div>
+            </div>
+            <div>
+              <button type="button" id="btn-dl-open-dest" class="btn btn-secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>Buka Folder Tujuan</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress Numbers -->
+          <div class="progress-track-wrapper">
+            <div class="progress-numbers">
+              <span class="percentage-value" id="dl-percent-text">0%</span>
+              <div class="metrics-group">
+                <span id="dl-speed-text">Kecepatan: --</span>
+                <span class="bullet-dot">•</span>
+                <span id="dl-eta-text">Sisa: --</span>
+                <span class="bullet-dot">•</span>
+                <span id="dl-counts-text">0 / 0 Selesai</span>
+              </div>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-val" id="dl-progress-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Queue & Logs Grid -->
+          <div class="progress-split-grid">
+            <div class="queue-card">
+              <div class="card-inner-header">Status Antrian Lagu</div>
+              <div class="queue-items-scroll" id="dl-queue-list"></div>
+            </div>
+            <div class="terminal-card">
+              <div class="card-inner-header">
+                <span>Log Aktivitas</span>
+                <button type="button" id="btn-clear-dl-logs" class="btn-link">Bersihkan</button>
+              </div>
+              <div class="terminal-output" id="dl-terminal-logs">
+                <div class="log-row text-muted">[Sistem] Siap menerima proses download...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- VIEW 3: TAG MANAGER & SYNC DIFF -->
+      <section id="view-tag-manager" class="view-container">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Manajer Tag & Sinkronisasi Folder</h2>
+            <p class="view-subtitle">Inspeksi kesehatan metadata ID3 folder musik, perbaiki cover & lirik, atau bandingkan dengan playlist YouTube.</p>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <div class="folder-picker-bar">
+            <div class="field-item full-width">
+              <label for="tagmgr-folder-input" class="field-label">Path Folder Musik Lokal</label>
+              <div class="field-action-group">
+                <input type="text" id="tagmgr-folder-input" class="text-input" placeholder="Pilih folder musik lokal..." required>
+                <button type="button" id="btn-tagmgr-browse" class="btn btn-secondary" title="Pilih Folder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  <span>Pilih Folder</span>
+                </button>
+                <button type="button" id="btn-tagmgr-scan" class="btn btn-primary" title="Pindai File">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <span>Scan Folder</span>
+                </button>
+                <button type="button" id="btn-tagmgr-open" class="btn btn-secondary" title="Buka di Explorer">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                  <span>Buka</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tag Manager Details & Tabs -->
+        <div id="tagmgr-result-card" class="card-panel hidden">
+          <div class="folder-card-header">
+            <div class="folder-card-meta">
+              <h3 id="tagmgr-stat-title" class="folder-name-title">Nama Folder</h3>
+              <p id="tagmgr-stat-path" class="folder-path-subtitle">C:\...</p>
+            </div>
+            <div class="folder-health-badges">
+              <span class="health-chip" id="tagmgr-chip-total">0 Lagu</span>
+              <span class="health-chip" id="tagmgr-chip-cover">Cover: --</span>
+              <span class="health-chip chip-warning hidden" id="tagmgr-chip-artists">0 Unknown Artist</span>
+              <span class="health-chip chip-warning hidden" id="tagmgr-chip-lyrics">0 Tanpa Lirik</span>
+            </div>
+          </div>
+
+          <!-- Tab Buttons -->
+          <div class="folder-tabs-header">
+            <button type="button" class="tab-btn active" id="tagtab-btn-repair" data-tagtab="tab-repair-pane">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Perbaiki Tag & Metadata</span>
+            </button>
+            <button type="button" class="tab-btn" id="tagtab-btn-sync" data-tagtab="tab-sync-pane">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              <span>Diff & Sinkronisasi YouTube</span>
+              <span class="badge-pill hidden" id="tagmgr-sync-count-badge">0</span>
+            </button>
+          </div>
+
+          <!-- Tab 1: Repair Tags -->
+          <div class="tab-pane active" id="tab-repair-pane">
+            <form id="tagmgr-fix-form" class="form-grid" style="margin-top: 14px;">
+              <div class="field-item">
+                <label for="tagmgr-album-name" class="field-label">Nama Album (TALB)</label>
+                <input type="text" id="tagmgr-album-name" class="text-input" placeholder="Otomatis dari nama folder">
+              </div>
+              <div class="field-item">
+                <label for="tagmgr-album-artist" class="field-label">Artis Album (TPE2)</label>
+                <input type="text" id="tagmgr-album-artist" class="text-input" value="Various Artists">
+              </div>
+
+              <div class="field-item col-span-2 repair-options-row">
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="chk-repair-artist" checked>
+                  <span>Perbaiki nama artis/judul dari nama file jika Unknown</span>
+                </label>
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="chk-repair-cover" checked>
+                  <span>Sematkan cover.jpg folder ke seluruh MP3</span>
+                </label>
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="chk-repair-lyrics" checked>
+                  <span>Ambil lirik otomatis (.lrc / USLT) untuk lagu yang belum punya lirik</span>
+                </label>
+              </div>
+
+              <div class="field-item col-span-2 repair-action-bar">
+                <span id="tagmgr-fix-status" class="status-msg hidden"></span>
+                <button type="submit" id="btn-tagmgr-run-repair" class="btn btn-accent">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Perbaiki Semua Tag di Folder Ini</span>
+                </button>
+              </div>
+            </form>
+
+            <div class="mini-table-container" style="margin-top: 14px;">
+              <table class="data-table mini-table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px; text-align: center;">#</th>
+                    <th>Nama File</th>
+                    <th>Artis</th>
+                    <th>Judul</th>
+                    <th style="width: 70px; text-align: center;">Cover</th>
+                    <th style="width: 70px; text-align: center;">Lirik</th>
+                  </tr>
+                </thead>
+                <tbody id="tagmgr-files-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab 2: Sync Diff -->
+          <div class="tab-pane hidden" id="tab-sync-pane">
+            <div class="sync-input-row" style="margin-top: 14px;">
+              <div class="url-input-container">
+                <div class="input-icon-slot">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                  </svg>
+                </div>
+                <input type="text" id="tagmgr-sync-url" class="text-input" placeholder="Masukkan Link Playlist YouTube...">
+                <button type="button" id="btn-tagmgr-sync-paste" class="btn-paste" title="Tempel">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span>Tempel</span>
+                </button>
+              </div>
+              <button type="button" id="btn-tagmgr-run-sync-diff" class="btn btn-primary">
+                <span class="btn-text">Cek Lagu Baru</span>
+                <span class="spinner hidden" id="tagmgr-sync-spinner"></span>
+              </button>
+            </div>
+
+            <!-- Sync Diff Result -->
+            <div id="tagmgr-sync-result" class="sync-result-card hidden">
+              <div class="sync-stats-bar">
+                <div class="sync-stat-item">
+                  <span class="stat-num text-success" id="tagmgr-diff-existing-count">0</span>
+                  <span class="stat-lbl">Sudah Ada di Folder</span>
+                </div>
+                <div class="sync-stat-divider"></div>
+                <div class="sync-stat-item">
+                  <span class="stat-num text-accent" id="tagmgr-diff-new-count">0</span>
+                  <span class="stat-lbl">Lagu Baru di YouTube</span>
+                </div>
+                <div class="sync-action-slot">
+                  <button type="button" id="btn-tagmgr-download-new-only" class="btn btn-accent">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Download <span id="tagmgr-diff-btn-num">0</span> Lagu Baru Saja</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="mini-table-container" style="margin-top: 14px;">
+                <table class="data-table mini-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 40px; text-align: center;">#</th>
+                      <th>Judul di YouTube</th>
+                      <th>Artis</th>
+                      <th style="width: 140px; text-align: center;">Status di Folder</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tagmgr-diff-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+
+      <!-- VIEW 4: SETTINGS -->
+      <section id="view-settings" class="view-container">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title" data-i18n="settings_title">Pengaturan MusicGit</h2>
+            <p class="view-subtitle" data-i18n="settings_desc">Konfigurasi direktori penyimpanan musik, preferensi unduhan, dan tampilan antarmuka</p>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <div class="form-grid">
+            <div class="field-item col-span-2">
+              <label for="settings-output-dir" class="field-label" data-i18n="settings_dir_label">Direktori Penyimpanan Musik</label>
+              <div class="field-action-group">
+                <input type="text" id="settings-output-dir" class="text-input" placeholder="C:\Users\...\Music">
+                <button type="button" id="btn-settings-browse-dir" class="btn btn-secondary">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  <span data-i18n="settings_btn_choose_dir">Pilih Folder</span>
+                </button>
+                <button type="button" id="btn-settings-open-dir" class="btn btn-secondary">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                  <span data-i18n="settings_btn_open_dir">Buka</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="field-item">
+              <label for="settings-default-bitrate" class="field-label" data-i18n="settings_bitrate_label">Bitrate Default</label>
+              <select id="settings-default-bitrate" class="select-input">
+                <option value="128">128 kbps (Standar)</option>
+                <option value="192" selected>192 kbps (Standard HD)</option>
+                <option value="256">256 kbps (High Quality)</option>
+                <option value="320">320 kbps (Extreme Ultra)</option>
+              </select>
+            </div>
+
+            <div class="field-item">
+              <label for="settings-default-template" class="field-label" data-i18n="settings_template_label">Format Template Default</label>
+              <select id="settings-default-template" class="select-input">
+                <option value="{num}. {title}-{id}.mp3">1. Judul-VideoID.mp3</option>
+                <option value="{num}. {title}.mp3">1. Judul.mp3</option>
+                <option value="{num2}. {title}.mp3">01. Judul.mp3</option>
+                <option value="{artist} - {title}.mp3">Artis - Judul.mp3</option>
+                <option value="{num}. {artist} - {title}.mp3">1. Artis - Judul.mp3</option>
+              </select>
+            </div>
+
+            <div class="field-item">
+              <label for="settings-theme-select" class="field-label" data-i18n="settings_theme_label">Mode Tampilan (Tema)</label>
+              <select id="settings-theme-select" class="select-input">
+                <option value="dark" selected data-i18n="settings_theme_dark">Mode Gelap (Dark Navy Solid)</option>
+                <option value="light" data-i18n="settings_theme_light">Mode Terang (Clean Light Slate)</option>
+              </select>
+            </div>
+
+            <div class="field-item">
+              <label for="settings-lang-select" class="field-label" data-i18n="settings_lang_label">Bahasa (Language)</label>
+              <select id="settings-lang-select" class="select-input">
+                <option value="id" selected>Bahasa Indonesia</option>
+                <option value="en">English (US)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card-footer-actions">
+            <button type="button" id="btn-save-settings" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span data-i18n="settings_btn_save">Simpan Pengaturan</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-panel about-card">
+          <div class="about-header">
+            <img id="app-about-logo" src="assets/logo-darkmode.jpg" alt="MusicGit" class="about-logo theme-reactive-logo">
+            <div>
+              <h3 class="about-title">MusicGit</h3>
+              <p class="about-desc">YouTube Playlist Remote Sync & Desktop Music Player</p>
+              <p class="about-author">Dikembangkan oleh <a href="https://naufalpratomo.my.id" target="_blank" rel="noopener noreferrer">Naufal Pratomo</a></p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- VIEW 5: FULL-PAGE SYNCHRONIZED LYRICS (MAIN VIEWPORT) -->
+      <section id="view-lyrics" class="view-container">
+        <div class="lyrics-full-layout">
+          
+          <!-- Left Track Identity Card -->
+          <div class="lyrics-full-meta-card">
+            <div class="lyrics-full-cover-box">
+              <img id="lyrics-full-cover-img" src="" alt="" class="lyrics-full-cover-img hidden">
+              <div id="lyrics-full-cover-fallback" class="lyrics-full-cover-fallback">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M9 18V5l12-2v13"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+              </div>
+            </div>
+
+            <div class="lyrics-full-meta-texts">
+              <div class="lyrics-full-source-row">
+                <span class="pill pill-primary" id="lyrics-full-source-badge">LRCLIB Synced</span>
+              </div>
+              <h2 id="lyrics-full-title" class="lyrics-full-title">Pilih Lagu untuk Diputar</h2>
+              <p id="lyrics-full-artist" class="lyrics-full-artist">MusicGit Player</p>
+              <p id="lyrics-full-album" class="lyrics-full-album"></p>
+            </div>
+
+            <div class="lyrics-full-actions">
+              <button type="button" id="btn-lyrics-full-refetch" class="btn btn-secondary btn-sm" title="Ambil Ulang Lirik Online">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+                <span data-i18n="lyrics_btn_refetch">Ambil Ulang Lirik</span>
+              </button>
+              <button type="button" id="btn-lyrics-full-back" class="btn btn-secondary btn-sm" title="Kembali">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span data-i18n="lyrics_btn_back">Kembali</span>
+              </button>
+            </div>
+
+            <!-- Lyrics Timing Calibration Widget -->
+            <div class="lyrics-offset-card">
+              <div class="lyrics-offset-header">
+                <span class="offset-title" data-i18n="lyrics_offset_title">Kalibrasi Waktu Lirik</span>
+                <span class="offset-val-badge" id="lyrics-offset-val">0.0s</span>
+              </div>
+              <div class="lyrics-offset-btn-row">
+                <button type="button" id="btn-offset-slower-05" class="btn-offset" title="Perlambat lirik / lirik kecepetan (-0.5s)">-0.5s</button>
+                <button type="button" id="btn-offset-slower-01" class="btn-offset" title="Perlambat halus (-0.1s)">-0.1s</button>
+                <button type="button" id="btn-offset-reset" class="btn-offset btn-offset-reset" title="Reset offset ke 0.0s">0.0s</button>
+                <button type="button" id="btn-offset-faster-01" class="btn-offset" title="Percepat halus (+0.1s)">+0.1s</button>
+                <button type="button" id="btn-offset-faster-05" class="btn-offset" title="Percepat lirik / lirik kelambatan (+0.5s)">+0.5s</button>
+              </div>
+              <p class="lyrics-offset-hint" data-i18n="lyrics_offset_hint">Gunakan tombol jika vokal lagu dan teks lirik tidak pas.</p>
+            </div>
+          </div>
+
+          <!-- Right / Center: Immersive Karaoke Lyrics Stream -->
+          <div class="lyrics-full-stream-card">
+            <div id="lyrics-full-lines-container" class="lyrics-full-lines-scroll">
+              <div class="lyrics-empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+                <p>Putar sebuah lagu untuk melihat lirik karaoke bersinkronisasi.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- RIGHT DRAWER: PLAYBACK QUEUE (ONLY) -->
+    <aside class="app-queue-drawer hidden" id="queue-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          <span class="drawer-title">Antrian Putar</span>
+          <span class="pill pill-xs" id="queue-count-badge">0</span>
+        </div>
+        <button type="button" id="btn-close-queue-drawer" class="btn-icon-xs" title="Tutup Antrian">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="queue-list-scroll" id="player-queue-items">
+        <div class="queue-empty-msg">Antrian kosong.</div>
+      </div>
+    </aside>
+
+    <!-- BOTTOM PERSISTENT MUSIC PLAYER BAR -->
+    <footer class="app-player-bar" id="app-player-bar">
+      <!-- Hidden native audio element -->
+      <audio id="musicgit-audio-element" preload="metadata"></audio>
+
+      <!-- Player Left: Track Details -->
+      <div class="player-track-meta">
+        <div class="player-cover-frame">
+          <img id="player-bar-thumb" src="assets/logo-darkmode.jpg" alt="Cover" class="player-bar-img">
+          <div class="player-cover-fallback hidden" id="player-bar-fallback">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+          </div>
+        </div>
+        <div class="player-meta-texts">
+          <div id="player-bar-title" class="player-title">MusicGit Player</div>
+          <div id="player-bar-artist" class="player-artist">Pilih lagu untuk mulai memutar</div>
+        </div>
+      </div>
+
+      <!-- Player Center: Controls & Seekbar -->
+      <div class="player-center-controls">
+        <div class="player-buttons-row">
+          <button type="button" id="btn-player-shuffle" class="btn-player-btn" title="Acak Lagu (Shuffle)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 3 21 3 21 8"></polyline>
+              <line x1="4" y1="20" x2="21" y2="3"></line>
+              <polyline points="21 16 21 21 16 21"></polyline>
+              <line x1="15" y1="15" x2="21" y2="21"></line>
+              <line x1="4" y1="4" x2="9" y2="9"></line>
+            </svg>
+          </button>
+
+          <button type="button" id="btn-player-prev" class="btn-player-btn" title="Lagu Sebelumnya">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="19 20 9 12 19 4 19 20"></polygon>
+              <line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2.5"></line>
+            </svg>
+          </button>
+
+          <button type="button" id="btn-player-play-pause" class="btn-player-play-large" title="Putar / Jeda (Spasi)">
+            <svg id="icon-player-play" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <svg id="icon-player-pause" class="hidden" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          </button>
+
+          <button type="button" id="btn-player-next" class="btn-player-btn" title="Lagu Berikutnya">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 4 15 12 5 20 5 4"></polygon>
+              <line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.5"></line>
+            </svg>
+          </button>
+
+          <button type="button" id="btn-player-repeat" class="btn-player-btn" title="Ulangi (Repeat)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="17 1 21 5 17 9"></polyline>
+              <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+              <polyline points="7 23 3 19 7 15"></polyline>
+              <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>
+            <span class="repeat-one-indicator hidden">1</span>
+          </button>
+        </div>
+
+        <div class="player-timeline-row">
+          <span id="player-current-time" class="time-label">0:00</span>
+          <div class="timeline-slider-wrap">
+            <input type="range" id="player-seek-slider" min="0" max="100" value="0" step="0.1" class="custom-range-slider">
+            <div class="slider-fill-track" id="player-seek-fill" style="width: 0%;"></div>
+          </div>
+          <span id="player-total-time" class="time-label">0:00</span>
+        </div>
+      </div>
+
+      <!-- Player Right: Volume & Drawer Toggles -->
+      <div class="player-right-actions">
+        <button type="button" id="btn-toggle-lyrics-footer" class="btn-player-action" title="Lirik Bersinkronisasi (Karaoke)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+        </button>
+
+        <button type="button" id="btn-toggle-queue-footer" class="btn-player-action" title="Antrian Putar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+        </button>
+
+        <div class="volume-slider-group">
+          <button type="button" id="btn-player-mute" class="btn-player-action" title="Mute / Unmute">
+            <svg id="icon-volume-high" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <svg id="icon-volume-muted" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <line x1="23" y1="9" x2="17" y2="15"></line>
+              <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+          </button>
+          <div class="volume-slider-wrap">
+            <input type="range" id="player-volume-slider" min="0" max="1" value="0.8" step="0.01" class="custom-range-slider">
+            <div class="slider-fill-track" id="player-volume-fill" style="width: 80%;"></div>
+          </div>
+        </div>
+      </div>
+
+    </footer>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR (Android/Mobile Responsive) -->
+    <nav class="app-mobile-nav" id="app-mobile-nav">
+      <button type="button" class="mobile-nav-item active" data-view="view-library" id="mob-nav-library">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+          <polyline points="2 17 12 22 22 17"></polyline>
+          <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+        <span data-i18n="nav_library">Library</span>
+      </button>
+
+      <button type="button" class="mobile-nav-item" data-view="view-downloader" id="mob-nav-downloader">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span data-i18n="nav_downloader">Unduh</span>
+      </button>
+
+      <button type="button" class="mobile-nav-item" data-view="view-tag-manager" id="mob-nav-tags">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+        </svg>
+        <span data-i18n="nav_tag_manager">Tags</span>
+      </button>
+
+      <button type="button" class="mobile-nav-item" data-view="view-lyrics" id="mob-nav-lyrics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+        <span data-i18n="nav_lyrics">Lirik</span>
+      </button>
+
+      <button type="button" class="mobile-nav-item" data-view="view-settings" id="mob-nav-settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span data-i18n="nav_settings">Pengaturan</span>
+      </button>
+    </nav>
+
+    <!-- MODAL: LINK REMOTE YOUTUBE PLAYLIST -->
+    <div id="modal-link-remote" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="18" r="3"></circle>
+              <circle cx="6" cy="6" r="3"></circle>
+              <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+              <line x1="6" y1="9" x2="6" y2="21"></line>
+            </svg>
+            <h3 class="modal-title">Tautkan Remote YouTube Playlist</h3>
+          </div>
+          <button type="button" id="btn-close-modal-link" class="btn-icon-xs">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <form id="form-link-remote" class="modal-body">
+          <p class="modal-desc">Hubungkan folder playlist lokal ini ke URL YouTube Playlist agar Anda dapat menyinkronkan (Git Pull) lagu baru sewaktu-waktu.</p>
+          
+          <div class="field-item">
+            <label class="field-label">Folder Lokal</label>
+            <input type="text" id="modal-link-folder" class="text-input" readonly>
+          </div>
+
+          <div class="field-item">
+            <label for="modal-link-url" class="field-label">URL Playlist YouTube</label>
+            <input type="text" id="modal-link-url" class="text-input" placeholder="https://www.youtube.com/playlist?list=..." required>
+          </div>
+
+          <div class="field-item">
+            <label for="modal-link-title" class="field-label">Judul Playlist Kustom (Opsional)</label>
+            <input type="text" id="modal-link-title" class="text-input" placeholder="Nama playlist">
+          </div>
+
+          <div class="modal-footer-actions">
+            <button type="button" id="btn-cancel-modal-link" class="btn btn-secondary">Batal</button>
+            <button type="submit" id="btn-submit-modal-link" class="btn btn-primary">Simpan Remote</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: SYNC YOUTUBE PLAYLIST DIFF -->
+    <div id="modal-sync-diff" class="modal-overlay hidden">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="modal-title-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            <h3 class="modal-title">Sinkronisasi Playlist YouTube (Git Pull)</h3>
+          </div>
+          <button type="button" id="btn-close-modal-sync" class="btn-icon-xs">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="sync-modal-stats">
+            <div class="sync-stat-item">
+              <span class="stat-num text-success" id="modal-sync-existing">0</span>
+              <span class="stat-lbl">Sudah Ada di Lokal</span>
+            </div>
+            <div class="sync-stat-divider"></div>
+            <div class="sync-stat-item">
+              <span class="stat-num text-accent" id="modal-sync-new">0</span>
+              <span class="stat-lbl">Lagu Baru di Remote</span>
+            </div>
+          </div>
+
+          <div class="mini-table-container" style="max-height: 280px; margin-top: 14px;">
+            <table class="data-table mini-table">
+              <thead>
+                <tr>
+                  <th style="width: 40px; text-align: center;">#</th>
+                  <th>Judul di YouTube</th>
+                  <th>Artis</th>
+                  <th style="width: 140px; text-align: center;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="modal-sync-diff-tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="modal-footer-actions" style="margin-top: 16px;">
+            <button type="button" id="btn-cancel-modal-sync" class="btn btn-secondary">Tutup</button>
+            <button type="button" id="btn-execute-sync-download" class="btn btn-accent">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download <span id="modal-sync-new-count-btn">0</span> Lagu Baru Saja</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js?v=2.0.1"></script>
+</body>
+</html>

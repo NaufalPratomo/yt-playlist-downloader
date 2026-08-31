@@ -26,6 +26,8 @@ android {
                 install "yt-dlp"
                 install "mutagen"
                 install "httpx"
+                install "requests"
+                install "pillow"
                 install "fastapi<0.100.0"
                 install "pydantic<2.0"
                 install "uvicorn"
@@ -52,3 +54,18 @@ dependencies {
     implementation 'androidx.webkit:webkit:1.10.0'
     implementation 'androidx.media:media:1.7.0'
 }
+
+task syncPythonBackend(type: Copy) {
+    from "${rootDir}/../backend"
+    into "${projectDir}/src/main/python/backend"
+}
+
+task syncFrontendAssets(type: Copy) {
+    from "${rootDir}/../frontend"
+    into "${projectDir}/src/main/python/frontend"
+}
+
+tasks.matching { it.name.startsWith("merge") || it.name.startsWith("generate") || it.name.startsWith("process") || it.name.startsWith("compile") }.configureEach {
+    dependsOn syncPythonBackend, syncFrontendAssets
+}
+
