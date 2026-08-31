@@ -62,8 +62,10 @@ venv.bak/
 *.jpg
 *.jpeg
 *.png
-!frontend/
-!public/
+!public/**
+!frontend/**
+!android/app/src/main/res/**
+!docs/**
 !app_icon.ico
 downloads/
 temp_downloads/
