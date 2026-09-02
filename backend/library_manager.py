@@ -21,6 +21,7 @@ from .utils import get_default_music_dir, sanitize_filename
 logger = logging.getLogger("library_manager")
 
 COVER_FILENAMES = ["cover.jpg", "cover.png", "folder.jpg", "folder.png", "album.jpg", "album.png", "thumb.jpg"]
+AUDIO_EXTENSIONS = {".mp3", ".m4a", ".aac", ".opus", ".webm", ".flac", ".ogg", ".wav"}
 
 
 class LibraryManager:
@@ -28,6 +29,12 @@ class LibraryManager:
 
     def __init__(self):
         pass
+
+    def _get_audio_files(self, folder_path: Path) -> List[Path]:
+        """List all supported audio files in a directory."""
+        if not folder_path.exists() or not folder_path.is_dir():
+            return []
+        return [f for f in folder_path.iterdir() if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS]
 
     def scan_library(self, base_dir: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -55,9 +62,9 @@ class LibraryManager:
             if pl_info["track_count"] > 0 or pl_info["remote_url"]:
                 playlists.append(pl_info)
 
-        # 2. Check root directory for loose MP3 files
-        root_mp3s = list(base_path.glob("*.mp3"))
-        if root_mp3s:
+        # 2. Check root directory for loose audio files
+        root_audios = self._get_audio_files(base_path)
+        if root_audios:
             root_meta = self._read_musicgit_meta(base_path)
             cover_path = self._find_cover_in_dir(base_path)
             playlists.insert(
@@ -66,7 +73,7 @@ class LibraryManager:
                     "id": "_root_",
                     "name": root_meta.get("title") or "All Tracks (Root Folder)",
                     "folder_path": str(base_path),
-                    "track_count": len(root_mp3s),
+                    "track_count": len(root_audios),
                     "has_cover": bool(cover_path),
                     "cover_url": f"/api/library/playlist-cover?folder_path={quote(str(base_path))}" if cover_path else None,
                     "remote_url": root_meta.get("remote_url"),
@@ -143,14 +150,14 @@ class LibraryManager:
         """Summarize a single playlist folder."""
         self.heal_nested_playlist_folder(folder_path)
         meta = self._read_musicgit_meta(folder_path)
-        mp3_files = list(folder_path.glob("*.mp3"))
+        audio_files = self._get_audio_files(folder_path)
         cover_path = self._find_cover_in_dir(folder_path)
 
         return {
             "id": folder_path.name,
             "name": meta.get("title") or folder_path.name,
             "folder_path": str(folder_path),
-            "track_count": len(mp3_files),
+            "track_count": len(audio_files),
             "has_cover": bool(cover_path),
             "cover_url": f"/api/library/playlist-cover?folder_path={quote(str(folder_path))}" if cover_path else None,
             "remote_url": meta.get("remote_url"),
@@ -190,7 +197,7 @@ class LibraryManager:
 
     def get_playlist_details(self, folder_path_str: str) -> Dict[str, Any]:
         """
-        Get full playlist details including track items with ID3 metadata.
+        Get full playlist details including track items with ID3/MP4 metadata.
         """
         folder_path = Path(folder_path_str)
         if not folder_path.exists() or not folder_path.is_dir():
@@ -199,13 +206,13 @@ class LibraryManager:
         self.heal_nested_playlist_folder(folder_path)
         meta = self._read_musicgit_meta(folder_path)
         cover_path = self._find_cover_in_dir(folder_path)
-        mp3_files = sorted(folder_path.glob("*.mp3"), key=lambda f: f.name.lower())
+        audio_files = sorted(self._get_audio_files(folder_path), key=lambda f: f.name.lower())
 
         tracks = []
         total_duration = 0
 
-        for idx, mp3 in enumerate(mp3_files, start=1):
-            track_data = self._read_track_metadata(mp3, default_idx=idx)
+        for idx, audio_f in enumerate(audio_files, start=1):
+            track_data = self._read_track_metadata(audio_f, default_idx=idx)
             tracks.append(track_data)
             if track_data.get("duration"):
                 total_duration += track_data["duration"]
@@ -225,7 +232,7 @@ class LibraryManager:
         }
 
     def _read_track_metadata(self, file_path: Path, default_idx: int = 1) -> Dict[str, Any]:
-        """Read ID3 tags and lyrics status for a single MP3 file."""
+        """Read ID3/MP4 tags and lyrics status for an audio file."""
         title = file_path.stem
         artist = "Unknown Artist"
         album = file_path.parent.name
@@ -247,6 +254,7 @@ class LibraryManager:
 
                 if audio.tags:
                     tags = audio.tags
+                    # ID3 Tags (MP3)
                     if "TIT2" in tags and str(tags["TIT2"]).strip():
                         title = str(tags["TIT2"]).strip()
                     if "TPE1" in tags and str(tags["TPE1"]).strip():
@@ -258,12 +266,27 @@ class LibraryManager:
                         if trck_val.isdigit():
                             track_num = int(trck_val)
 
-                    # Check APIC cover
-                    if any(k.startswith("APIC") for k in tags.keys()):
+                    # MP4 / M4A Tags
+                    if "\xa9nam" in tags and tags["\xa9nam"]:
+                        title = str(tags["\xa9nam"][0]).strip()
+                    if "\xa9ART" in tags and tags["\xa9ART"]:
+                        artist = str(tags["\xa9ART"][0]).strip()
+                    elif "aART" in tags and tags["aART"]:
+                        artist = str(tags["aART"][0]).strip()
+                    if "\xa9alb" in tags and tags["\xa9alb"]:
+                        album = str(tags["\xa9alb"][0]).strip()
+                    if "trkn" in tags and tags["trkn"]:
+                        try:
+                            track_num = int(tags["trkn"][0][0])
+                        except Exception:
+                            pass
+
+                    # Check APIC or covr cover
+                    if any(k.startswith("APIC") for k in tags.keys()) or "covr" in tags:
                         has_embedded_cover = True
 
-                    # Check USLT lyrics
-                    if any(k.startswith("USLT") for k in tags.keys()):
+                    # Check USLT or \xa9lyr lyrics
+                    if any(k.startswith("USLT") for k in tags.keys()) or "\xa9lyr" in tags:
                         has_lyrics = True
         except Exception as e:
             logger.debug(f"Could not read full tags for {file_path.name}: {e}")

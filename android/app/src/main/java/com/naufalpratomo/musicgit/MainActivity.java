@@ -1,6 +1,9 @@
 package com.naufalpratomo.musicgit;
 
 import android.Manifest;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -11,6 +14,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -43,6 +47,38 @@ public class MainActivity extends AppCompatActivity {
     private static final int MAX_POLL_ATTEMPTS = 60;   // 60 seconds max wait
     private static final int POLL_INTERVAL_MS = 1000;
 
+    public class AndroidBridge {
+        @JavascriptInterface
+        public String getClipboardText() {
+            try {
+                ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                if (cm != null && cm.hasPrimaryClip()) {
+                    ClipData clip = cm.getPrimaryClip();
+                    if (clip != null && clip.getItemCount() > 0) {
+                        CharSequence text = clip.getItemAt(0).getText();
+                        return text != null ? text.toString() : "";
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error reading clipboard: " + e.getMessage());
+            }
+            return "";
+        }
+
+        @JavascriptInterface
+        public void setClipboardText(String text) {
+            try {
+                ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                if (cm != null) {
+                    ClipData clip = ClipData.newPlainText("MusicGit", text);
+                    cm.setPrimaryClip(clip);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error writing clipboard: " + e.getMessage());
+            }
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,8 +100,19 @@ public class MainActivity extends AppCompatActivity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
+        webView.addJavascriptInterface(new AndroidBridge(), "AndroidBridge");
+
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                // Clear initial splash screen history so back button never navigates to blank splash
+                if (url != null && url.startsWith("http://127.0.0.1")) {
+                    view.clearHistory();
+                }
+            }
+
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 // Suppress: we handle connectivity via polling, not via WebView error callbacks
@@ -250,8 +297,18 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) {
-            webView.goBack();
+        if (webView != null && serverReady) {
+            webView.evaluateJavascript(
+                "(function() { try { if (window.handleAppBack) { return window.handleAppBack(); } } catch(e){} return false; })()",
+                value -> {
+                    if ("true".equals(value)) {
+                        // Back event was successfully handled by the SPA UI (closed modal, detail view, lyrics, etc.)
+                        return;
+                    }
+                    // If already at root Library master view, minimize app smoothly without destroying or showing white screen
+                    moveTaskToBack(true);
+                }
+            );
         } else {
             moveTaskToBack(true);
         }

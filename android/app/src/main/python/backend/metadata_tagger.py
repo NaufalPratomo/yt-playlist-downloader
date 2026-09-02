@@ -121,6 +121,7 @@ class MetadataTagger:
         title: str,
         artist: str,
         video_id: str,
+        ext: str = "mp3",
     ) -> str:
         """
         Format output filename according to template.
@@ -142,10 +143,107 @@ class MetadataTagger:
         filename = filename.replace("{artist}", clean_artist)
         filename = filename.replace("{id}", video_id)
 
-        if not filename.lower().endswith(".mp3"):
-            filename += ".mp3"
+        clean_ext = ext.lstrip(".") if ext else "mp3"
+        if filename.lower().endswith(f".{clean_ext}"):
+            pass
+        elif re.search(r"\.[a-zA-Z0-9]{3,4}$", filename):
+            filename = re.sub(r"\.[a-zA-Z0-9]{3,4}$", f".{clean_ext}", filename)
+        else:
+            filename += f".{clean_ext}"
 
         return sanitize_filename(filename)
+
+    @staticmethod
+    def apply_mp4_tags(
+        file_path: str,
+        track_number: int,
+        title: str,
+        artist: str,
+        album: str,
+        album_artist: Optional[str] = None,
+        is_compilation: bool = True,
+        total_tracks: Optional[int] = None,
+        year: Optional[str] = None,
+        genre: Optional[str] = None,
+        cover_bytes: Optional[bytes] = None,
+        lyrics_text: Optional[str] = None,
+    ) -> bool:
+        """Apply complete MP4/M4A metadata tags using Mutagen."""
+        if not os.path.exists(file_path):
+            return False
+        try:
+            from mutagen.mp4 import MP4, MP4Cover
+            audio = MP4(file_path)
+            audio["\xa9nam"] = [title]
+            audio["\xa9ART"] = [artist]
+            audio["\xa9alb"] = [album]
+            resolved_album_artist = album_artist or ("Various Artists" if is_compilation else artist)
+            audio["aART"] = [resolved_album_artist]
+            if is_compilation or (resolved_album_artist and resolved_album_artist.lower() in ["various artists", "various"]):
+                audio["cpil"] = True
+            if total_tracks and total_tracks > 1:
+                audio["trkn"] = [(track_number, total_tracks)]
+            else:
+                audio["trkn"] = [(track_number, 0)]
+            if year:
+                audio["\xa9day"] = [str(year)]
+            if genre:
+                audio["\xa9gen"] = [genre]
+            if cover_bytes:
+                audio["covr"] = [MP4Cover(cover_bytes, imageformat=MP4Cover.FORMAT_JPEG)]
+            if lyrics_text:
+                audio["\xa9lyr"] = [lyrics_text]
+            audio.save()
+            return True
+        except Exception as e:
+            logger.error(f"Error applying MP4 tags to {file_path}: {e}")
+            return False
+
+    @staticmethod
+    def apply_tags(
+        file_path: str,
+        track_number: int,
+        title: str,
+        artist: str,
+        album: str,
+        album_artist: Optional[str] = None,
+        is_compilation: bool = True,
+        total_tracks: Optional[int] = None,
+        year: Optional[str] = None,
+        genre: Optional[str] = None,
+        cover_bytes: Optional[bytes] = None,
+        lyrics_text: Optional[str] = None,
+    ) -> bool:
+        """Universal tagger dispatcher for MP3, M4A, and other formats."""
+        if file_path.lower().endswith((".m4a", ".mp4")):
+            return MetadataTagger.apply_mp4_tags(
+                file_path=file_path,
+                track_number=track_number,
+                title=title,
+                artist=artist,
+                album=album,
+                album_artist=album_artist,
+                is_compilation=is_compilation,
+                total_tracks=total_tracks,
+                year=year,
+                genre=genre,
+                cover_bytes=cover_bytes,
+                lyrics_text=lyrics_text,
+            )
+        return MetadataTagger.apply_id3_tags(
+            file_path=file_path,
+            track_number=track_number,
+            title=title,
+            artist=artist,
+            album=album,
+            album_artist=album_artist,
+            is_compilation=is_compilation,
+            total_tracks=total_tracks,
+            year=year,
+            genre=genre,
+            cover_bytes=cover_bytes,
+            lyrics_text=lyrics_text,
+        )
 
     @staticmethod
     def apply_id3_tags(

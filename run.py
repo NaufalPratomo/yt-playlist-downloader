@@ -122,6 +122,18 @@ def open_app_window_fallback(url):
         pass
 
 
+def wait_for_server(host: str, port: int, timeout: float = 6.0) -> bool:
+    """Wait until backend server is actively accepting connections."""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            with socket.create_connection((host, port), timeout=0.2):
+                return True
+        except (OSError, ConnectionRefusedError):
+            time.sleep(0.1)
+    return False
+
+
 def main():
     multiprocessing.freeze_support()
 
@@ -132,8 +144,8 @@ def main():
     server_thread = threading.Thread(target=run_server, args=(port,), daemon=True)
     server_thread.start()
 
-    # Wait briefly for backend server to be ready
-    time.sleep(0.8)
+    # Wait until FastAPI server is fully ready and accepting connections
+    wait_for_server(HOST, port, timeout=6.0)
 
     url = f"http://{HOST}:{port}"
 

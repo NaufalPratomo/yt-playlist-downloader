@@ -21,6 +21,53 @@ const MusicGitState = {
   analyzedData: null,
 };
 
+// Universal Cross-Platform Clipboard API (Supports Android WebView Native Bridge & Standard Web API)
+window.getClipboardText = async function () {
+  // 1. Android Native Java-JS Bridge (MainActivity AndroidBridge)
+  if (window.AndroidBridge && typeof window.AndroidBridge.getClipboardText === "function") {
+    try {
+      const text = window.AndroidBridge.getClipboardText();
+      if (text) return text.trim();
+    } catch (e) {
+      console.warn("AndroidBridge getClipboardText error:", e);
+    }
+  }
+
+  // 2. Standard Web Clipboard API
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) return text.trim();
+    } catch (e) {
+      console.warn("navigator.clipboard.readText error:", e);
+    }
+  }
+
+  return "";
+};
+
+window.setClipboardText = async function (text) {
+  if (window.AndroidBridge && typeof window.AndroidBridge.setClipboardText === "function") {
+    try {
+      window.AndroidBridge.setClipboardText(text);
+      return true;
+    } catch (e) {
+      console.warn("AndroidBridge setClipboardText error:", e);
+    }
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      console.warn("navigator.clipboard.writeText error:", e);
+    }
+  }
+
+  return false;
+};
+
 // =============================================================================
 // 1. AUDIO PLAYER ENGINE
 // =============================================================================
@@ -75,11 +122,17 @@ class AudioPlayerEngine {
     this.audio.addEventListener("play", () => {
       this.isPlaying = true;
       this._updatePlayButtonState();
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.playbackState = "playing";
+      }
     });
 
     this.audio.addEventListener("pause", () => {
       this.isPlaying = false;
       this._updatePlayButtonState();
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.playbackState = "paused";
+      }
     });
 
     this.audio.addEventListener("timeupdate", () => {
@@ -199,6 +252,8 @@ class AudioPlayerEngine {
     this.barTitle.textContent = track.title || "Judul Lagu";
     this.barArtist.textContent = track.artist || "Unknown Artist";
 
+    this.currentTrack = track;
+
     // Set thumbnail
     if (track.cover_url) {
       this.barThumb.src = track.cover_url;
@@ -218,6 +273,9 @@ class AudioPlayerEngine {
 
     this._updateTrackTableHighlight();
     this._renderQueue();
+
+    // Trigger Android lock screen and system media controls
+    this._updateMediaSession(track);
 
     // Trigger lyrics load
     LyricsEngine.loadLyrics(track);
@@ -334,6 +392,76 @@ class AudioPlayerEngine {
 
     // Sync lyrics line
     LyricsEngine.onAudioTimeUpdate(cur);
+
+    // Sync MediaSession position for Android Lock Screen
+    this._updateMediaSessionPosition();
+  }
+
+  _updateMediaSession(track) {
+    if (!("mediaSession" in navigator)) return;
+    try {
+      const title = track.title || "Judul Lagu";
+      const artist = track.artist || "Unknown Artist";
+      const album = track.album || "MusicGit";
+      const artwork = [];
+
+      if (track.cover_url) {
+        artwork.push({
+          src: new URL(track.cover_url, window.location.href).href,
+          sizes: "512x512",
+          type: "image/jpeg",
+        });
+      }
+
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: title,
+        artist: artist,
+        album: album,
+        artwork: artwork,
+      });
+
+      navigator.mediaSession.setActionHandler("play", () => this.togglePlayPause());
+      navigator.mediaSession.setActionHandler("pause", () => this.togglePlayPause());
+      navigator.mediaSession.setActionHandler("previoustrack", () => this.prev());
+      navigator.mediaSession.setActionHandler("nexttrack", () => this.next());
+
+      try {
+        navigator.mediaSession.setActionHandler("seekto", (details) => {
+          if (details.seekTime !== undefined) {
+            this.seek(details.seekTime);
+          }
+        });
+      } catch (e) {}
+
+      try {
+        navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+          const skipTime = details.seekOffset || 10;
+          this.seek(Math.max(0, this.audio.currentTime - skipTime));
+        });
+      } catch (e) {}
+
+      try {
+        navigator.mediaSession.setActionHandler("seekforward", (details) => {
+          const skipTime = details.seekOffset || 10;
+          this.seek(Math.min(this.audio.duration || 0, this.audio.currentTime + skipTime));
+        });
+      } catch (e) {}
+    } catch (err) {
+      console.warn("MediaSession update error:", err);
+    }
+  }
+
+  _updateMediaSessionPosition() {
+    if (!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
+    try {
+      if (this.audio.duration && !isNaN(this.audio.duration)) {
+        navigator.mediaSession.setPositionState({
+          duration: this.audio.duration,
+          playbackRate: this.audio.playbackRate || 1.0,
+          position: Math.min(this.audio.currentTime, this.audio.duration),
+        });
+      }
+    } catch (e) {}
   }
 
   _onTrackEnded() {
@@ -1379,24 +1507,27 @@ class DownloaderSyncEngine {
       this.analyze(this.urlInput.value.trim());
     });
 
-    document.getElementById("btn-dl-paste").addEventListener("click", async () => {
-      try {
-        const text = await navigator.clipboard.readText();
-        if (text) this.urlInput.value = text.trim();
-      } catch (e) {}
-    });
+    const pasteBtn = document.getElementById("btn-dl-paste");
+    if (pasteBtn) {
+      pasteBtn.addEventListener("click", async () => {
+        const text = await window.getClipboardText();
+        if (text) {
+          this.urlInput.value = text;
+          this.urlInput.dispatchEvent(new Event("input"));
+        }
+      });
+    }
 
     const topbarPaste = document.getElementById("btn-topbar-paste-url");
     if (topbarPaste) {
       topbarPaste.addEventListener("click", async () => {
         ViewController.switchView("view-downloader");
-        try {
-          const text = await navigator.clipboard.readText();
-          if (text) {
-            this.urlInput.value = text.trim();
-            this.analyze(text.trim());
-          }
-        } catch (e) {}
+        const text = await window.getClipboardText();
+        if (text) {
+          this.urlInput.value = text;
+          this.urlInput.dispatchEvent(new Event("input"));
+          this.analyze(text);
+        }
       });
     }
 
@@ -1753,6 +1884,19 @@ class TagManagerEngine {
         status.textContent = `Gagal: ${err.message}`;
       }
     });
+
+    // Paste sync URL button
+    const tagmgrPaste = document.getElementById("btn-tagmgr-sync-paste");
+    if (tagmgrPaste) {
+      tagmgrPaste.addEventListener("click", async () => {
+        const syncInput = document.getElementById("tagmgr-sync-url");
+        const text = await window.getClipboardText();
+        if (text && syncInput) {
+          syncInput.value = text;
+          syncInput.dispatchEvent(new Event("input"));
+        }
+      });
+    }
 
     // Run sync diff
     document.getElementById("btn-tagmgr-run-sync-diff").addEventListener("click", async () => {
@@ -2382,6 +2526,57 @@ const ViewController = {
   },
 };
 
+window.ViewController = ViewController;
+
+// Global Handler for Android & Browser System Back Navigation
+window.handleAppBack = function () {
+  // 1. Close any visible modal dialogs
+  const openModals = document.querySelectorAll(".modal:not(.hidden)");
+  if (openModals && openModals.length > 0) {
+    openModals.forEach((m) => m.classList.add("hidden"));
+    return true;
+  }
+
+  // 2. Close queue drawer if open
+  const queueDrawer = document.getElementById("queue-drawer");
+  if (queueDrawer && !queueDrawer.classList.contains("hidden")) {
+    queueDrawer.classList.add("hidden");
+    const queueBtn = document.getElementById("btn-toggle-queue-footer");
+    if (queueBtn) queueBtn.classList.remove("active");
+    return true;
+  }
+
+  // 3. If in full-screen lyrics view, return to previous view
+  if (MusicGitState.activeView === "view-lyrics") {
+    if (window.ViewController) {
+      window.ViewController.switchView(window.ViewController.previousView || "view-library");
+      return true;
+    }
+  }
+
+  // 4. If in Library view and viewing playlist detail, go back to master playlist grid
+  if (MusicGitState.activeView === "view-library") {
+    const detailView = document.getElementById("library-detail-view");
+    if (detailView && !detailView.classList.contains("hidden")) {
+      if (window.LibraryManagerEngine) {
+        window.LibraryManagerEngine.showMaster();
+        return true;
+      }
+    }
+  }
+
+  // 5. If in another view (Downloader, Tag Sync, Settings), switch back to Library
+  if (MusicGitState.activeView && MusicGitState.activeView !== "view-library") {
+    if (window.ViewController) {
+      window.ViewController.switchView("view-library");
+      return true;
+    }
+  }
+
+  // At top-level home/library grid
+  return false;
+};
+
 // =============================================================================
 // BOOTSTRAP APPLICATION
 // =============================================================================
@@ -2415,8 +2610,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (MusicGitState.config.theme) ThemeManager.applyTheme(MusicGitState.config.theme);
     if (MusicGitState.config.language) I18nManager.applyLanguage(MusicGitState.config.language);
 
+    const isAndroid = cfg.is_android || /android/i.test(navigator.userAgent);
+    MusicGitState.config.is_android = isAndroid;
+
+    if (isAndroid) {
+      document.body.classList.add("is-android");
+    }
+
     const dirInput = document.getElementById("settings-output-dir");
-    if (dirInput) dirInput.value = MusicGitState.config.defaultMusicDir || "";
+    if (dirInput) {
+      if (isAndroid) {
+        dirInput.value = cfg.default_music_dir || "/storage/emulated/0/Music";
+        dirInput.setAttribute("readonly", "true");
+        dirInput.setAttribute("title", "Direktori Musik Android Standar");
+      } else {
+        dirInput.value = MusicGitState.config.defaultMusicDir || "";
+      }
+    }
+
+    const browseBtn = document.getElementById("btn-settings-browse-dir");
+    if (browseBtn && isAndroid) {
+      browseBtn.style.display = "none";
+    }
 
     const brSelect = document.getElementById("settings-default-bitrate");
     if (brSelect) brSelect.value = MusicGitState.config.defaultBitrate || "192";

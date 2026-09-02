@@ -262,21 +262,15 @@ class PlaylistDownloader:
                         eta_str = d.get("_eta_str", "").strip()
                         if eta_str:
                             job["eta"] = re.sub(r"\x1b\[[0-9;]*m", "", eta_str)
-
                         self._update_overall_progress(job)
                     elif d["status"] == "finished":
                         track_state["status"] = "converting"
 
+                ffmpeg_path = get_ffmpeg_path()
+
                 ydl_opts = {
-                    "format": "bestaudio/best",
+                    "format": "bestaudio/best" if ffmpeg_path else "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio/best",
                     "outtmpl": raw_out_path,
-                    "postprocessors": [
-                        {
-                            "key": "FFmpegExtractAudio",
-                            "preferredcodec": "mp3",
-                            "preferredquality": bitrate,
-                        }
-                    ],
                     "progress_hooks": [progress_hook],
                     "quiet": True,
                     "no_warnings": True,
@@ -292,9 +286,15 @@ class PlaylistDownloader:
                     },
                 }
 
-                ffmpeg_path = get_ffmpeg_path()
                 if ffmpeg_path:
                     ydl_opts["ffmpeg_location"] = ffmpeg_path
+                    ydl_opts["postprocessors"] = [
+                        {
+                            "key": "FFmpegExtractAudio",
+                            "preferredcodec": "mp3",
+                            "preferredquality": bitrate,
+                        }
+                    ]
 
                 info_dict = None
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -317,33 +317,39 @@ class PlaylistDownloader:
                             job["current_track_title"] = f"{artist} - {title}"
                             self._add_log(job, f"[Metadata] Menemukan artis otomatis: {artist}")
 
-                # Update final filename with resolved metadata
+                # Locate downloaded intermediate file (.mp3, .m4a, .webm, .opus, etc.)
+                intermediate_file = None
+                if os.path.exists(expected_intermediate_mp3):
+                    intermediate_file = expected_intermediate_mp3
+                else:
+                    for f in os.listdir(target_dir):
+                        if track_id in f and not f.endswith((".part", ".ytdl", ".temp", ".jpg", ".png", ".lrc", ".json")):
+                            intermediate_file = os.path.join(target_dir, f)
+                            break
+
+                if not intermediate_file or not os.path.exists(intermediate_file):
+                    raise FileNotFoundError(f"File audio hasil unduhan tidak ditemukan untuk {video_url}")
+
+                actual_ext = os.path.splitext(intermediate_file)[1].lstrip(".").lower() or "mp3"
+
+                # Update final filename with resolved metadata and actual extension
                 final_filename = metadata_tagger.format_filename(
                     template=filename_template,
                     track_number=track_num,
                     title=title,
                     artist=artist,
                     video_id=track_id,
+                    ext=actual_ext,
                 )
-                final_mp3_path = os.path.join(target_dir, final_filename)
+                final_audio_path = os.path.join(target_dir, final_filename)
 
-                if not os.path.exists(expected_intermediate_mp3):
-                    found = False
-                    for f in os.listdir(target_dir):
-                        if track_id in f and f.lower().endswith(".mp3"):
-                            expected_intermediate_mp3 = os.path.join(target_dir, f)
-                            found = True
-                            break
-                    if not found:
-                        raise FileNotFoundError(f"File MP3 hasil konversi tidak ditemukan untuk {video_url}")
-
-                if os.path.abspath(expected_intermediate_mp3) != os.path.abspath(final_mp3_path):
-                    if os.path.exists(final_mp3_path):
+                if os.path.abspath(intermediate_file) != os.path.abspath(final_audio_path):
+                    if os.path.exists(final_audio_path):
                         try:
-                            os.remove(final_mp3_path)
+                            os.remove(final_audio_path)
                         except Exception:
                             pass
-                    os.rename(expected_intermediate_mp3, final_mp3_path)
+                    os.rename(intermediate_file, final_audio_path)
 
                 # 2. Process Cover Art
                 cover_bytes = None
@@ -368,14 +374,9 @@ class PlaylistDownloader:
                         album=album_name,
                         duration=track.get("duration"),
                     )
-
-                    synced_lrc = lyrics_res.get("synced_lyrics")
-                    plain_lyrics = lyrics_res.get("plain_lyrics")
-
-                    if synced_lrc or plain_lyrics:
-                        self._add_log(job, f"[Lirik] Ditemukan ({lyrics_res.get('source')})")
-                        lyrics_text = plain_lyrics or synced_lrc
-
+                    if lyrics_res.get("lyrics"):
+                        lyrics_text = lyrics_res["lyrics"]
+                        synced_lrc = lyrics_res.get("synced_lrc")
                         if save_lrc_file and synced_lrc:
                             lrc_filename = os.path.splitext(final_filename)[0] + ".lrc"
                             lrc_path = os.path.join(target_dir, lrc_filename)
@@ -385,10 +386,10 @@ class PlaylistDownloader:
                             except Exception as e:
                                 logger.error(f"Failed to save .lrc: {e}")
 
-                # 4. Apply complete ID3 Metadata
+                # 4. Apply complete Metadata Tags
                 track_state["status"] = "tagging"
-                metadata_tagger.apply_id3_tags(
-                    file_path=final_mp3_path,
+                metadata_tagger.apply_tags(
+                    file_path=final_audio_path,
                     track_number=track_num,
                     title=title,
                     artist=artist,
@@ -404,7 +405,7 @@ class PlaylistDownloader:
 
                 track_state["status"] = "completed"
                 track_state["progress"] = 100.0
-                track_state["file_path"] = final_mp3_path
+                track_state["file_path"] = final_audio_path
                 job["completed_tracks"] += 1
                 self._add_log(job, f"[Selesai] [{idx}/{len(tracks)}]: {final_filename}")
 

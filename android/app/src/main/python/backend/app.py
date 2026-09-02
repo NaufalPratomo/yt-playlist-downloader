@@ -177,12 +177,14 @@ async def get_config():
     """Get system default config and paths, merging with config.json."""
     default_dir = get_default_music_dir()
     saved = load_saved_config()
+    is_android = os.path.exists("/storage/emulated/0") or "ANDROID_STORAGE" in os.environ or "ANDROID_ROOT" in os.environ
     return {
         "default_music_dir": saved.get("default_music_dir") or default_dir,
         "default_template": saved.get("default_template") or "{num}. {title}-{id}.mp3",
         "default_bitrate": saved.get("default_bitrate") or "192",
         "theme": saved.get("theme") or "dark",
         "language": saved.get("language") or "id",
+        "is_android": is_android,
         "available_templates": [
             {"label": "1. Judul-VideoID.mp3", "value": "{num}. {title}-{id}.mp3"},
             {"label": "1. Judul.mp3", "value": "{num}. {title}.mp3"},
@@ -324,10 +326,14 @@ async def stream_job_progress(request: Request, job_id: str):
 
 @app.post("/api/open-folder")
 async def open_folder(req: OpenFolderRequest):
-    """Open folder in Windows File Explorer."""
+    """Open folder in Windows File Explorer or native OS file manager."""
     path = req.path.strip()
     if not path:
         raise HTTPException(status_code=400, detail="Path folder kosong.")
+
+    is_android = os.path.exists("/storage/emulated/0") or "ANDROID_STORAGE" in os.environ
+    if is_android:
+        return {"success": False, "message": "File Explorer tidak tersedia di Android.", "path": path}
 
     success = open_in_explorer(path)
     return {"success": success, "path": path}
@@ -567,17 +573,23 @@ async def get_track_lyrics(file_path: str, auto_fetch: bool = True):
 
 @app.get("/api/library/track-cover")
 async def get_track_cover(file_path: str):
-    """Extract and stream embedded cover art from MP3 file."""
+    """Extract and stream embedded cover art from audio file."""
     path = file_path.strip()
     if not path or not os.path.exists(path):
         raise HTTPException(status_code=404, detail="File audio tidak ditemukan.")
 
     try:
-        audio = ID3(path)
-        for key in audio.keys():
-            if key.startswith("APIC"):
-                apic = audio[key]
-                return Response(content=apic.data, media_type=apic.mime or "image/jpeg")
+        audio = mutagen.File(path)
+        if audio and audio.tags:
+            # ID3 (MP3)
+            for key in audio.tags.keys():
+                if key.startswith("APIC"):
+                    apic = audio.tags[key]
+                    return Response(content=apic.data, media_type=apic.mime or "image/jpeg")
+            # MP4 (M4A)
+            if "covr" in audio.tags and audio.tags["covr"]:
+                covr_data = bytes(audio.tags["covr"][0])
+                return Response(content=covr_data, media_type="image/jpeg")
     except Exception:
         pass
 
@@ -603,15 +615,19 @@ async def get_playlist_cover(folder_path: str):
         if img.exists():
             return FileResponse(str(img))
 
-    # Try first MP3
-    mp3s = list(folder.glob("*.mp3"))
-    if mp3s:
+    # Try first audio file
+    audio_files = [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in [".mp3", ".m4a", ".aac", ".opus", ".flac", ".ogg", ".wav"]]
+    if audio_files:
         try:
-            audio = ID3(str(mp3s[0]))
-            for key in audio.keys():
-                if key.startswith("APIC"):
-                    apic = audio[key]
-                    return Response(content=apic.data, media_type=apic.mime or "image/jpeg")
+            audio = mutagen.File(str(audio_files[0]))
+            if audio and audio.tags:
+                for key in audio.tags.keys():
+                    if key.startswith("APIC"):
+                        apic = audio.tags[key]
+                        return Response(content=apic.data, media_type=apic.mime or "image/jpeg")
+                if "covr" in audio.tags and audio.tags["covr"]:
+                    covr_data = bytes(audio.tags["covr"][0])
+                    return Response(content=covr_data, media_type="image/jpeg")
         except Exception:
             pass
 
