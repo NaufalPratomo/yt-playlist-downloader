@@ -280,6 +280,13 @@ class MetadataTagger:
         if not os.path.exists(folder_path):
             return {"success": False, "error": f"Folder tidak ditemukan: {folder_path}"}
 
+        try:
+            from pathlib import Path
+            from .library_manager import library_manager
+            library_manager.heal_nested_playlist_folder(Path(folder_path))
+        except Exception:
+            pass
+
         mp3_files = [f for f in os.listdir(folder_path) if f.lower().endswith(".mp3")]
         if not mp3_files:
             return {

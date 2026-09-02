@@ -77,8 +77,71 @@ class LibraryManager:
 
         return playlists
 
+    def heal_nested_playlist_folder(self, folder_path: Path) -> None:
+        """
+        Detect and heal accidentally nested playlist folders (e.g. from previous sync bugs
+        where 'Music/Playlist/Playlist' was created).
+        Moves tracks, cover, lrc, and merges .musicgit.json back into the parent playlist folder.
+        """
+        if not folder_path.exists() or not folder_path.is_dir():
+            return
+
+        try:
+            for sub in list(folder_path.iterdir()):
+                if sub.is_dir() and not sub.name.startswith("."):
+                    if (
+                        sub.name.lower() == folder_path.name.lower()
+                        or sub.name.lower() == sanitize_filename(folder_path.name).lower()
+                    ):
+                        logger.info(f"Detected nested folder '{sub.name}' inside '{folder_path.name}'. Auto-healing...")
+                        nested_meta = self._read_musicgit_meta(sub)
+                        parent_meta = self._read_musicgit_meta(folder_path)
+
+                        # Merge metadata
+                        if nested_meta.get("remote_url") and not parent_meta.get("remote_url"):
+                            parent_meta["remote_url"] = nested_meta["remote_url"]
+                        if nested_meta.get("last_sync"):
+                            parent_meta["last_sync"] = nested_meta["last_sync"]
+                        if nested_meta.get("title") and not parent_meta.get("title"):
+                            parent_meta["title"] = nested_meta["title"]
+                        if parent_meta:
+                            self._write_musicgit_meta(folder_path, parent_meta)
+
+                        # Move files from nested folder to parent folder
+                        for item in list(sub.iterdir()):
+                            if item.is_file():
+                                dest = folder_path / item.name
+                                if item.name == ".musicgit.json":
+                                    try:
+                                        item.unlink()
+                                    except Exception:
+                                        pass
+                                elif not dest.exists():
+                                    try:
+                                        item.rename(dest)
+                                    except Exception as e:
+                                        logger.warning(f"Could not move {item} to {dest}: {e}")
+                                else:
+                                    try:
+                                        if item.name.lower().endswith((".mp3", ".lrc")):
+                                            item.replace(dest)
+                                        else:
+                                            item.unlink()
+                                    except Exception as e:
+                                        logger.warning(f"Could not resolve file {item}: {e}")
+
+                        # Remove empty subfolder
+                        try:
+                            sub.rmdir()
+                            logger.info(f"Successfully healed and removed nested folder: {sub}")
+                        except Exception as e:
+                            logger.warning(f"Could not remove subfolder {sub}: {e}")
+        except Exception as e:
+            logger.warning(f"Error during heal_nested_playlist_folder for {folder_path}: {e}")
+
     def _get_folder_summary(self, folder_path: Path) -> Dict[str, Any]:
         """Summarize a single playlist folder."""
+        self.heal_nested_playlist_folder(folder_path)
         meta = self._read_musicgit_meta(folder_path)
         mp3_files = list(folder_path.glob("*.mp3"))
         cover_path = self._find_cover_in_dir(folder_path)
@@ -133,6 +196,7 @@ class LibraryManager:
         if not folder_path.exists() or not folder_path.is_dir():
             raise FileNotFoundError(f"Folder not found: {folder_path_str}")
 
+        self.heal_nested_playlist_folder(folder_path)
         meta = self._read_musicgit_meta(folder_path)
         cover_path = self._find_cover_in_dir(folder_path)
         mp3_files = sorted(folder_path.glob("*.mp3"), key=lambda f: f.name.lower())
@@ -230,7 +294,7 @@ class LibraryManager:
     def link_playlist_remote(
         self,
         folder_path: str,
-        remote_url: str,
+        remote_url: Optional[str] = None,
         playlist_title: Optional[str] = None,
         auto_sync: bool = True,
     ) -> Dict[str, Any]:
@@ -240,16 +304,26 @@ class LibraryManager:
             raise FileNotFoundError(f"Folder not found: {folder_path}")
 
         meta = self._read_musicgit_meta(path)
-        meta["remote_url"] = remote_url.strip()
+        if remote_url is not None and remote_url.strip():
+            meta["remote_url"] = remote_url.strip()
         if playlist_title:
             meta["title"] = playlist_title.strip()
         elif "title" not in meta:
             meta["title"] = path.name
         meta["auto_sync"] = auto_sync
-        meta["updated_at"] = meta.get("updated_at")
 
         success = self._write_musicgit_meta(path, meta)
         return {"success": success, "folder_path": str(path), "metadata": meta}
+
+    def update_sync_timestamp(self, folder_path: str, timestamp: Optional[str] = None) -> bool:
+        """Update last_sync timestamp in .musicgit.json of playlist."""
+        path = Path(folder_path)
+        if not path.exists() or not path.is_dir():
+            return False
+        meta = self._read_musicgit_meta(path)
+        import time
+        meta["last_sync"] = timestamp or time.strftime("%Y-%m-%dT%H:%M:%SZ")
+        return self._write_musicgit_meta(path, meta)
 
     def sync_playlist_lyrics(
         self,

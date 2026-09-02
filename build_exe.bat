@@ -49,14 +49,17 @@ if exist "C:\Program Files (x86)\Inno Setup 6\iscc.exe" set "ISCC_EXE=C:\Program
 if exist "C:\Program Files\Inno Setup 6\iscc.exe" set "ISCC_EXE=C:\Program Files\Inno Setup 6\iscc.exe"
 if exist "%LocalAppData%\Programs\Inno Setup 6\iscc.exe" set "ISCC_EXE=%LocalAppData%\Programs\Inno Setup 6\iscc.exe"
 
-if defined ISCC_EXE (
-    echo    Inno Setup ditemukan: "%ISCC_EXE%"
-    echo    Mengompilasi dist\MusicGit-v2.0-Setup.exe...
-    "%ISCC_EXE%" installer.iss
-    echo    File Installer: dist\MusicGit-v2.0-Setup.exe
-) else (
-    echo    (Info) Inno Setup tidak terdeteksi. File rilis utama ZIP siap digunakan.
-)
+if "%ISCC_EXE%"=="" goto NO_INNO
+echo    Inno Setup ditemukan: %ISCC_EXE%
+echo    Mengompilasi dist\MusicGit-v2.0-Setup.exe...
+"%ISCC_EXE%" installer.iss
+echo    File Installer: dist\MusicGit-v2.0-Setup.exe
+goto INNO_DONE
+
+:NO_INNO
+echo    (Info) Inno Setup tidak terdeteksi. File rilis utama ZIP siap digunakan.
+
+:INNO_DONE
 
 echo.
 echo ========================================================

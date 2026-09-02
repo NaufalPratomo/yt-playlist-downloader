@@ -3,13 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" id="meta-theme-color" content="#181818">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>MusicGit - Music Player & Playlist Sync</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/jpeg" href="assets/logo-lightmode.jpg">
   <link rel="apple-touch-icon" href="assets/logo-lightmode.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.2.1">
+  <link rel="stylesheet" href="style.css?v=2.2.2">
 </head>
 <body class="theme-dark">
   <div class="app-layout">
@@ -23,7 +27,7 @@
         </div>
         <div class="brand-text">
           <h1 class="brand-title">MusicGit</h1>
-          <span class="brand-tagline">Music Player & Git Sync</span>
+          <span class="brand-tagline">Music Player & Playlist Sync</span>
         </div>
       </div>
 
@@ -94,7 +98,7 @@
 
       <!-- Sidebar Footer Status -->
       <div class="sidebar-footer">
-        <span class="sidebar-footer-text">MusicGit v2.0</span>
+        <span class="sidebar-footer-text">MusicGit v2.2</span>
       </div>
     </aside>
 
@@ -934,10 +938,10 @@
             <line x1="3" y1="12" x2="3.01" y2="12"></line>
             <line x1="3" y1="18" x2="3.01" y2="18"></line>
           </svg>
-          <span class="drawer-title">Antrian Putar</span>
+          <span class="drawer-title" data-i18n="queue_title">Antrian Putar</span>
           <span class="pill pill-xs" id="queue-count-badge">0</span>
         </div>
-        <button type="button" id="btn-close-queue-drawer" class="btn-icon-xs" title="Tutup Antrian">
+        <button type="button" id="btn-close-queue-drawer" class="btn-icon-xs" data-i18n-title="queue_close_title" title="Tutup Antrian">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -945,7 +949,7 @@
         </button>
       </div>
       <div class="queue-list-scroll" id="player-queue-items">
-        <div class="queue-empty-msg">Antrian kosong.</div>
+        <div class="queue-empty-msg" data-i18n="queue_empty">Antrian kosong.</div>
       </div>
     </aside>
 
@@ -967,15 +971,15 @@
           </div>
         </div>
         <div class="player-meta-texts">
-          <div id="player-bar-title" class="player-title">MusicGit Player</div>
-          <div id="player-bar-artist" class="player-artist">Pilih lagu untuk mulai memutar</div>
+          <div id="player-bar-title" class="player-title" data-i18n="player_default_title">MusicGit Player</div>
+          <div id="player-bar-artist" class="player-artist" data-i18n="player_default_artist">Pilih lagu untuk mulai memutar</div>
         </div>
       </div>
 
       <!-- Player Center: Controls & Seekbar -->
       <div class="player-center-controls">
         <div class="player-buttons-row">
-          <button type="button" id="btn-player-shuffle" class="btn-player-btn" title="Acak Lagu (Shuffle)">
+          <button type="button" id="btn-player-shuffle" class="btn-player-btn" data-i18n-title="player_shuffle_title" title="Acak Lagu (Shuffle)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="16 3 21 3 21 8"></polyline>
               <line x1="4" y1="20" x2="21" y2="3"></line>
@@ -985,14 +989,14 @@
             </svg>
           </button>
 
-          <button type="button" id="btn-player-prev" class="btn-player-btn" title="Lagu Sebelumnya">
+          <button type="button" id="btn-player-prev" class="btn-player-btn" data-i18n-title="player_prev_title" title="Lagu Sebelumnya">
             <svg viewBox="0 0 24 24" fill="currentColor">
               <polygon points="19 20 9 12 19 4 19 20"></polygon>
               <line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2.5"></line>
             </svg>
           </button>
 
-          <button type="button" id="btn-player-play-pause" class="btn-player-play-large" title="Putar / Jeda (Spasi)">
+          <button type="button" id="btn-player-play-pause" class="btn-player-play-large" data-i18n-title="player_play_pause_title" title="Putar / Jeda (Spasi)">
             <svg id="icon-player-play" viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5 3 19 12 5 21 5 3"></polygon>
             </svg>
@@ -1002,14 +1006,14 @@
             </svg>
           </button>
 
-          <button type="button" id="btn-player-next" class="btn-player-btn" title="Lagu Berikutnya">
+          <button type="button" id="btn-player-next" class="btn-player-btn" data-i18n-title="player_next_title" title="Lagu Berikutnya">
             <svg viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5 4 15 12 5 20 5 4"></polygon>
               <line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.5"></line>
             </svg>
           </button>
 
-          <button type="button" id="btn-player-repeat" class="btn-player-btn" title="Ulangi (Repeat)">
+          <button type="button" id="btn-player-repeat" class="btn-player-btn" data-i18n-title="player_repeat_title" title="Ulangi (Repeat)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="17 1 21 5 17 9"></polyline>
               <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
@@ -1032,7 +1036,7 @@
 
       <!-- Player Right: Volume & Drawer Toggles -->
       <div class="player-right-actions">
-        <button type="button" id="btn-toggle-lyrics-footer" class="btn-player-action" title="Lirik Bersinkronisasi (Karaoke)">
+        <button type="button" id="btn-toggle-lyrics-footer" class="btn-player-action" data-i18n-title="player_lyrics_title" title="Lirik Bersinkronisasi (Karaoke)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
@@ -1041,7 +1045,7 @@
           </svg>
         </button>
 
-        <button type="button" id="btn-toggle-queue-footer" class="btn-player-action" title="Antrian Putar">
+        <button type="button" id="btn-toggle-queue-footer" class="btn-player-action" data-i18n-title="queue_title" title="Antrian Putar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="8" y1="6" x2="21" y2="6"></line>
             <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -1053,7 +1057,7 @@
         </button>
 
         <div class="volume-slider-group">
-          <button type="button" id="btn-player-mute" class="btn-player-action" title="Mute / Unmute">
+          <button type="button" id="btn-player-mute" class="btn-player-action" data-i18n-title="player_mute_title" title="Mute / Unmute">
             <svg id="icon-volume-high" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
@@ -1065,8 +1069,8 @@
             </svg>
           </button>
           <div class="volume-slider-wrap">
-            <input type="range" id="player-volume-slider" min="0" max="1" value="0.8" step="0.01" class="custom-range-slider">
-            <div class="slider-fill-track" id="player-volume-fill" style="width: 80%;"></div>
+            <input type="range" id="player-volume-slider" min="0" max="1" value="1" step="0.01" class="custom-range-slider">
+            <div class="slider-fill-track" id="player-volume-fill" style="width: 100%;"></div>
           </div>
         </div>
       </div>

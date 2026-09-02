@@ -35,15 +35,27 @@ if getattr(sys, "frozen", False):
     if exe_dir not in os.environ.get("PATH", ""):
         os.environ["PATH"] = exe_dir + os.pathsep + os.environ.get("PATH", "")
 
+import socket
 import subprocess
 import uvicorn
 import webbrowser
 
-PORT = 8585
 HOST = "127.0.0.1"
 
 
-def run_server():
+def find_available_port(start_port: int = 8585, max_attempts: int = 50) -> int:
+    """Find a free TCP port starting from start_port to prevent [Errno 10048]."""
+    for port in range(start_port, start_port + max_attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind((HOST, port))
+                return port
+            except OSError:
+                continue
+    return start_port
+
+
+def run_server(port: int):
     """Run uvicorn server in background thread."""
     if getattr(sys, "frozen", False):
         base_dir = sys._MEIPASS
@@ -58,7 +70,7 @@ def run_server():
     config = uvicorn.Config(
         app=app,
         host=HOST,
-        port=PORT,
+        port=port,
         log_level="warning",
         reload=False,
     )
@@ -94,6 +106,7 @@ def open_app_window_fallback(url):
                     f"--user-data-dir={profile_dir}",
                     "--window-size=1240,820",
                     "--disable-extensions",
+                    "--enable-features=WindowControlsOverlay",
                 ])
                 proc.wait()
                 return
@@ -112,14 +125,17 @@ def open_app_window_fallback(url):
 def main():
     multiprocessing.freeze_support()
 
+    # Find free port to avoid Errno 10048 port conflicts
+    port = find_available_port(8585)
+
     # Start FastAPI backend in background daemon thread
-    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread = threading.Thread(target=run_server, args=(port,), daemon=True)
     server_thread.start()
 
     # Wait briefly for backend server to be ready
     time.sleep(0.8)
 
-    url = f"http://{HOST}:{PORT}"
+    url = f"http://{HOST}:{port}"
 
     use_fallback = False
     try:
@@ -132,6 +148,8 @@ def main():
             height=820,
             min_size=(960, 640),
             text_select=True,
+            background_color="#181818",
+            easy_drag=True,
         )
 
         # Blocks until the desktop window is closed by the user

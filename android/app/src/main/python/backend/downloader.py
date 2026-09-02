@@ -138,8 +138,16 @@ class PlaylistDownloader:
         target_dir = options.get("target_folder") or options.get("folder_path")
         if not target_dir:
             folder_name = sanitize_filename(options.get("folder_name") or playlist_title)
-            target_dir = os.path.join(output_base_dir, folder_name)
+            norm_base = os.path.normpath(output_base_dir) if output_base_dir else ""
+            if norm_base and (
+                os.path.basename(norm_base).lower() == folder_name.lower()
+                or os.path.basename(norm_base).lower() == sanitize_filename(playlist_title).lower()
+            ):
+                target_dir = norm_base
+            else:
+                target_dir = os.path.join(output_base_dir, folder_name)
         else:
+            target_dir = os.path.normpath(target_dir)
             folder_name = os.path.basename(target_dir)
 
         os.makedirs(target_dir, exist_ok=True)
@@ -427,14 +435,15 @@ class PlaylistDownloader:
         # Auto-create or update .musicgit.json in playlist folder
         try:
             from .library_manager import library_manager
-            remote_url = options.get("remote_url") or ""
+            remote_url = options.get("remote_url")
             playlist_title = job.get("playlist_title") or album_name
-            library_manager.link_playlist_remote(
-                folder_path=target_dir,
-                remote_url=remote_url,
-                playlist_title=playlist_title,
-                auto_sync=True,
-            )
+            if remote_url:
+                library_manager.link_playlist_remote(
+                    folder_path=target_dir,
+                    remote_url=remote_url,
+                    playlist_title=playlist_title,
+                    auto_sync=True,
+                )
             library_manager.update_sync_timestamp(target_dir, time.strftime("%Y-%m-%dT%H:%M:%SZ"))
         except Exception as e:
             logger.warning(f"Failed to auto-link .musicgit.json in {target_dir}: {e}")

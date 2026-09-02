@@ -32,7 +32,7 @@ class AudioPlayerEngine {
     this.isPlaying = false;
     this.isShuffle = false;
     this.repeatMode = "all"; // 'off', 'all', 'one'
-    this.volume = 0.8;
+    this.volume = 1.0;
     this.isMuted = false;
 
     // DOM Elements
@@ -67,6 +67,7 @@ class AudioPlayerEngine {
     this.isSeeking = false;
 
     this._initListeners();
+    this.setVolume(1.0);
   }
 
   _initListeners() {
@@ -289,7 +290,7 @@ class AudioPlayerEngine {
 
   toggleMute() {
     if (this.isMuted) {
-      this.setVolume(this.volume || 0.8);
+      this.setVolume(this.volume || 1.0);
     } else {
       this.audio.volume = 0;
       this.volumeSlider.value = 0;
@@ -385,7 +386,8 @@ class AudioPlayerEngine {
   _renderQueue() {
     this.queueCountBadge.textContent = this.queue.length;
     if (this.queue.length === 0) {
-      this.queueContainer.innerHTML = `<div class="queue-empty-msg">Antrian kosong.</div>`;
+      const emptyMsg = typeof I18nManager !== "undefined" ? I18nManager.t("queue_empty") : "Antrian kosong.";
+      this.queueContainer.innerHTML = `<div class="queue-empty-msg" data-i18n="queue_empty">${emptyMsg}</div>`;
       return;
     }
 
@@ -1250,6 +1252,7 @@ class LibraryEngine {
       })),
       playlist_title: playlist.name,
       output_base_dir: playlist.folder_path,
+      target_folder: playlist.folder_path,
       options,
       remote_url: playlist.remote_url || null,
     };
@@ -1550,6 +1553,8 @@ class DownloaderSyncEngine {
 
     const options = {
       folder_name: playlistTitle,
+      folder_path: targetFolderPath || null,
+      target_folder: targetFolderPath || null,
       bitrate: "192",
       filename_template: "{num}. {title}-{id}.mp3",
       embed_cover: true,
@@ -1561,7 +1566,8 @@ class DownloaderSyncEngine {
     const payload = {
       tracks: newTracks.map((t, idx) => ({ ...t, selected: true, index: idx + 1 })),
       playlist_title: playlistTitle,
-      output_base_dir: targetFolderPath ? targetFolderPath.substring(0, targetFolderPath.lastIndexOf("\\")) : null,
+      output_base_dir: targetFolderPath || null,
+      target_folder: targetFolderPath || null,
       options,
       remote_url: remoteUrl || (this.urlInput ? this.urlInput.value.trim() : null),
     };
@@ -1928,8 +1934,16 @@ const I18N_DICTIONARY = {
 
     player_default_title: "MusicGit Player",
     player_default_artist: "Pilih lagu untuk mulai memutar",
+    player_shuffle_title: "Acak Lagu (Shuffle)",
+    player_prev_title: "Lagu Sebelumnya",
+    player_play_pause_title: "Putar / Jeda (Spasi)",
+    player_next_title: "Lagu Berikutnya",
+    player_repeat_title: "Ulangi (Repeat)",
+    player_lyrics_title: "Lirik Bersinkronisasi (Karaoke)",
+    player_mute_title: "Mute / Unmute",
     queue_title: "Antrian Putar",
-    queue_empty: "Antrian kosong."
+    queue_empty: "Antrian kosong.",
+    queue_close_title: "Tutup Antrian"
   },
   en: {
     nav_menu_main: "MAIN MENU",
@@ -1984,8 +1998,8 @@ const I18N_DICTIONARY = {
     settings_bitrate_label: "Default Bitrate",
     settings_template_label: "Default Template Format",
     settings_theme_label: "Appearance Theme",
-    settings_theme_dark: "Dark Mode (Dark Navy Solid)",
-    settings_theme_light: "Light Mode (Clean Light Slate)",
+    settings_theme_dark: "Dark Mode (Solid Dark)",
+    settings_theme_light: "Light Mode (Clean Light)",
     settings_lang_label: "Language",
     settings_btn_save: "Save Settings",
     settings_saved_alert: "MusicGit settings saved successfully.",
@@ -2000,8 +2014,16 @@ const I18N_DICTIONARY = {
 
     player_default_title: "MusicGit Player",
     player_default_artist: "Select a song to start playing",
+    player_shuffle_title: "Shuffle Playback",
+    player_prev_title: "Previous Track",
+    player_play_pause_title: "Play / Pause (Space)",
+    player_next_title: "Next Track",
+    player_repeat_title: "Repeat (Off / All / One)",
+    player_lyrics_title: "Synchronized Lyrics (Karaoke)",
+    player_mute_title: "Mute / Unmute",
     queue_title: "Play Queue",
-    queue_empty: "Queue is empty."
+    queue_empty: "Queue is empty.",
+    queue_close_title: "Close Queue"
   }
 };
 
@@ -2078,6 +2100,20 @@ const I18nManager = {
         ? dict.theme_light_label || "Terang" 
         : dict.theme_dark_label || "Gelap";
     }
+
+    // 7. Update empty queue message if currently active
+    const emptyQueue = document.querySelector("#player-queue-items .queue-empty-msg");
+    if (emptyQueue && dict.queue_empty) {
+      emptyQueue.textContent = dict.queue_empty;
+    }
+
+    // 8. Update player bottom bar default texts when no song is active
+    if (!window.MusicPlayer || !window.MusicPlayer.currentTrack) {
+      const barTitle = document.getElementById("player-bar-title");
+      const barArtist = document.getElementById("player-bar-artist");
+      if (barTitle && dict.player_default_title) barTitle.textContent = dict.player_default_title;
+      if (barArtist && dict.player_default_artist) barArtist.textContent = dict.player_default_artist;
+    }
   }
 };
 
@@ -2124,6 +2160,16 @@ const ThemeManager = {
     document.body.classList.remove("theme-dark", "theme-light");
     document.body.classList.add(`theme-${theme}`);
     localStorage.setItem("musicgit_theme", theme);
+
+    // Update browser / desktop titlebar theme-color dynamically
+    let metaTheme = document.getElementById("meta-theme-color");
+    if (!metaTheme) {
+      metaTheme = document.createElement("meta");
+      metaTheme.id = "meta-theme-color";
+      metaTheme.name = "theme-color";
+      document.head.appendChild(metaTheme);
+    }
+    metaTheme.setAttribute("content", theme === "light" ? "#ffffff" : "#181818");
 
     const sunIcon = document.getElementById("icon-theme-sun");
     const moonIcon = document.getElementById("icon-theme-moon");

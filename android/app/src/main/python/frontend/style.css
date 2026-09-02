@@ -3,37 +3,37 @@
    Support for Solid Dark Mode & Solid Light Mode
    ========================================================================== */
 
-/* Dark Mode Tokens (Default) */
+/* Dark Mode Tokens (Default) - Solid Studio Dark */
 :root, body.theme-dark {
-  --bg-app: #080e18;
-  --bg-sidebar: #0d1522;
-  --bg-card: #121d2c;
-  --bg-card-hover: #172538;
-  --bg-surface: #101c2b;
-  --bg-input: #0a111a;
-  --bg-player: #0d1522;
-  --bg-drawer: #0d1522;
-  --bg-modal: #121d2c;
-  --bg-table-head: #0b131f;
+  --bg-app: #121212;
+  --bg-sidebar: #181818;
+  --bg-card: #1f1f1f;
+  --bg-card-hover: #282828;
+  --bg-surface: #1e1e1e;
+  --bg-input: #141414;
+  --bg-player: #181818;
+  --bg-drawer: #181818;
+  --bg-modal: #1e1e1e;
+  --bg-table-head: #161616;
 
-  --border-subtle: #1c2c40;
-  --border-card: #1e3046;
-  --border-focus: #1976d2;
-  --border-accent: #2196f3;
+  --border-subtle: #292929;
+  --border-card: #2e2e2e;
+  --border-focus: #1d8cf8;
+  --border-accent: #3b82f6;
 
-  --accent-primary: #1976d2;
-  --accent-primary-hover: #2196f3;
-  --accent-primary-subtle: rgba(33, 150, 243, 0.15);
-  --accent-git: #0288d1;
-  --accent-git-subtle: rgba(2, 136, 209, 0.15);
-  --accent-success: #00c853;
-  --accent-warning: #ffb300;
-  --accent-danger: #f44336;
+  --accent-primary: #1d8cf8;
+  --accent-primary-hover: #3b82f6;
+  --accent-primary-subtle: rgba(29, 140, 248, 0.15);
+  --accent-git: #10b981;
+  --accent-git-subtle: rgba(16, 185, 129, 0.15);
+  --accent-success: #10b981;
+  --accent-warning: #f59e0b;
+  --accent-danger: #ef4444;
 
-  --text-main: #f1f5f9;
-  --text-muted: #94a3b8;
-  --text-subtle: #64748b;
-  --text-inverse: #080e18;
+  --text-main: #ffffff;
+  --text-muted: #a1a1aa;
+  --text-subtle: #71717a;
+  --text-inverse: #121212;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -86,10 +86,12 @@ body.theme-light {
   --shadow-player: 0 -3px 16px rgba(0, 0, 0, 0.08);
 }
 
-* {
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
 }
 
 html, body {
@@ -102,7 +104,14 @@ html, body {
   font-size: 14px;
   line-height: 1.5;
   user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
@@ -110,6 +119,36 @@ input, select, textarea, button {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+button, [role="button"], a, .mobile-nav-item, .nav-item, .btn, .btn-icon, .btn-player-btn, .btn-player-action, .track-table tbody tr, .playlist-card, .tab-btn {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input[type="range"]:focus:not(:focus-visible),
+.mobile-nav-item:focus:not(:focus-visible),
+.nav-item:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+input, textarea, .selectable-text {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Custom Scrollbars */
@@ -171,6 +210,8 @@ input, select, textarea, button {
   padding: 0 16px;
   border-bottom: 1px solid var(--border-subtle);
   background-color: var(--bg-sidebar);
+  -webkit-app-region: drag;
+  app-region: drag;
 }
 
 .brand-logo-wrap {
@@ -430,6 +471,23 @@ input, select, textarea, button {
   border-bottom: 1px solid var(--border-subtle);
   background-color: var(--bg-sidebar);
   z-index: 5;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+/* Make sure interactive controls in draggable areas remain clickable */
+button,
+input,
+select,
+textarea,
+a,
+.search-box-global,
+.brand-logo-wrap,
+.brand-text,
+.btn,
+.nav-item {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 .topbar-left {
@@ -1164,7 +1222,7 @@ input, select, textarea, button {
   background-color: var(--bg-table-head);
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 10;
 }
 
 .tracklist-table td, .data-table td {
@@ -2098,6 +2156,11 @@ input, select, textarea, button {
   z-index: 5;
   cursor: pointer;
   outline: none;
+  touch-action: none;
+}
+
+.timeline-slider-wrap, .volume-slider-wrap {
+  touch-action: none;
 }
 
 .timeline-slider-wrap::before, .volume-slider-wrap::before {
@@ -2145,6 +2208,18 @@ input, select, textarea, button {
 .volume-slider-wrap:hover .custom-range-slider::-webkit-slider-thumb {
   opacity: 1;
   transform: scale(1.05);
+}
+
+/* Touch & Mobile Specific: Always show slider thumb and optimize touch target */
+@media (hover: none), (pointer: coarse), (max-width: 768px) {
+  .custom-range-slider::-webkit-slider-thumb {
+    opacity: 1 !important;
+    width: 14px;
+    height: 14px;
+  }
+  .timeline-slider-wrap, .volume-slider-wrap {
+    height: 20px;
+  }
 }
 
 /* 3. Right Section: Extra Controls & Volume */
@@ -2562,19 +2637,31 @@ input, select, textarea, button {
   border-collapse: collapse;
 }
 
+.mini-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
 .mini-table th {
-  padding: 8px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 10px 12px;
   font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-muted);
-  background-color: var(--bg-main);
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  background-color: var(--bg-table-head);
   border-bottom: 1px solid var(--border-subtle);
 }
 
 .mini-table td {
-  padding: 8px 12px;
+  padding: 10px 12px;
   font-size: 0.85rem;
   border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-card);
 }
 
 .modal-footer-actions {

@@ -1,0 +1,16 @@
+{
+  "name": "MusicGit - Music Player & Playlist Sync",
+  "short_name": "MusicGit",
+  "start_url": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#121212",
+  "theme_color": "#181818",
+  "icons": [
+    {
+      "src": "assets/logo-lightmode.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

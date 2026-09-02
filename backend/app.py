@@ -65,6 +65,8 @@ class AnalyzeRequest(BaseModel):
 
 class DownloadOptions(BaseModel):
     folder_name: Optional[str] = None
+    target_folder: Optional[str] = None
+    folder_path: Optional[str] = None
     bitrate: Optional[str] = "192"
     filename_template: Optional[str] = "{num}. {title}-{id}.mp3"
     embed_cover: Optional[bool] = True
@@ -73,6 +75,7 @@ class DownloadOptions(BaseModel):
     save_lrc_file: Optional[bool] = True
     album_name: Optional[str] = None
     album_artist: Optional[str] = None
+    is_compilation: Optional[bool] = None
 
 
 class FixFolderTagsRequest(BaseModel):
@@ -127,6 +130,7 @@ class StartDownloadRequest(BaseModel):
     tracks: List[TrackItem]
     playlist_title: str
     output_base_dir: Optional[str] = None
+    target_folder: Optional[str] = None
     options: DownloadOptions
     remote_url: Optional[str] = None
 
@@ -241,6 +245,8 @@ async def start_download(req: StartDownloadRequest):
     options = dump_model(req.options)
     if req.remote_url:
         options["remote_url"] = req.remote_url
+    if req.target_folder and not options.get("target_folder"):
+        options["target_folder"] = req.target_folder
 
     try:
         downloader.start_download_job(
@@ -251,9 +257,6 @@ async def start_download(req: StartDownloadRequest):
             options=options,
         )
         return {"job_id": job_id, "status": "started", "total_tracks": len(selected_tracks)}
-    except Exception as e:
-        logger.error(f"Failed to start download job: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to start download job: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -625,6 +628,16 @@ else:
         Path(__file__).parent.parent / "python" / "frontend",
     ]
     frontend_dir = next((c for c in candidates if c.exists()), candidates[0])
+
+
+@app.get("/")
+@app.get("/index.html")
+async def serve_index():
+    index_file = frontend_dir / "index.html"
+    if index_file.exists():
+        return FileResponse(str(index_file))
+    raise HTTPException(status_code=404, detail="index.html tidak ditemukan.")
+
 
 if frontend_dir.exists():
     app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
