@@ -1,8 +1,8 @@
 ; Inno Setup Script for MusicGit Desktop App
-; Compile using Inno Setup (iscc.exe installer.iss) to generate dist\MusicGit-v2.0-Setup.exe
+; Compile using Inno Setup (iscc.exe installer.iss) to generate dist\MusicGit-v2.2-Setup.exe
 
 #define MyAppName "MusicGit"
-#define MyAppVersion "2.0"
+#define MyAppVersion "2.2"
 #define MyAppPublisher "Naufal Pratomo"
 #define MyAppURL "https://github.com/naufalpratomo/yt-playlist-downloader"
 #define MyAppExeName "MusicGit.exe"
@@ -18,7 +18,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={userappdata}\Programs\{#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=dist
-OutputBaseFilename=MusicGit-v2.0-Setup
+OutputBaseFilename=MusicGit-v2.2-Setup
 SetupIconFile=app_icon.ico
 Compression=lzma2/ultra64
 SolidCompression=yes

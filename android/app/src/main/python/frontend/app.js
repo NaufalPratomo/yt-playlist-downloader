@@ -2159,6 +2159,8 @@ const ThemeManager = {
     this.currentTheme = theme;
     document.body.classList.remove("theme-dark", "theme-light");
     document.body.classList.add(`theme-${theme}`);
+    document.documentElement.setAttribute("data-theme", theme);
+    document.body.setAttribute("data-theme", theme);
     localStorage.setItem("musicgit_theme", theme);
 
     // Update browser / desktop titlebar theme-color dynamically

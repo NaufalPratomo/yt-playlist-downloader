@@ -115,7 +115,7 @@ To generate a standalone `.exe` and portable `.zip` archive using PyInstaller:
 # Double-click build_exe.bat or execute in CMD:
 build_exe.bat
 ```
-The compiled output will be generated in `dist/MusicGit.exe` and `dist/MusicGit-v2.0-Windows.zip`.
+The compiled output will be generated in `dist/MusicGit.exe` and `dist/MusicGit-v2.2-Windows.zip`.
 
 ---
 

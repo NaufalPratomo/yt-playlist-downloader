@@ -115,7 +115,7 @@ Untuk menghasilkan file `.exe` mandiri beserta arsip `.zip` menggunakan PyInstal
 # Double-click build_exe.bat atau jalankan melalui CMD:
 build_exe.bat
 ```
-File output akan tersedia di direktori `dist/MusicGit/MusicGit.exe` dan `dist/MusicGit-v2.0-Windows.zip`.
+File output akan tersedia di direktori `dist/MusicGit/MusicGit.exe` dan `dist/MusicGit-v2.2-Windows.zip`.
 
 ---
 

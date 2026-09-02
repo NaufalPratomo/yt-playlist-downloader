@@ -1791,7 +1791,7 @@ a,
 }
 
 .lyric-line-full.active {
-  color: #ffffff;
+  color: var(--text-main);
   font-size: 1.95rem;
   font-weight: 800;
   opacity: 1;
@@ -1799,8 +1799,9 @@ a,
   transform: translateX(4px);
 }
 
+body.theme-light .lyric-line-full.active,
 [data-theme="light"] .lyric-line-full.active {
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 /* ==========================================================================
@@ -1891,15 +1892,16 @@ a,
 }
 
 .lyric-line.active {
-  color: #ffffff;
+  color: var(--text-main);
   font-size: 1.18rem;
   font-weight: 700;
   opacity: 1;
   background: transparent;
 }
 
+body.theme-light .lyric-line.active,
 [data-theme="light"] .lyric-line.active {
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .lyrics-empty-state, .queue-empty-msg {
