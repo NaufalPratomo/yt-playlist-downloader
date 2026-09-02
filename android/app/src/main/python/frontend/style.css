@@ -24,9 +24,9 @@
   --accent-primary: #1d8cf8;
   --accent-primary-hover: #3b82f6;
   --accent-primary-subtle: rgba(29, 140, 248, 0.15);
-  --accent-git: #10b981;
-  --accent-git-subtle: rgba(16, 185, 129, 0.15);
-  --accent-success: #10b981;
+  --accent-git: #1d8cf8;
+  --accent-git-subtle: rgba(29, 140, 248, 0.15);
+  --accent-success: #1d8cf8;
   --accent-warning: #f59e0b;
   --accent-danger: #ef4444;
 
@@ -71,9 +71,9 @@ body.theme-light {
   --accent-primary: #1976d2;
   --accent-primary-hover: #1565c0;
   --accent-primary-subtle: rgba(25, 118, 210, 0.1);
-  --accent-git: #0288d1;
-  --accent-git-subtle: rgba(2, 136, 209, 0.1);
-  --accent-success: #00897b;
+  --accent-git: #1976d2;
+  --accent-git-subtle: rgba(25, 118, 210, 0.1);
+  --accent-success: #1976d2;
   --accent-warning: #d97706;
   --accent-danger: #e53935;
 
@@ -633,22 +633,22 @@ a,
 }
 
 .btn-accent {
-  background-color: var(--accent-git);
+  background-color: var(--accent-primary);
   color: #ffffff;
-  border-color: var(--accent-git);
+  border-color: var(--accent-primary);
 }
 .btn-accent:hover {
-  background-color: #039be5;
-  border-color: #039be5;
+  background-color: var(--accent-primary-hover);
+  border-color: var(--accent-primary-hover);
 }
 
 .btn-git {
-  background-color: var(--accent-git-subtle);
-  color: var(--accent-git);
-  border: 1px solid var(--accent-git);
+  background-color: var(--accent-primary-subtle);
+  color: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
 }
 .btn-git:hover {
-  background-color: var(--accent-git);
+  background-color: var(--accent-primary);
   color: #ffffff;
 }
 
@@ -945,9 +945,9 @@ a,
   color: var(--text-muted);
 }
 .quality-badge {
-  background-color: rgba(0, 200, 83, 0.12);
-  color: var(--accent-success);
-  border: 1px solid var(--accent-success);
+  background-color: var(--accent-primary-subtle);
+  color: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 3px 8px;
