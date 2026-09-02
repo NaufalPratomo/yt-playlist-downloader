@@ -325,12 +325,12 @@ class PlaylistDownloader:
                     for f in os.listdir(target_dir):
                         if track_id in f and not f.endswith((".part", ".ytdl", ".temp", ".jpg", ".png", ".lrc", ".json")):
                             intermediate_file = os.path.join(target_dir, f)
-                            break
-
                 if not intermediate_file or not os.path.exists(intermediate_file):
                     raise FileNotFoundError(f"File audio hasil unduhan tidak ditemukan untuk {video_url}")
 
                 actual_ext = os.path.splitext(intermediate_file)[1].lstrip(".").lower() or "mp3"
+                if actual_ext == "mp4":
+                    actual_ext = "m4a"
 
                 # Update final filename with resolved metadata and actual extension
                 final_filename = metadata_tagger.format_filename(
@@ -353,16 +353,19 @@ class PlaylistDownloader:
 
                 # 2. Process Cover Art
                 cover_bytes = None
-                if embed_cover and thumb_url:
+                if embed_cover:
+                    effective_thumb = thumb_url or (info_dict.get("thumbnail") if info_dict else None) or f"https://img.youtube.com/vi/{track_id}/hqdefault.jpg"
                     track_state["status"] = "tagging"
                     cover_save_path = None
-                    if save_cover_file and not playlist_cover_saved:
-                        cover_save_path = os.path.join(target_dir, "cover.jpg")
-                        playlist_cover_saved = True
+                    target_cover_file = os.path.join(target_dir, "cover.jpg")
+                    if save_cover_file and (not playlist_cover_saved or not os.path.exists(target_cover_file)):
+                        cover_save_path = target_cover_file
 
                     cover_bytes = cover_processor.process_thumbnail(
-                        thumb_url, output_path=cover_save_path
+                        effective_thumb, output_path=cover_save_path
                     )
+                    if cover_bytes or os.path.exists(target_cover_file):
+                        playlist_cover_saved = True
 
                 # 3. Fetch Lyrics
                 lyrics_text = None
@@ -374,17 +377,16 @@ class PlaylistDownloader:
                         album=album_name,
                         duration=track.get("duration"),
                     )
-                    if lyrics_res.get("lyrics"):
-                        lyrics_text = lyrics_res["lyrics"]
-                        synced_lrc = lyrics_res.get("synced_lrc")
-                        if save_lrc_file and synced_lrc:
-                            lrc_filename = os.path.splitext(final_filename)[0] + ".lrc"
-                            lrc_path = os.path.join(target_dir, lrc_filename)
-                            try:
-                                with open(lrc_path, "w", encoding="utf-8") as f_lrc:
-                                    f_lrc.write(synced_lrc)
-                            except Exception as e:
-                                logger.error(f"Failed to save .lrc: {e}")
+                    lyrics_text = lyrics_res.get("synced_lyrics") or lyrics_res.get("plain_lyrics") or lyrics_res.get("lyrics")
+                    synced_lrc = lyrics_res.get("synced_lyrics") or lyrics_res.get("synced_lrc")
+                    if save_lrc_file and synced_lrc:
+                        lrc_filename = os.path.splitext(final_filename)[0] + ".lrc"
+                        lrc_path = os.path.join(target_dir, lrc_filename)
+                        try:
+                            with open(lrc_path, "w", encoding="utf-8") as f_lrc:
+                                f_lrc.write(synced_lrc)
+                        except Exception as e:
+                            logger.error(f"Failed to save .lrc: {e}")
 
                 # 4. Apply complete Metadata Tags
                 track_state["status"] = "tagging"

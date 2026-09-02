@@ -21,7 +21,7 @@ from .utils import get_default_music_dir, sanitize_filename
 logger = logging.getLogger("library_manager")
 
 COVER_FILENAMES = ["cover.jpg", "cover.png", "folder.jpg", "folder.png", "album.jpg", "album.png", "thumb.jpg"]
-AUDIO_EXTENSIONS = {".mp3", ".m4a", ".aac", ".opus", ".webm", ".flac", ".ogg", ".wav"}
+AUDIO_EXTENSIONS = {".mp3", ".m4a", ".aac", ".opus", ".webm", ".flac", ".ogg", ".wav", ".mp4"}
 
 
 class LibraryManager:
@@ -35,6 +35,26 @@ class LibraryManager:
         if not folder_path.exists() or not folder_path.is_dir():
             return []
         return [f for f in folder_path.iterdir() if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS]
+
+    def heal_mp4_audio_files(self, folder_path: Path) -> None:
+        """
+        Auto-heal and rename any .mp4 audio files to .m4a
+        so Android MediaStore and all music players properly categorize them as music.
+        """
+        if not folder_path.exists() or not folder_path.is_dir():
+            return
+        try:
+            for item in list(folder_path.iterdir()):
+                if item.is_file() and item.suffix.lower() == ".mp4":
+                    m4a_dest = item.with_suffix(".m4a")
+                    if not m4a_dest.exists():
+                        try:
+                            item.rename(m4a_dest)
+                            logger.info(f"Auto-healed {item.name} -> {m4a_dest.name}")
+                        except Exception as e:
+                            logger.debug(f"Failed to rename {item} to {m4a_dest}: {e}")
+        except Exception as e:
+            logger.debug(f"Error during heal_mp4_audio_files for {folder_path}: {e}")
 
     def scan_library(self, base_dir: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -149,17 +169,21 @@ class LibraryManager:
     def _get_folder_summary(self, folder_path: Path) -> Dict[str, Any]:
         """Summarize a single playlist folder."""
         self.heal_nested_playlist_folder(folder_path)
+        self.heal_mp4_audio_files(folder_path)
         meta = self._read_musicgit_meta(folder_path)
         audio_files = self._get_audio_files(folder_path)
         cover_path = self._find_cover_in_dir(folder_path)
+
+        has_cover = bool(cover_path) or len(audio_files) > 0
+        cover_url = f"/api/library/playlist-cover?folder_path={quote(str(folder_path))}" if has_cover else None
 
         return {
             "id": folder_path.name,
             "name": meta.get("title") or folder_path.name,
             "folder_path": str(folder_path),
             "track_count": len(audio_files),
-            "has_cover": bool(cover_path),
-            "cover_url": f"/api/library/playlist-cover?folder_path={quote(str(folder_path))}" if cover_path else None,
+            "has_cover": has_cover,
+            "cover_url": cover_url,
             "remote_url": meta.get("remote_url"),
             "last_sync": meta.get("last_sync"),
             "auto_sync": meta.get("auto_sync", False),
@@ -204,6 +228,7 @@ class LibraryManager:
             raise FileNotFoundError(f"Folder not found: {folder_path_str}")
 
         self.heal_nested_playlist_folder(folder_path)
+        self.heal_mp4_audio_files(folder_path)
         meta = self._read_musicgit_meta(folder_path)
         cover_path = self._find_cover_in_dir(folder_path)
         audio_files = sorted(self._get_audio_files(folder_path), key=lambda f: f.name.lower())
@@ -217,11 +242,14 @@ class LibraryManager:
             if track_data.get("duration"):
                 total_duration += track_data["duration"]
 
+        has_cover = bool(cover_path) or len(audio_files) > 0
+        cover_url = f"/api/library/playlist-cover?folder_path={quote(str(folder_path))}" if has_cover else None
+
         return {
             "id": folder_path.name,
             "name": meta.get("title") or folder_path.name,
             "folder_path": str(folder_path),
-            "cover_url": f"/api/library/playlist-cover?folder_path={quote(str(folder_path))}" if cover_path else None,
+            "cover_url": cover_url,
             "remote_url": meta.get("remote_url"),
             "last_sync": meta.get("last_sync"),
             "auto_sync": meta.get("auto_sync", False),
@@ -388,11 +416,17 @@ class LibraryManager:
                 title = audio_file.stem
                 artist = ""
                 try:
-                    audio = ID3(str(audio_file))
-                    if "TIT2" in audio:
-                        title = str(audio["TIT2"])
-                    if "TPE1" in audio:
-                        artist = str(audio["TPE1"])
+                    audio = mutagen.File(str(audio_file))
+                    if audio and audio.tags:
+                        tags = audio.tags
+                        if "TIT2" in tags:
+                            title = str(tags["TIT2"])
+                        if "TPE1" in tags:
+                            artist = str(tags["TPE1"])
+                        if "\xa9nam" in tags and tags["\xa9nam"]:
+                            title = str(tags["\xa9nam"][0])
+                        if "\xa9ART" in tags and tags["\xa9ART"]:
+                            artist = str(tags["\xa9ART"][0])
                 except Exception:
                     pass
 
@@ -427,7 +461,7 @@ class LibraryManager:
         Retrieve synchronized lyrics for an audio file.
         Checks:
         1. Local .lrc file.
-        2. ID3 embedded USLT tag.
+        2. ID3 embedded USLT tag or MP4 \\xa9lyr tag.
         3. Online fetcher (LRCLIB) if not found.
         """
         file_path = Path(file_path_str)
@@ -451,26 +485,49 @@ class LibraryManager:
             except Exception as e:
                 logger.warning(f"Failed to read .lrc file: {e}")
 
-        # 2. Check ID3 USLT tag
+        # 2. Check ID3 / MP4 embedded tags
         title = file_path.stem
         artist = ""
         try:
-            audio = ID3(str(file_path))
-            if "TIT2" in audio:
-                title = str(audio["TIT2"])
-            if "TPE1" in audio:
-                artist = str(audio["TPE1"])
+            audio = mutagen.File(str(file_path))
+            if audio and audio.tags:
+                tags = audio.tags
+                # ID3 Tags
+                if "TIT2" in tags:
+                    title = str(tags["TIT2"])
+                if "TPE1" in tags:
+                    artist = str(tags["TPE1"])
+                # MP4 Tags
+                if "\xa9nam" in tags and tags["\xa9nam"]:
+                    title = str(tags["\xa9nam"][0])
+                if "\xa9ART" in tags and tags["\xa9ART"]:
+                    artist = str(tags["\xa9ART"][0])
 
-            for key in audio.keys():
-                if key.startswith("USLT"):
-                    uslt_text = audio[key].text
-                    lines = self.parse_lrc(uslt_text)
+                # ID3 USLT
+                for key in tags.keys():
+                    if key.startswith("USLT"):
+                        uslt_text = str(tags[key].text if hasattr(tags[key], "text") else tags[key])
+                        lines = self.parse_lrc(uslt_text)
+                        is_synced = len(lines) > 0
+                        return {
+                            "synced": is_synced,
+                            "raw": uslt_text,
+                            "lines": lines if is_synced else [{"time": 0, "text": l} for l in uslt_text.splitlines() if l.strip()],
+                            "source": "id3_uslt",
+                            "title": title,
+                            "artist": artist,
+                        }
+
+                # MP4 \xa9lyr
+                if "\xa9lyr" in tags and tags["\xa9lyr"]:
+                    lyr_text = str(tags["\xa9lyr"][0])
+                    lines = self.parse_lrc(lyr_text)
                     is_synced = len(lines) > 0
                     return {
                         "synced": is_synced,
-                        "raw": uslt_text,
-                        "lines": lines if is_synced else [{"time": 0, "text": l} for l in uslt_text.splitlines() if l.strip()],
-                        "source": "id3_uslt",
+                        "raw": lyr_text,
+                        "lines": lines if is_synced else [{"time": 0, "text": l} for l in lyr_text.splitlines() if l.strip()],
+                        "source": "mp4_lyrics",
                         "title": title,
                         "artist": artist,
                     }

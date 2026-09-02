@@ -1015,7 +1015,7 @@ class LibraryEngine {
     this.playlistsGrid.innerHTML = list
       .map((pl) => {
         const coverHtml = pl.cover_url
-          ? `<img src="${pl.cover_url}" alt="${this._escape(pl.name)}" class="card-cover-img" onerror="this.style.display='none'">`
+          ? `<img src="${pl.cover_url}" alt="${this._escape(pl.name)}" class="card-cover-img" onerror="this.outerHTML='<div class=\\'card-cover-fallback\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><polygon points=\\'12 2 2 7 12 12 22 7 12 2\\'></polygon><polyline points=\\'2 17 12 22 22 17\\'></polyline><polyline points=\\'2 12 12 17 22 12\\'></polyline></svg></div>'">`
           : `
             <div class="card-cover-fallback">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">

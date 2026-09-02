@@ -21,7 +21,8 @@ import mutagen
 from mutagen.id3 import ID3
 
 from .downloader import ACTIVE_JOBS, downloader
-from .library_manager import library_manager
+from .library_manager import library_manager, AUDIO_EXTENSIONS
+from .cover_processor import _fetch_image_bytes
 from .metadata_tagger import metadata_tagger
 from .utils import (
     browse_folder_dialog,
@@ -434,6 +435,20 @@ async def stream_audio(request: Request, file_path: str):
     file_size = os.path.getsize(file_path)
     range_header = request.headers.get("range")
 
+    ext = Path(file_path).suffix.lower()
+    mime_map = {
+        ".mp3": "audio/mpeg",
+        ".m4a": "audio/mp4",
+        ".mp4": "audio/mp4",
+        ".aac": "audio/aac",
+        ".flac": "audio/flac",
+        ".ogg": "audio/ogg",
+        ".opus": "audio/opus",
+        ".wav": "audio/wav",
+        ".webm": "audio/webm",
+    }
+    media_type = mime_map.get(ext, "audio/mpeg")
+
     if range_header:
         # Example Range header: "bytes=1048576-" or "bytes=1048576-2097151"
         try:
@@ -460,13 +475,13 @@ async def stream_audio(request: Request, file_path: str):
                 "Content-Range": f"bytes {start}-{end}/{file_size}",
                 "Accept-Ranges": "bytes",
                 "Content-Length": str(content_length),
-                "Content-Type": "audio/mpeg",
+                "Content-Type": media_type,
             }
             return StreamingResponse(
                 iter_file(file_path, start, content_length),
                 status_code=206,
                 headers=headers,
-                media_type="audio/mpeg",
+                media_type=media_type,
             )
         except Exception as e:
             logger.warning(f"Error handling Range request for {file_path}: {e}")
@@ -475,9 +490,9 @@ async def stream_audio(request: Request, file_path: str):
     headers = {
         "Accept-Ranges": "bytes",
         "Content-Length": str(file_size),
-        "Content-Type": "audio/mpeg",
+        "Content-Type": media_type,
     }
-    return FileResponse(file_path, media_type="audio/mpeg", headers=headers)
+    return FileResponse(file_path, media_type=media_type, headers=headers)
 
 
 # --- MusicGit Library Endpoints ---
@@ -605,29 +620,61 @@ async def get_track_cover(file_path: str):
 
 @app.get("/api/library/playlist-cover")
 async def get_playlist_cover(folder_path: str):
-    """Get folder cover image or first track's cover."""
+    """Get folder cover image, embedded track cover, or remote playlist cover."""
     folder = Path(folder_path.strip())
     if not folder.exists() or not folder.is_dir():
         raise HTTPException(status_code=404, detail="Folder tidak ditemukan.")
 
-    for name in ["cover.jpg", "cover.png", "folder.jpg", "folder.png", "album.jpg", "album.png"]:
+    # 1. Check existing standalone cover files
+    for name in ["cover.jpg", "cover.png", "folder.jpg", "folder.png", "album.jpg", "album.png", "thumb.jpg"]:
         img = folder / name
-        if img.exists():
+        if img.exists() and img.is_file():
             return FileResponse(str(img))
 
-    # Try first audio file
-    audio_files = [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in [".mp3", ".m4a", ".aac", ".opus", ".flac", ".ogg", ".wav"]]
-    if audio_files:
+    # 2. Try scanning audio files for embedded cover art
+    audio_files = [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in AUDIO_EXTENSIONS]
+    for audio_f in audio_files[:10]:
         try:
-            audio = mutagen.File(str(audio_files[0]))
+            audio = mutagen.File(str(audio_f))
             if audio and audio.tags:
+                # ID3 (MP3)
                 for key in audio.tags.keys():
                     if key.startswith("APIC"):
                         apic = audio.tags[key]
+                        try:
+                            with open(folder / "cover.jpg", "wb") as f_cov:
+                                f_cov.write(apic.data)
+                        except Exception:
+                            pass
                         return Response(content=apic.data, media_type=apic.mime or "image/jpeg")
+                # MP4 (M4A)
                 if "covr" in audio.tags and audio.tags["covr"]:
                     covr_data = bytes(audio.tags["covr"][0])
+                    try:
+                        with open(folder / "cover.jpg", "wb") as f_cov:
+                            f_cov.write(covr_data)
+                    except Exception:
+                        pass
                     return Response(content=covr_data, media_type="image/jpeg")
+        except Exception:
+            pass
+
+    # 3. Check .musicgit.json for remote thumbnail
+    meta_file = folder / ".musicgit.json"
+    if meta_file.exists():
+        try:
+            with open(meta_file, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+                remote_thumb = meta.get("thumbnail")
+                if remote_thumb:
+                    img_bytes = _fetch_image_bytes(remote_thumb)
+                    if img_bytes:
+                        try:
+                            with open(folder / "cover.jpg", "wb") as f_cov:
+                                f_cov.write(img_bytes)
+                        except Exception:
+                            pass
+                        return Response(content=img_bytes, media_type="image/jpeg")
         except Exception:
             pass
 

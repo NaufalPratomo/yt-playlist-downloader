@@ -173,17 +173,38 @@ class LyricsFetcher:
 
 
     def _make_request(self, url: str) -> Optional[any]:
+        headers = {"User-Agent": self.user_agent, "Accept": "application/json"}
+        # 1. Try requests
         try:
-            req = urllib.request.Request(
-                url,
-                headers={"User-Agent": self.user_agent, "Accept": "application/json"},
-            )
-            with urllib.request.urlopen(req, timeout=6) as response:
+            import requests
+            resp = requests.get(url, headers=headers, timeout=8, verify=False)
+            if resp.status_code == 200 and resp.text:
+                return resp.json()
+        except Exception as e:
+            logger.debug(f"requests failed for lyrics ({url}): {e}")
+
+        # 2. Try standard urllib
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=8) as response:
                 if response.status == 200:
                     data = response.read().decode("utf-8")
                     return json.loads(data)
         except Exception as e:
-            logger.debug(f"Lyrics request failed ({url}): {e}")
+            logger.debug(f"urllib standard failed for lyrics ({url}): {e}")
+
+        # 3. Try urllib with unverified SSL context (crucial for Android Chaquopy)
+        try:
+            import ssl
+            ctx = ssl._create_unverified_context()
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=8, context=ctx) as response:
+                if response.status == 200:
+                    data = response.read().decode("utf-8")
+                    return json.loads(data)
+        except Exception as e:
+            logger.error(f"All lyrics request attempts failed ({url}): {e}")
+
         return None
 
     def _clean_query(self, text: str) -> str:
