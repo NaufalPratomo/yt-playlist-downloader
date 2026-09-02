@@ -504,18 +504,47 @@
         <div id="dl-progress-card" class="card-panel hidden">
           <div class="progress-panel-header">
             <div class="progress-info-left">
-              <div class="active-pulse"></div>
+              <div class="active-pulse" id="dl-active-pulse"></div>
               <div>
-                <h3 class="progress-heading">Proses Download Aktif</h3>
+                <h3 class="progress-heading" id="dl-progress-heading">Proses Download Aktif</h3>
                 <p id="dl-current-label" class="progress-subheading">Mempersiapkan antrian...</p>
               </div>
             </div>
-            <div>
+            <div class="progress-header-actions">
               <button type="button" id="btn-dl-open-dest" class="btn btn-secondary">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                 </svg>
                 <span>Buka Folder Tujuan</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Download Completion Banner -->
+          <div id="dl-completed-banner" class="dl-completed-card hidden">
+            <div class="completed-icon-slot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="completed-info-slot">
+              <h4 id="dl-completed-title" class="completed-title">Unduhan Selesai & Berhasil!</h4>
+              <p id="dl-completed-desc" class="completed-desc">Semua lagu telah berhasil diunduh dengan tag ID3 lengkap dan lirik bersinkronisasi.</p>
+            </div>
+            <div class="completed-actions-slot">
+              <button type="button" id="btn-dl-goto-library" class="btn btn-primary btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+                <span>Lihat di Library</span>
+              </button>
+              <button type="button" id="btn-dl-play-downloaded" class="btn btn-accent btn-sm">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <span>Putar Sekarang</span>
               </button>
             </div>
           </div>

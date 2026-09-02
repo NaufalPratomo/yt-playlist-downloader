@@ -1489,6 +1489,8 @@ class DownloaderSyncEngine {
     this.selectedCountBadge = document.getElementById("dl-selected-count");
 
     // Live progress elements
+    this.pulse = document.getElementById("dl-active-pulse");
+    this.heading = document.getElementById("dl-progress-heading");
     this.fillBar = document.getElementById("dl-progress-fill");
     this.percentText = document.getElementById("dl-percent-text");
     this.speedText = document.getElementById("dl-speed-text");
@@ -1497,6 +1499,11 @@ class DownloaderSyncEngine {
     this.currentLabel = document.getElementById("dl-current-label");
     this.queueList = document.getElementById("dl-queue-list");
     this.terminalLogs = document.getElementById("dl-terminal-logs");
+    this.completedBanner = document.getElementById("dl-completed-banner");
+    this.completedTitle = document.getElementById("dl-completed-title");
+    this.completedDesc = document.getElementById("dl-completed-desc");
+
+    this.lastTargetDir = null;
 
     this._initListeners();
   }
@@ -1543,6 +1550,87 @@ class DownloaderSyncEngine {
     document.getElementById("btn-clear-dl-logs").addEventListener("click", () => {
       this.terminalLogs.innerHTML = `<div class="log-row text-muted">[Sistem] Log dibersihkan.</div>`;
     });
+
+    // Options Synchronization Listeners
+    const bitrateSelect = document.getElementById("select-dl-bitrate");
+    const bitrateBadge = document.getElementById("badge-selected-bitrate");
+    if (bitrateSelect) {
+      bitrateSelect.addEventListener("change", (e) => {
+        const val = e.target.value;
+        if (bitrateBadge) bitrateBadge.textContent = `${val} kbps`;
+        MusicGitState.config.defaultBitrate = val;
+        this._saveLocalOptions();
+      });
+    }
+
+    const templateSelect = document.getElementById("select-dl-template");
+    if (templateSelect) {
+      templateSelect.addEventListener("change", (e) => {
+        MusicGitState.config.defaultTemplate = e.target.value;
+        this._saveLocalOptions();
+      });
+    }
+
+    ["toggle-dl-cover", "toggle-dl-save-cover", "toggle-dl-lyrics", "toggle-dl-lrc"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("change", () => this._saveLocalOptions());
+    });
+
+    // Open Destination Folder Button
+    const openDestBtn = document.getElementById("btn-dl-open-dest");
+    if (openDestBtn) {
+      openDestBtn.addEventListener("click", () => {
+        const target = this.lastTargetDir || MusicGitState.config.defaultMusicDir;
+        if (target) {
+          fetch("/api/open-folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: target }),
+          });
+        }
+      });
+    }
+
+    // Completion Banner Actions
+    const gotoLibraryBtn = document.getElementById("btn-dl-goto-library");
+    if (gotoLibraryBtn) {
+      gotoLibraryBtn.addEventListener("click", async () => {
+        ViewController.switchView("view-library");
+        if (this.lastTargetDir && window.LibraryManagerEngine) {
+          await window.LibraryManagerEngine.loadPlaylists();
+          await window.LibraryManagerEngine.openPlaylist(this.lastTargetDir);
+        }
+      });
+    }
+
+    const playDownloadedBtn = document.getElementById("btn-dl-play-downloaded");
+    if (playDownloadedBtn) {
+      playDownloadedBtn.addEventListener("click", async () => {
+        ViewController.switchView("view-library");
+        if (this.lastTargetDir && window.LibraryManagerEngine) {
+          await window.LibraryManagerEngine.loadPlaylists();
+          await window.LibraryManagerEngine.openPlaylist(this.lastTargetDir);
+          if (MusicGitState.currentPlaylist && MusicGitState.currentPlaylist.tracks.length > 0) {
+            window.MusicPlayer.playTrack(MusicGitState.currentPlaylist.tracks[0], MusicGitState.currentPlaylist.tracks, 0);
+          }
+        }
+      });
+    }
+  }
+
+  _saveLocalOptions() {
+    try {
+      localStorage.setItem("musicgit_config", JSON.stringify(MusicGitState.config));
+      const opts = {
+        embed_cover: document.getElementById("toggle-dl-cover")?.checked,
+        save_cover_file: document.getElementById("toggle-dl-save-cover")?.checked,
+        fetch_lyrics: document.getElementById("toggle-dl-lyrics")?.checked,
+        save_lrc_file: document.getElementById("toggle-dl-lrc")?.checked,
+      };
+      localStorage.setItem("musicgit_dl_options", JSON.stringify(opts));
+    } catch (e) {
+      console.warn("Failed to save local dl options:", e);
+    }
   }
 
   async analyze(url) {
@@ -1643,6 +1731,9 @@ class DownloaderSyncEngine {
       remote_url: this.urlInput.value.trim(),
     };
 
+    // Pre-render queue list immediately
+    this._renderInitialQueue(tracks);
+
     try {
       const res = await fetch("/api/download", {
         method: "POST",
@@ -1655,6 +1746,8 @@ class DownloaderSyncEngine {
 
       // Auto-link .musicgit metadata
       const targetFolder = `${MusicGitState.config.defaultMusicDir}\\${options.folder_name}`;
+      this.lastTargetDir = targetFolder;
+
       if (this.urlInput.value.includes("playlist")) {
         fetch("/api/library/link-remote", {
           method: "POST",
@@ -1686,8 +1779,8 @@ class DownloaderSyncEngine {
       folder_name: playlistTitle,
       folder_path: targetFolderPath || null,
       target_folder: targetFolderPath || null,
-      bitrate: "192",
-      filename_template: "{num}. {title}-{id}.mp3",
+      bitrate: MusicGitState.config.defaultBitrate || "192",
+      filename_template: MusicGitState.config.defaultTemplate || "{num}. {title}-{id}.mp3",
       embed_cover: true,
       save_cover_file: true,
       fetch_lyrics: true,
@@ -1703,6 +1796,9 @@ class DownloaderSyncEngine {
       remote_url: remoteUrl || (this.urlInput ? this.urlInput.value.trim() : null),
     };
 
+    this.lastTargetDir = targetFolderPath;
+    this._renderInitialQueue(payload.tracks);
+
     try {
       const res = await fetch("/api/download", {
         method: "POST",
@@ -1717,69 +1813,188 @@ class DownloaderSyncEngine {
     }
   }
 
+  _renderInitialQueue(tracks) {
+    if (!this.queueList || !tracks) return;
+    this.queueList.innerHTML = tracks
+      .map((t, idx) => {
+        return `
+          <div class="queue-item" data-idx="${t.index || idx + 1}">
+            <div class="queue-item-info">
+              <span class="queue-item-num">#${t.index || idx + 1}</span>
+              <div class="queue-item-text">
+                <span class="queue-item-title" title="${this._escape(t.title)}">${this._escape(t.title)}</span>
+                <span class="queue-item-artist">${this._escape(t.artist || "Unknown Artist")}</span>
+              </div>
+            </div>
+            <span class="pill pill-xs pill-queue-queued">Antri</span>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
   subscribeToProgress(jobId) {
-    this.progressCard.classList.remove("hidden");
+    this.progressCard.classList.remove("hidden", "is-completed", "is-failed");
+    if (this.completedBanner) this.completedBanner.classList.add("hidden");
+    if (this.pulse) this.pulse.className = "active-pulse";
+    if (this.heading) this.heading.textContent = "Proses Download Aktif";
+    if (this.fillBar) {
+      this.fillBar.style.width = "0%";
+      this.fillBar.style.background = "";
+    }
+
     if (MusicGitState.eventSource) {
       MusicGitState.eventSource.close();
     }
 
     const badge = document.getElementById("badge-download-active");
-    badge.classList.remove("hidden");
-    badge.textContent = "Syncing";
+    if (badge) {
+      badge.classList.remove("hidden");
+      badge.textContent = "Syncing";
+      badge.style.backgroundColor = "";
+    }
 
     const evt = new EventSource(`/api/job/${jobId}/stream`);
     MusicGitState.eventSource = evt;
 
     evt.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      this._updateProgressUI(data);
+      try {
+        const data = JSON.parse(e.data);
+        this._updateProgressUI(data);
 
-      if (["completed", "failed", "cancelled"].includes(data.status)) {
-        evt.close();
-        badge.classList.add("hidden");
-        // Live auto-refresh library and active playlist when completed
-        if (data.status === "completed") {
-          if (window.LibraryManagerEngine) {
-            window.LibraryManagerEngine.refreshCurrentView();
+        if (["completed", "failed", "cancelled"].includes(data.status)) {
+          evt.close();
+          MusicGitState.eventSource = null;
+
+          if (data.status === "completed") {
+            // Visual change on complete
+            this.progressCard.classList.add("is-completed");
+            this.progressCard.classList.remove("is-failed");
+            if (this.pulse) this.pulse.className = "active-pulse pulse-completed";
+            if (this.heading) this.heading.textContent = "Download Selesai!";
+            if (this.currentLabel) {
+              this.currentLabel.textContent = `✅ Selesai! Semua ${data.completed_tracks || data.total_tracks} lagu berhasil diunduh.`;
+            }
+
+            if (this.completedBanner) {
+              if (this.completedTitle) {
+                this.completedTitle.textContent = `Unduhan Selesai! (${data.completed_tracks}/${data.total_tracks} Lagu Berhasil)`;
+              }
+              if (this.completedDesc) {
+                const folderName = data.target_dir ? data.target_dir.split(/[/\\]/).pop() : "Folder Musik";
+                this.completedDesc.textContent = `Tersimpan di "${folderName}". Tag ID3 & Cover Art telah disematkan.`;
+              }
+              this.completedBanner.classList.remove("hidden");
+            }
+
+            if (badge) {
+              badge.textContent = "✓ Selesai";
+              badge.style.backgroundColor = "var(--accent-success)";
+              setTimeout(() => {
+                badge.classList.add("hidden");
+              }, 6000);
+            }
+
+            // Live auto-refresh library
+            if (window.LibraryManagerEngine) {
+              window.LibraryManagerEngine.refreshCurrentView();
+            }
+          } else {
+            // Visual change on failed
+            this.progressCard.classList.add("is-failed");
+            this.progressCard.classList.remove("is-completed");
+            if (this.pulse) this.pulse.className = "active-pulse pulse-failed";
+            if (this.heading) this.heading.textContent = "Download Terhenti / Gagal";
+            if (this.currentLabel) {
+              this.currentLabel.textContent = `❌ ${data.failed_tracks || 0} lagu gagal diunduh.`;
+            }
+            if (badge) badge.classList.add("hidden");
           }
         }
+      } catch (err) {
+        console.warn("SSE Stream parse error:", err);
       }
+    };
+
+    evt.onerror = () => {
+      evt.close();
+      MusicGitState.eventSource = null;
     };
   }
 
   _updateProgressUI(data) {
+    if (data.target_dir) {
+      this.lastTargetDir = data.target_dir;
+    }
+
     const pct = Math.round(data.overall_percent || 0);
     this.fillBar.style.width = `${pct}%`;
     this.percentText.textContent = `${pct}%`;
     this.speedText.textContent = `Kecepatan: ${data.speed || "--"}`;
     this.etaText.textContent = `Sisa: ${data.eta || "--"}`;
     this.countsText.textContent = `${data.completed_tracks || 0} / ${data.total_tracks || 0} Selesai`;
-    this.currentLabel.textContent = data.current_track_title ? `Mendownload: ${data.current_track_title}` : "Memproses...";
+    
+    if (data.status !== "completed" && data.status !== "failed") {
+      this.currentLabel.textContent = data.current_track_title ? `Mendownload: ${data.current_track_title}` : "Memproses antrian...";
+    }
 
     // Append logs
     if (data.new_logs && data.new_logs.length > 0) {
       data.new_logs.forEach((log) => {
         const row = document.createElement("div");
         row.className = "log-row";
-        if (log.includes("[BERHASIL]")) row.classList.add("text-success");
-        if (log.includes("[ERROR]")) row.classList.add("text-error");
+        if (log.includes("[BERHASIL]") || log.includes("[Selesai]")) row.classList.add("text-success");
+        if (log.includes("[ERROR]") || log.includes("[Gagal]")) row.classList.add("text-error");
         row.textContent = log;
         this.terminalLogs.appendChild(row);
       });
       this.terminalLogs.scrollTop = this.terminalLogs.scrollHeight;
     }
 
-    // Update queue list
+    // Update queue list (supports Dictionary and Array from backend)
     if (data.tracks_status) {
-      this.queueList.innerHTML = data.tracks_status
+      const trackArray = Array.isArray(data.tracks_status)
+        ? data.tracks_status
+        : Object.values(data.tracks_status);
+
+      trackArray.sort((a, b) => (a.index || 0) - (b.index || 0));
+
+      this.queueList.innerHTML = trackArray
         .map((t) => {
-          let statusPill = `<span class="pill pill-xs">${t.status}</span>`;
-          if (t.status === "completed") statusPill = `<span class="pill pill-xs" style="color: #00e676;">OK</span>`;
-          if (t.status === "downloading") statusPill = `<span class="pill pill-xs" style="color: #64b5f6;">${t.percent}%</span>`;
+          let statusHtml = `<span class="pill pill-xs pill-queue-queued">Antri</span>`;
+          let rowClass = "";
+
+          if (t.status === "downloading") {
+            const prog = Math.round(t.progress || 0);
+            statusHtml = `<span class="pill pill-xs pill-queue-downloading">${prog}%</span>`;
+            rowClass = "queue-item-active";
+          } else if (t.status === "converting") {
+            statusHtml = `<span class="pill pill-xs pill-queue-converting">Konversi</span>`;
+            rowClass = "queue-item-active";
+          } else if (t.status === "tagging") {
+            statusHtml = `<span class="pill pill-xs pill-queue-tagging">ID3 Tag</span>`;
+            rowClass = "queue-item-active";
+          } else if (t.status === "lyrics") {
+            statusHtml = `<span class="pill pill-xs pill-queue-lyrics">Lirik</span>`;
+            rowClass = "queue-item-active";
+          } else if (t.status === "completed") {
+            statusHtml = `<span class="pill pill-xs pill-queue-ok">✓ OK</span>`;
+            rowClass = "queue-item-completed";
+          } else if (t.status === "failed") {
+            statusHtml = `<span class="pill pill-xs pill-queue-failed" title="${this._escape(t.error || '')}">Gagal</span>`;
+            rowClass = "queue-item-failed";
+          }
+
           return `
-            <div class="queue-item">
-              <span class="queue-item-title">${this._escape(t.title)}</span>
-              ${statusPill}
+            <div class="queue-item ${rowClass}">
+              <div class="queue-item-info">
+                <span class="queue-item-num">#${t.index}</span>
+                <div class="queue-item-text">
+                  <span class="queue-item-title" title="${this._escape(t.title)}">${this._escape(t.title)}</span>
+                  <span class="queue-item-artist">${this._escape(t.artist || "Unknown Artist")}</span>
+                </div>
+              </div>
+              ${statusHtml}
             </div>
           `;
         })
@@ -2473,6 +2688,9 @@ const ViewController = {
       ThemeManager.applyTheme(thm);
       I18nManager.applyLanguage(lang);
 
+      // Sync settings immediately to Downloader view
+      syncDownloaderSettingsFromConfig();
+
       localStorage.setItem("musicgit_config", JSON.stringify(MusicGitState.config));
 
       // Persist to backend config.json on disk
@@ -2516,6 +2734,11 @@ const ViewController = {
 
     MusicGitState.activeView = viewId;
 
+    // Synchronize downloader form options whenever entering Downloader view
+    if (viewId === "view-downloader") {
+      syncDownloaderSettingsFromConfig();
+    }
+
     // Live auto-refresh library when navigating to Library View
     if (viewId === "view-library" && window.LibraryManagerEngine) {
       window.LibraryManagerEngine.loadPlaylists();
@@ -2527,6 +2750,44 @@ const ViewController = {
 };
 
 window.ViewController = ViewController;
+
+function syncDownloaderSettingsFromConfig() {
+  const cfg = MusicGitState.config || {};
+  const bitrateSelect = document.getElementById("select-dl-bitrate");
+  const bitrateBadge = document.getElementById("badge-selected-bitrate");
+  const templateSelect = document.getElementById("select-dl-template");
+
+  if (bitrateSelect && cfg.defaultBitrate) {
+    bitrateSelect.value = cfg.defaultBitrate;
+  }
+  if (bitrateBadge) {
+    const val = bitrateSelect ? bitrateSelect.value : (cfg.defaultBitrate || "192");
+    bitrateBadge.textContent = `${val} kbps`;
+  }
+  if (templateSelect && cfg.defaultTemplate) {
+    templateSelect.value = cfg.defaultTemplate;
+  }
+
+  // Also sync toggle options from localStorage if saved
+  try {
+    const savedOpts = localStorage.getItem("musicgit_dl_options");
+    if (savedOpts) {
+      const opts = JSON.parse(savedOpts);
+      if (opts.embed_cover !== undefined && document.getElementById("toggle-dl-cover"))
+        document.getElementById("toggle-dl-cover").checked = opts.embed_cover;
+      if (opts.save_cover_file !== undefined && document.getElementById("toggle-dl-save-cover"))
+        document.getElementById("toggle-dl-save-cover").checked = opts.save_cover_file;
+      if (opts.fetch_lyrics !== undefined && document.getElementById("toggle-dl-lyrics"))
+        document.getElementById("toggle-dl-lyrics").checked = opts.fetch_lyrics;
+      if (opts.save_lrc_file !== undefined && document.getElementById("toggle-dl-lrc"))
+        document.getElementById("toggle-dl-lrc").checked = opts.save_lrc_file;
+    }
+  } catch (e) {
+    console.warn("Failed to load dl_options:", e);
+  }
+}
+
+window.syncDownloaderSettingsFromConfig = syncDownloaderSettingsFromConfig;
 
 // Global Handler for Android & Browser System Back Navigation
 window.handleAppBack = function () {
@@ -2638,6 +2899,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const tplSelect = document.getElementById("settings-default-template");
     if (tplSelect) tplSelect.value = MusicGitState.config.defaultTemplate || "{num}. {title}-{id}.mp3";
+
+    // Synchronize settings into Downloader page form on start
+    syncDownloaderSettingsFromConfig();
   } catch (err) {
     console.warn("Failed to load config:", err);
   }
