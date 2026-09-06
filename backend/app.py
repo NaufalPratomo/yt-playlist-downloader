@@ -77,6 +77,7 @@ class DownloadOptions(BaseModel):
     album_name: Optional[str] = None
     album_artist: Optional[str] = None
     is_compilation: Optional[bool] = None
+    language: Optional[str] = None
 
 
 class FixFolderTagsRequest(BaseModel):
@@ -250,6 +251,9 @@ async def start_download(req: StartDownloadRequest):
         options["remote_url"] = req.remote_url
     if req.target_folder and not options.get("target_folder"):
         options["target_folder"] = req.target_folder
+    if not options.get("language"):
+        saved = load_saved_config()
+        options["language"] = saved.get("language", "id")
 
     try:
         downloader.start_download_job(

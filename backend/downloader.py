@@ -212,8 +212,25 @@ class PlaylistDownloader:
             album_artist = "Various Artists" if len(unique_artists) > 1 else (list(unique_artists)[0] if unique_artists else "Various Artists")
         is_compilation = options.get("is_compilation", True if len(tracks) > 1 else False)
 
-        self._add_log(job, f"[Download] Memulai proses {len(tracks)} lagu ke: {target_dir}")
-        self._add_log(job, f"[Konfigurasi] Format: MP3 {bitrate} kbps | Album: '{album_name}' | Artis Album: '{album_artist}'")
+        lang = str(options.get("language") or "").lower()
+        if not lang or lang not in ("en", "id"):
+            try:
+                import json
+                from pathlib import Path
+                cfg_p = Path(__file__).resolve().parent.parent / "config.json"
+                if cfg_p.exists():
+                    cfg_data = json.loads(cfg_p.read_text(encoding="utf-8"))
+                    lang = cfg_data.get("language", "id")
+            except Exception:
+                lang = "id"
+        is_en = (lang == "en")
+
+        if is_en:
+            self._add_log(job, f"[Download] Starting download of {len(tracks)} tracks to: {target_dir}")
+            self._add_log(job, f"[Configuration] Format: MP3 {bitrate} kbps | Album: '{album_name}' | Album Artist: '{album_artist}'")
+        else:
+            self._add_log(job, f"[Download] Memulai proses {len(tracks)} lagu ke: {target_dir}")
+            self._add_log(job, f"[Konfigurasi] Format: MP3 {bitrate} kbps | Album: '{album_name}' | Artis Album: '{album_artist}'")
 
         playlist_cover_saved = False
 
@@ -231,7 +248,10 @@ class PlaylistDownloader:
             track_state["status"] = "downloading"
             self._update_overall_progress(job)
 
-            self._add_log(job, f"[{idx}/{len(tracks)}] Mengunduh: {artist} - {title} ({track_id})")
+            if is_en:
+                self._add_log(job, f"[{idx}/{len(tracks)}] Downloading: {artist} - {title} ({track_id})")
+            else:
+                self._add_log(job, f"[{idx}/{len(tracks)}] Mengunduh: {artist} - {title} ({track_id})")
 
             final_filename = metadata_tagger.format_filename(
                 template=filename_template,
@@ -315,7 +335,10 @@ class PlaylistDownloader:
                             artist = clean_fetched
                             track_state["artist"] = artist
                             job["current_track_title"] = f"{artist} - {title}"
-                            self._add_log(job, f"[Metadata] Menemukan artis otomatis: {artist}")
+                            if is_en:
+                                self._add_log(job, f"[Metadata] Auto-detected artist: {artist}")
+                            else:
+                                self._add_log(job, f"[Metadata] Menemukan artis otomatis: {artist}")
 
                 # Locate downloaded intermediate file (.mp3, .m4a, .webm, .opus, etc.)
                 intermediate_file = None
@@ -409,14 +432,20 @@ class PlaylistDownloader:
                 track_state["progress"] = 100.0
                 track_state["file_path"] = final_audio_path
                 job["completed_tracks"] += 1
-                self._add_log(job, f"[Selesai] [{idx}/{len(tracks)}]: {final_filename}")
+                if is_en:
+                    self._add_log(job, f"[Done] [{idx}/{len(tracks)}]: {final_filename}")
+                else:
+                    self._add_log(job, f"[Selesai] [{idx}/{len(tracks)}]: {final_filename}")
 
             except Exception as e:
                 logger.error(f"Error downloading track {track_id}: {e}", exc_info=True)
                 track_state["status"] = "failed"
                 track_state["error"] = str(e)
                 job["failed_tracks"] += 1
-                self._add_log(job, f"[Gagal] [{title}]: {e}")
+                if is_en:
+                    self._add_log(job, f"[Failed] [{title}]: {e}")
+                else:
+                    self._add_log(job, f"[Gagal] [{title}]: {e}")
 
             self._update_overall_progress(job)
 
@@ -428,12 +457,18 @@ class PlaylistDownloader:
             job["status"] = "completed"
 
         job["overall_percent"] = 100.0
-        job["speed"] = "Selesai"
+        job["speed"] = "Done" if is_en else "Selesai"
         job["eta"] = "0s"
-        self._add_log(
-            job,
-            f"[Selesai Semua] Berhasil: {job['completed_tracks']}, Gagal: {job['failed_tracks']}. Lokasi: {target_dir}",
-        )
+        if is_en:
+            self._add_log(
+                job,
+                f"[All Complete] Succeeded: {job['completed_tracks']}, Failed: {job['failed_tracks']}. Location: {target_dir}",
+            )
+        else:
+            self._add_log(
+                job,
+                f"[Selesai Semua] Berhasil: {job['completed_tracks']}, Gagal: {job['failed_tracks']}. Lokasi: {target_dir}",
+            )
 
         # Auto-create or update .musicgit.json in playlist folder
         try:

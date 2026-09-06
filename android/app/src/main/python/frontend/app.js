@@ -682,14 +682,14 @@ class LyricsSyncEngine {
       }
     }
 
-    const loadingHtml = `<div class="lyrics-empty-state"><span class="spinner"></span><p>Mencari lirik lagu...</p></div>`;
+    const loadingHtml = `<div class="lyrics-empty-state"><span class="spinner"></span><p>${I18nManager.t("lyrics_searching")}</p></div>`;
     if (this.container) this.container.innerHTML = loadingHtml;
     if (this.fullContainer) this.fullContainer.innerHTML = loadingHtml;
 
     try {
       const url = `/api/library/track-lyrics?file_path=${encodeURIComponent(track.file_path)}&auto_fetch=${forceOnline ? "true" : "true"}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Gagal mengambil lirik");
+      if (!res.ok) throw new Error("Failed to fetch lyrics");
       const data = await res.json();
 
       this.isSynced = data.synced;
@@ -702,7 +702,7 @@ class LyricsSyncEngine {
         id3_uslt: "ID3 Tag",
         online_synced: "LRCLIB Synced",
         online_plain: "Plain Text",
-        none: "Tidak Ada",
+        none: I18nManager.t("lyrics_source_none"),
       };
       const srcLabel = srcMap[data.source] || "LRC";
       if (this.sourceBadge) this.sourceBadge.textContent = srcLabel;
@@ -715,7 +715,7 @@ class LyricsSyncEngine {
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="8" y1="12" x2="16" y2="12"></line>
             </svg>
-            <p>Lirik belum tersedia untuk lagu ini.</p>
+            <p>${I18nManager.t("lyrics_not_available")}</p>
           </div>
         `;
         if (this.container) this.container.innerHTML = emptyHtml;
@@ -732,7 +732,7 @@ class LyricsSyncEngine {
       console.warn("Failed to load lyrics:", err);
       const errHtml = `
         <div class="lyrics-empty-state">
-          <p>Lirik tidak ditemukan untuk lagu ini.</p>
+          <p>${I18nManager.t("lyrics_not_found")}</p>
         </div>
       `;
       if (this.container) this.container.innerHTML = errHtml;
@@ -971,13 +971,13 @@ class LibraryEngine {
       this._renderMasterGrid(list);
     } catch (err) {
       console.warn("Error loading playlists:", err);
-      this.playlistsGrid.innerHTML = `<div class="sidebar-empty-state">Tidak dapat memuat folder musik.</div>`;
+      this.playlistsGrid.innerHTML = `<div class="sidebar-empty-state">${I18nManager.t("lib_failed_open")}</div>`;
     }
   }
 
   _renderSidebarPlaylists(list) {
     if (list.length === 0) {
-      this.sidebarPlaylistsList.innerHTML = `<div class="sidebar-empty-state">Belum ada playlist.</div>`;
+      this.sidebarPlaylistsList.innerHTML = `<div class="sidebar-empty-state">${I18nManager.t("nav_empty_playlists")}</div>`;
       return;
     }
 
@@ -1006,7 +1006,7 @@ class LibraryEngine {
     if (list.length === 0) {
       this.playlistsGrid.innerHTML = `
         <div class="sidebar-empty-state" style="grid-column: 1 / -1; padding: 40px; text-align: center;">
-          <p>Belum ada folder playlist di direktori musik.</p>
+          <p>${I18nManager.t("lib_empty_master")}</p>
         </div>
       `;
       return;
@@ -1033,7 +1033,7 @@ class LibraryEngine {
             <div class="card-cover-wrap">
               ${coverHtml}
               ${gitPill}
-              <button type="button" class="card-play-overlay" title="Putar Playlist">
+              <button type="button" class="card-play-overlay" title="${I18nManager.t("lib_btn_play_all")}">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5 3 19 12 5 21 5 3"></polygon>
                 </svg>
@@ -1041,7 +1041,7 @@ class LibraryEngine {
             </div>
             <div class="card-meta-info">
               <h4 class="card-pl-title" title="${this._escape(pl.name)}">${this._escape(pl.name)}</h4>
-              <span class="card-pl-stats">${pl.track_count} Lagu</span>
+              <span class="card-pl-stats">${pl.track_count} ${I18nManager.t("lib_songs_suffix")}</span>
             </div>
           </div>
         `;
@@ -1078,7 +1078,7 @@ class LibraryEngine {
     this.currentPlaylistPath = folderPath;
     this.masterView.classList.add("hidden");
     this.detailView.classList.remove("hidden");
-    this.tracksTbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px;"><span class="spinner"></span> Memuat lagu...</td></tr>`;
+    this.tracksTbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px;"><span class="spinner"></span> ${I18nManager.t("lib_loading_tracks")}</td></tr>`;
 
     try {
       const res = await fetch(`/api/library/playlist?folder_path=${encodeURIComponent(folderPath)}`);
@@ -1088,7 +1088,7 @@ class LibraryEngine {
 
       this.detailTitle.textContent = data.name;
       this.detailPath.textContent = data.folder_path;
-      this.detailCount.textContent = `${data.total_tracks} Lagu`;
+      this.detailCount.textContent = `${data.total_tracks} ${I18nManager.t("lib_songs_suffix")}`;
       this.detailDuration.textContent = data.total_duration_formatted;
 
       if (data.cover_url) {
@@ -1106,10 +1106,10 @@ class LibraryEngine {
 
       if (data.remote_url) {
         this.heroRemoteBadge.classList.remove("hidden");
-        document.getElementById("hero-sync-label").textContent = "Sync with YouTube";
+        document.getElementById("hero-sync-label").textContent = I18nManager.t("lib_sync_with_yt");
       } else {
         this.heroRemoteBadge.classList.add("hidden");
-        document.getElementById("hero-sync-label").textContent = "Tautkan & Sync YT";
+        document.getElementById("hero-sync-label").textContent = I18nManager.t("lib_link_and_sync_yt");
       }
 
       if (data.last_sync) {
@@ -1124,7 +1124,7 @@ class LibraryEngine {
       this._renderTracksTable(data.tracks);
     } catch (err) {
       console.warn("Failed to open playlist:", err);
-      this.tracksTbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--accent-danger);">Gagal membuka playlist.</td></tr>`;
+      this.tracksTbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--accent-danger);">${I18nManager.t("lib_failed_open")}</td></tr>`;
     }
   }
 
@@ -1132,11 +1132,11 @@ class LibraryEngine {
     if (!MusicGitState.currentPlaylist) return;
     const btn = document.getElementById("btn-hero-sync-lyrics");
     const label = document.getElementById("hero-sync-lyrics-label");
-    const originalText = label ? label.textContent : "Update Lirik";
+    const originalText = label ? label.textContent : I18nManager.t("lib_update_lyrics");
 
     try {
       if (btn) btn.disabled = true;
-      if (label) label.textContent = "Menyinkronkan Lirik...";
+      if (label) label.textContent = I18nManager.t("lib_syncing_lyrics");
 
       const res = await fetch("/api/library/playlist/sync-lyrics", {
         method: "POST",
@@ -1153,7 +1153,7 @@ class LibraryEngine {
       }
 
       const data = await res.json();
-      alert(data.message || `Lirik berhasil disinkronkan (${data.updated_count || 0} lagu diperbarui).`);
+      alert(data.message || `${I18nManager.t("lib_sync_lyrics_success")} (${data.updated_count || 0} ${I18nManager.t("lib_songs_suffix")}).`);
 
       // Refresh current playlist tracks to update LRC badges
       await this.openPlaylist(MusicGitState.currentPlaylist.folder_path);
@@ -1175,9 +1175,9 @@ class LibraryEngine {
   }
 
   _renderTracksTable(tracks) {
-    this.trackStats.textContent = `${tracks.length} Lagu`;
+    this.trackStats.textContent = `${tracks.length} ${I18nManager.t("lib_songs_suffix")}`;
     if (tracks.length === 0) {
-      this.tracksTbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px;">Belum ada file audio di folder ini.</td></tr>`;
+      this.tracksTbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px;">${I18nManager.t("lib_empty_folder")}</td></tr>`;
       return;
     }
 
@@ -1191,7 +1191,7 @@ class LibraryEngine {
           <tr class="track-row" data-idx="${idx}" data-file-path="${this._escape(t.file_path)}">
             <td style="text-align: center; font-family: var(--font-mono); font-size: 0.75rem;">${idx + 1}</td>
             <td style="text-align: center;">
-              <button type="button" class="btn-track-play" title="Putar Lagu">
+              <button type="button" class="btn-track-play" title="${I18nManager.t("th_play")}">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5 3 19 12 5 21 5 3"></polygon>
                 </svg>
@@ -1203,7 +1203,7 @@ class LibraryEngine {
             <td style="text-align: center;">${lrcBadge}</td>
             <td style="text-align: right; font-family: var(--font-mono); font-size: 0.8rem;">${t.duration_formatted}</td>
             <td style="text-align: center;">
-              <button type="button" class="btn-icon-xs btn-track-menu" title="Lirik & Tag">
+              <button type="button" class="btn-icon-xs btn-track-menu" title="${I18nManager.t("th_lyrics")}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="1"></circle>
                   <circle cx="19" cy="12" r="1"></circle>
@@ -1215,6 +1215,7 @@ class LibraryEngine {
         `;
       })
       .join("");
+
 
     this.tracksTbody.querySelectorAll(".track-row").forEach((row) => {
       row.addEventListener("dblclick", () => {
@@ -1279,7 +1280,7 @@ class LibraryEngine {
 
     // Clean reset of all progress elements
     if (progBox) progBox.classList.add("hidden");
-    if (progTitle) progTitle.textContent = "Menyiapkan download...";
+    if (progTitle) progTitle.textContent = I18nManager.t("modal_sync_prep");
     if (progPercent) progPercent.textContent = "0%";
     if (progBar) {
       progBar.style.width = "0%";
@@ -1289,7 +1290,7 @@ class LibraryEngine {
     if (closeBtn) closeBtn.disabled = false;
     if (downloadBtn) downloadBtn.disabled = true;
 
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 24px;"><span class="spinner"></span> Menghubungi YouTube dan membandingkan playlist...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 24px;"><span class="spinner"></span> ${I18nManager.t("modal_sync_comparing")}</td></tr>`;
     modal.classList.remove("hidden");
 
     try {
@@ -1298,7 +1299,7 @@ class LibraryEngine {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playlist_url: playlist.remote_url, folder_path: playlist.folder_path }),
       });
-      if (!res.ok) throw new Error("Gagal melakukan sinkronisasi dengan YouTube.");
+      if (!res.ok) throw new Error(I18nManager.currentLang === "en" ? "Failed to sync with YouTube." : "Gagal melakukan sinkronisasi dengan YouTube.");
       const data = await res.json();
 
       countExisting.textContent = data.existing_tracks.length;
@@ -1315,8 +1316,8 @@ class LibraryEngine {
       tbody.innerHTML = data.all_comparison
         .map((t, idx) => {
           const status = t.is_existing
-            ? `<span class="pill pill-primary" style="font-size: 0.65rem;">Lokal OK</span>`
-            : `<span class="pill pill-git" style="font-size: 0.65rem; color: #00e676; border-color: #00e676;">+ Baru</span>`;
+            ? `<span class="pill pill-primary" style="font-size: 0.65rem;">${I18nManager.t("tag_diff_local_ok")}</span>`
+            : `<span class="pill pill-git" style="font-size: 0.65rem; color: #00e676; border-color: #00e676;">${I18nManager.t("tag_diff_new_pill")}</span>`;
 
           return `
             <tr>
@@ -1346,7 +1347,7 @@ class LibraryEngine {
     if (cancelBtn) cancelBtn.disabled = true;
     if (closeBtn) closeBtn.disabled = true;
     if (progBox) progBox.classList.remove("hidden");
-    if (progTitle) progTitle.textContent = `Menyiapkan download ${newTracks.length} lagu baru...`;
+    if (progTitle) progTitle.textContent = I18nManager.t("modal_sync_prep_count", { count: newTracks.length });
     if (progPercent) progPercent.textContent = "0%";
     if (progBar) {
       progBar.style.width = "0%";
@@ -1363,6 +1364,7 @@ class LibraryEngine {
       save_cover_file: true,
       fetch_lyrics: true,
       save_lrc_file: true,
+      language: I18nManager.currentLang,
     };
 
     const existingCount = (playlist.tracks ? playlist.tracks.length : (playlist.track_count || 0));
@@ -1391,7 +1393,7 @@ class LibraryEngine {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Gagal memulai proses download.");
+      if (!res.ok) throw new Error(I18nManager.currentLang === "en" ? "Failed to start download." : "Gagal memulai proses download.");
       const job = await res.json();
       const jobId = job.job_id;
 
@@ -1406,23 +1408,23 @@ class LibraryEngine {
           if (progBar) progBar.style.width = `${pct}%`;
           if (progTitle) {
             progTitle.textContent = data.current_track_title
-              ? `Mengunduh: ${data.current_track_title} (${data.completed_tracks}/${data.total_tracks})`
-              : `Mengunduh ${data.completed_tracks}/${data.total_tracks} lagu...`;
+              ? `${I18nManager.t("modal_sync_downloading")}${data.current_track_title} (${data.completed_tracks}/${data.total_tracks})`
+              : `${I18nManager.t("modal_sync_downloading")} ${data.completed_tracks}/${data.total_tracks} ${I18nManager.t("lib_songs_suffix")}...`;
           }
 
           if (data.status === "completed") {
             evt.close();
             this.activeSyncEvt = null;
             if (data.failed_tracks > 0 && data.completed_tracks === 0) {
-              const firstErr = Object.values(data.tracks_status || {}).find(t => t.error)?.error || "Gagal mengunduh lagu.";
-              if (progTitle) progTitle.textContent = `❌ Gagal: ${firstErr}`;
+              const firstErr = Object.values(data.tracks_status || {}).find(t => t.error)?.error || (I18nManager.currentLang === "en" ? "Failed to download songs." : "Gagal mengunduh lagu.");
+              if (progTitle) progTitle.textContent = I18nManager.t("modal_sync_failed", { error: firstErr });
               if (cancelBtn) cancelBtn.disabled = false;
               if (closeBtn) closeBtn.disabled = false;
               if (downloadBtn) downloadBtn.disabled = false;
               return;
             }
 
-            if (progTitle) progTitle.textContent = `✅ Selesai! ${data.completed_tracks} lagu baru berhasil ditambahkan.`;
+            if (progTitle) progTitle.textContent = I18nManager.t("modal_sync_completed", { completed: data.completed_tracks });
             if (progBar) {
               progBar.style.width = "100%";
               progBar.style.backgroundColor = "var(--accent-success)";
@@ -1441,8 +1443,8 @@ class LibraryEngine {
           } else if (data.status === "failed" || data.status === "cancelled") {
             evt.close();
             this.activeSyncEvt = null;
-            const firstErr = Object.values(data.tracks_status || {}).find(t => t.error)?.error || "Gagal mengunduh lagu.";
-            if (progTitle) progTitle.textContent = `❌ Gagal: ${firstErr}`;
+            const firstErr = Object.values(data.tracks_status || {}).find(t => t.error)?.error || (I18nManager.currentLang === "en" ? "Failed to download songs." : "Gagal mengunduh lagu.");
+            if (progTitle) progTitle.textContent = I18nManager.t("modal_sync_failed", { error: firstErr });
             if (cancelBtn) cancelBtn.disabled = false;
             if (closeBtn) closeBtn.disabled = false;
             if (downloadBtn) downloadBtn.disabled = false;
@@ -1459,7 +1461,7 @@ class LibraryEngine {
         if (downloadBtn) downloadBtn.disabled = false;
       };
     } catch (err) {
-      alert(err.message || "Gagal melakukan download sinkronisasi.");
+      alert(err.message || (I18nManager.currentLang === "en" ? "Failed to download synced playlist." : "Gagal melakukan download sinkronisasi."));
       if (progBox) progBox.classList.add("hidden");
       if (downloadBtn) downloadBtn.disabled = false;
       if (cancelBtn) cancelBtn.disabled = false;
@@ -1652,8 +1654,8 @@ class DownloaderSyncEngine {
       MusicGitState.analyzedData = data;
 
       document.getElementById("dl-banner-title").textContent = data.title;
-      document.getElementById("dl-banner-author").textContent = data.uploader ? `Channel: ${data.uploader}` : "";
-      document.getElementById("dl-banner-count").textContent = `${data.total_tracks} Lagu`;
+      document.getElementById("dl-banner-author").textContent = data.uploader ? `${I18nManager.t("dl_uploaded_by")}: ${data.uploader}` : "";
+      document.getElementById("dl-banner-count").textContent = `${data.total_tracks} ${I18nManager.t("lib_songs_suffix")}`;
       document.getElementById("dl-banner-duration").textContent = data.total_duration_formatted || "--:--";
       document.getElementById("input-dl-album").value = data.title;
       document.getElementById("input-dl-subfolder").value = data.title;
@@ -1707,7 +1709,7 @@ class DownloaderSyncEngine {
   async startDownload() {
     const tracks = MusicGitState.analyzedData.tracks.filter((t) => t.selected);
     if (tracks.length === 0) {
-      alert("Pilih minimal 1 lagu.");
+      alert(I18nManager.t("dl_alert_select_min_1"));
       return;
     }
 
@@ -1721,6 +1723,7 @@ class DownloaderSyncEngine {
       save_cover_file: document.getElementById("toggle-dl-save-cover").checked,
       fetch_lyrics: document.getElementById("toggle-dl-lyrics").checked,
       save_lrc_file: document.getElementById("toggle-dl-lrc").checked,
+      language: I18nManager.currentLang,
     };
 
     const payload = {
@@ -1785,6 +1788,7 @@ class DownloaderSyncEngine {
       save_cover_file: true,
       fetch_lyrics: true,
       save_lrc_file: true,
+      language: I18nManager.currentLang,
     };
 
     const payload = {
@@ -1826,7 +1830,7 @@ class DownloaderSyncEngine {
                 <span class="queue-item-artist">${this._escape(t.artist || "Unknown Artist")}</span>
               </div>
             </div>
-            <span class="pill pill-xs pill-queue-queued">Antri</span>
+            <span class="pill pill-xs pill-queue-queued">${I18nManager.t("queue_status_queued")}</span>
           </div>
         `;
       })
@@ -1837,7 +1841,7 @@ class DownloaderSyncEngine {
     this.progressCard.classList.remove("hidden", "is-completed", "is-failed");
     if (this.completedBanner) this.completedBanner.classList.add("hidden");
     if (this.pulse) this.pulse.className = "active-pulse";
-    if (this.heading) this.heading.textContent = "Proses Download Aktif";
+    if (this.heading) this.heading.textContent = I18nManager.t("dl_prog_heading_active");
     if (this.fillBar) {
       this.fillBar.style.width = "0%";
       this.fillBar.style.background = "";
@@ -1850,7 +1854,7 @@ class DownloaderSyncEngine {
     const badge = document.getElementById("badge-download-active");
     if (badge) {
       badge.classList.remove("hidden");
-      badge.textContent = "Syncing";
+      badge.textContent = I18nManager.t("badge_syncing");
       badge.style.backgroundColor = "";
     }
 
@@ -1871,24 +1875,28 @@ class DownloaderSyncEngine {
             this.progressCard.classList.add("is-completed");
             this.progressCard.classList.remove("is-failed");
             if (this.pulse) this.pulse.className = "active-pulse pulse-completed";
-            if (this.heading) this.heading.textContent = "Download Selesai!";
+            if (this.heading) this.heading.textContent = I18nManager.t("dl_prog_heading_completed");
             if (this.currentLabel) {
-              this.currentLabel.textContent = `✅ Selesai! Semua ${data.completed_tracks || data.total_tracks} lagu berhasil diunduh.`;
+              const countDone = data.completed_tracks || data.total_tracks || 0;
+              this.currentLabel.textContent = I18nManager.t("dl_prog_completed_all").replace("{count}", countDone);
             }
 
             if (this.completedBanner) {
               if (this.completedTitle) {
-                this.completedTitle.textContent = `Unduhan Selesai! (${data.completed_tracks}/${data.total_tracks} Lagu Berhasil)`;
+                this.completedTitle.textContent = I18nManager.t("dl_banner_completed_title_stat")
+                  .replace("{completed}", data.completed_tracks || 0)
+                  .replace("{total}", data.total_tracks || 0);
               }
               if (this.completedDesc) {
-                const folderName = data.target_dir ? data.target_dir.split(/[/\\]/).pop() : "Folder Musik";
-                this.completedDesc.textContent = `Tersimpan di "${folderName}". Tag ID3 & Cover Art telah disematkan.`;
+                const defaultDirLabel = I18nManager.currentLang === "en" ? "Music Folder" : "Folder Musik";
+                const folderName = data.target_dir ? data.target_dir.split(/[/\\]/).pop() : defaultDirLabel;
+                this.completedDesc.textContent = I18nManager.t("dl_banner_saved_in").replace("{folder}", folderName);
               }
               this.completedBanner.classList.remove("hidden");
             }
 
             if (badge) {
-              badge.textContent = "✓ Selesai";
+              badge.textContent = I18nManager.t("badge_done");
               badge.style.backgroundColor = "var(--accent-success)";
               setTimeout(() => {
                 badge.classList.add("hidden");
@@ -1904,9 +1912,9 @@ class DownloaderSyncEngine {
             this.progressCard.classList.add("is-failed");
             this.progressCard.classList.remove("is-completed");
             if (this.pulse) this.pulse.className = "active-pulse pulse-failed";
-            if (this.heading) this.heading.textContent = "Download Terhenti / Gagal";
+            if (this.heading) this.heading.textContent = I18nManager.t("dl_prog_heading_failed");
             if (this.currentLabel) {
-              this.currentLabel.textContent = `❌ ${data.failed_tracks || 0} lagu gagal diunduh.`;
+              this.currentLabel.textContent = I18nManager.t("dl_prog_failed_count").replace("{count}", data.failed_tracks || 0);
             }
             if (badge) badge.classList.add("hidden");
           }
@@ -1930,12 +1938,19 @@ class DownloaderSyncEngine {
     const pct = Math.round(data.overall_percent || 0);
     this.fillBar.style.width = `${pct}%`;
     this.percentText.textContent = `${pct}%`;
-    this.speedText.textContent = `Kecepatan: ${data.speed || "--"}`;
-    this.etaText.textContent = `Sisa: ${data.eta || "--"}`;
-    this.countsText.textContent = `${data.completed_tracks || 0} / ${data.total_tracks || 0} Selesai`;
+
+    let displaySpeed = data.speed || "--";
+    if (displaySpeed === "Selesai" || displaySpeed === "Done") {
+      displaySpeed = I18nManager.t("dl_prog_speed_done");
+    }
+    this.speedText.textContent = `${I18nManager.t("dl_prog_speed_prefix")}${displaySpeed}`;
+    this.etaText.textContent = `${I18nManager.t("dl_prog_eta_prefix")}${data.eta || "--"}`;
+    this.countsText.textContent = `${data.completed_tracks || 0} / ${data.total_tracks || 0} ${I18nManager.t("dl_prog_counts_done")}`;
     
     if (data.status !== "completed" && data.status !== "failed") {
-      this.currentLabel.textContent = data.current_track_title ? `Mendownload: ${data.current_track_title}` : "Memproses antrian...";
+      this.currentLabel.textContent = data.current_track_title
+        ? `${I18nManager.t("dl_prog_downloading")}${data.current_track_title}`
+        : I18nManager.t("dl_prog_processing_queue");
     }
 
     // Append logs
@@ -1943,8 +1958,8 @@ class DownloaderSyncEngine {
       data.new_logs.forEach((log) => {
         const row = document.createElement("div");
         row.className = "log-row";
-        if (log.includes("[BERHASIL]") || log.includes("[Selesai]")) row.classList.add("text-success");
-        if (log.includes("[ERROR]") || log.includes("[Gagal]")) row.classList.add("text-error");
+        if (log.includes("[BERHASIL]") || log.includes("[Selesai]") || log.includes("[Done]") || log.includes("[All Complete]")) row.classList.add("text-success");
+        if (log.includes("[ERROR]") || log.includes("[Gagal]") || log.includes("[Failed]")) row.classList.add("text-error");
         row.textContent = log;
         this.terminalLogs.appendChild(row);
       });
@@ -1961,7 +1976,7 @@ class DownloaderSyncEngine {
 
       this.queueList.innerHTML = trackArray
         .map((t) => {
-          let statusHtml = `<span class="pill pill-xs pill-queue-queued">Antri</span>`;
+          let statusHtml = `<span class="pill pill-xs pill-queue-queued">${I18nManager.t("queue_status_queued")}</span>`;
           let rowClass = "";
 
           if (t.status === "downloading") {
@@ -1969,19 +1984,19 @@ class DownloaderSyncEngine {
             statusHtml = `<span class="pill pill-xs pill-queue-downloading">${prog}%</span>`;
             rowClass = "queue-item-active";
           } else if (t.status === "converting") {
-            statusHtml = `<span class="pill pill-xs pill-queue-converting">Konversi</span>`;
+            statusHtml = `<span class="pill pill-xs pill-queue-converting">${I18nManager.t("queue_status_converting")}</span>`;
             rowClass = "queue-item-active";
           } else if (t.status === "tagging") {
-            statusHtml = `<span class="pill pill-xs pill-queue-tagging">ID3 Tag</span>`;
+            statusHtml = `<span class="pill pill-xs pill-queue-tagging">${I18nManager.t("queue_status_tagging")}</span>`;
             rowClass = "queue-item-active";
           } else if (t.status === "lyrics") {
-            statusHtml = `<span class="pill pill-xs pill-queue-lyrics">Lirik</span>`;
+            statusHtml = `<span class="pill pill-xs pill-queue-lyrics">${I18nManager.t("queue_status_lyrics")}</span>`;
             rowClass = "queue-item-active";
           } else if (t.status === "completed") {
-            statusHtml = `<span class="pill pill-xs pill-queue-ok">✓ OK</span>`;
+            statusHtml = `<span class="pill pill-xs pill-queue-ok">${I18nManager.t("queue_status_ok")}</span>`;
             rowClass = "queue-item-completed";
           } else if (t.status === "failed") {
-            statusHtml = `<span class="pill pill-xs pill-queue-failed" title="${this._escape(t.error || '')}">Gagal</span>`;
+            statusHtml = `<span class="pill pill-xs pill-queue-failed" title="${this._escape(t.error || '')}">${I18nManager.t("queue_status_failed")}</span>`;
             rowClass = "queue-item-failed";
           }
 
@@ -2001,6 +2016,7 @@ class DownloaderSyncEngine {
         .join("");
     }
   }
+
 
   _escape(str) {
     if (!str) return "";
@@ -2076,7 +2092,7 @@ class TagManagerEngine {
       const artist = document.getElementById("tagmgr-album-artist").value.trim();
       const status = document.getElementById("tagmgr-fix-status");
 
-      status.textContent = "Memperbaiki tag...";
+      status.textContent = I18nManager.t("tag_status_repairing");
       status.classList.remove("hidden");
 
       try {
@@ -2093,10 +2109,10 @@ class TagManagerEngine {
           }),
         });
         const data = await res.json();
-        status.textContent = `Berhasil! ${data.fixed_count || data.updated_files || 0} file diperbarui.`;
+        status.textContent = I18nManager.t("tag_status_repaired", { count: data.fixed_count || data.updated_files || 0 });
         this.scan(folder);
       } catch (err) {
-        status.textContent = `Gagal: ${err.message}`;
+        status.textContent = I18nManager.t("tag_status_failed", { error: err.message });
       }
     });
 
@@ -2137,8 +2153,8 @@ class TagManagerEngine {
         document.getElementById("tagmgr-diff-tbody").innerHTML = data.all_comparison
           .map((t, idx) => {
             const status = t.is_existing
-              ? `<span class="pill pill-primary" style="font-size: 0.65rem;">Lokal OK</span>`
-              : `<span class="pill pill-git" style="font-size: 0.65rem; color: #00e676; border-color: #00e676;">+ Baru</span>`;
+              ? `<span class="pill pill-primary" style="font-size: 0.65rem;">${I18nManager.t("tag_diff_local_ok")}</span>`
+              : `<span class="pill pill-git" style="font-size: 0.65rem; color: #00e676; border-color: #00e676;">${I18nManager.t("tag_diff_new_pill")}</span>`;
             return `
               <tr>
                 <td style="text-align: center;">${idx + 1}</td>
@@ -2174,13 +2190,13 @@ class TagManagerEngine {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folder_path: folderPath }),
       });
-      if (!res.ok) throw new Error("Gagal memindai folder");
+      if (!res.ok) throw new Error(I18nManager.currentLang === "en" ? "Failed to scan folder" : "Gagal memindai folder");
       const data = await res.json();
 
       this.statTitle.textContent = data.folder_name;
       this.statPath.textContent = data.folder_path;
-      this.chipTotal.textContent = `${data.total_files} Lagu`;
-      this.chipCover.textContent = data.has_cover_art ? "Cover: Ada" : "Cover: Tidak Ada";
+      this.chipTotal.textContent = `${data.total_files} ${I18nManager.t("lib_songs_suffix")}`;
+      this.chipCover.textContent = data.has_cover_art ? I18nManager.t("tag_chip_cover_yes") : I18nManager.t("tag_chip_cover_no");
 
       if (data.missing_artist_count > 0) {
         this.chipArtists.textContent = `${data.missing_artist_count} Unknown Artist`;
@@ -2190,7 +2206,7 @@ class TagManagerEngine {
       }
 
       if (data.missing_lyrics_count > 0) {
-        this.chipLyrics.textContent = `${data.missing_lyrics_count} Tanpa Lirik`;
+        this.chipLyrics.textContent = `${data.missing_lyrics_count} ${I18nManager.t("tag_chip_missing_lyrics")}`;
         this.chipLyrics.classList.remove("hidden");
       } else {
         this.chipLyrics.classList.add("hidden");
@@ -2206,7 +2222,7 @@ class TagManagerEngine {
               <td style="font-size: 0.8rem;">${f.file}</td>
               <td>${f.artist || "Unknown"}</td>
               <td>${f.title || "Unknown"}</td>
-              <td style="text-align: center;">${f.has_cover ? "Ada" : "--"}</td>
+              <td style="text-align: center;">${f.has_cover ? I18nManager.t("tag_cell_yes") : "--"}</td>
               <td style="text-align: center;">${f.has_lyrics ? "LRC" : "--"}</td>
             </tr>
           `;
@@ -2237,6 +2253,24 @@ const I18N_DICTIONARY = {
     theme_btn_label: "Tema",
     theme_dark_label: "Gelap",
     theme_light_label: "Terang",
+    theme_toggle_title: "Ganti Tema Gelap / Terang",
+    btn_cancel: "Batal",
+    btn_close: "Tutup",
+
+    th_select: "Pilih",
+    th_num: "#",
+    th_play: "Putar",
+    th_cover: "Cover",
+    th_title: "Judul Lagu",
+    th_artist: "Artis",
+    th_album: "Album",
+    th_lyrics: "Lirik",
+    th_duration: "Durasi",
+    th_actions: "Aksi",
+    th_filename: "Nama File",
+    th_yt_title: "Judul di YouTube",
+    th_folder_status: "Status di Folder",
+    th_status: "Status",
 
     lib_title: "Library Musik Lokal",
     lib_desc: "Koleksi playlist dan lagu tersinkronisasi di komputer Anda",
@@ -2245,29 +2279,130 @@ const I18N_DICTIONARY = {
     lib_all_songs_tab: "Semua Lagu",
     lib_playlists_tab: "Daftar Playlist",
     lib_empty_tracks: "Belum ada lagu di library.",
+    lib_empty_master: "Belum ada folder playlist di direktori musik.",
     lib_btn_sync_diff: "Cek Sync Git Diff",
     lib_btn_play_all: "Putar Semua",
+    lib_btn_shuffle: "Acak",
     lib_btn_edit_tags: "Edit Tag Playlist",
+    lib_btn_back_playlists: "Kembali ke Semua Playlist",
+    lib_badge_local: "PLAYLIST LOKAL",
+    lib_badge_connected: "Connected to YouTube",
+    lib_filter_placeholder: "Cari dalam playlist ini...",
+    lib_songs_suffix: "Lagu",
+    lib_empty_folder: "Belum ada file audio di folder ini.",
+    lib_failed_open: "Gagal membuka playlist.",
+    lib_loading_tracks: "Memuat lagu...",
+    lib_sync_with_yt: "Sync with YouTube",
+    lib_link_and_sync_yt: "Tautkan & Sync YT",
+    lib_update_lyrics: "Update Lirik",
+    lib_syncing_lyrics: "Menyinkronkan Lirik...",
+    lib_sync_lyrics_success: "Lirik berhasil disinkronkan",
+    lib_link_remote: "Tautkan Remote",
+    lib_open_folder: "Buka Folder",
 
     dl_title: "Download & Sinkronisasi Playlist",
-    dl_desc: "Tempelkan URL YouTube Playlist untuk mendownload atau menyinkronkan lagu baru",
+    dl_desc: "Unduh playlist atau video satuan dengan cover art 1:1, ID3 tags lengkap, dan lirik bersinkronisasi.",
     dl_url_label: "URL YouTube Playlist / Video",
+    dl_url_placeholder: "Masukkan link Playlist atau Video YouTube...",
+    dl_btn_paste_title: "Tempel dari Clipboard",
     dl_btn_paste: "Tempel",
-    dl_btn_analyze: "Analisis Playlist",
-    dl_folder_label: "Nama Folder Playlist (Subfolder)",
-    dl_bitrate_label: "Kualitas Bitrate MP3",
+    dl_btn_analyze: "Analisis Link",
+    dl_card_options: "Opsi Format & ID3 Tag",
+    dl_bitrate_label: "Kualitas Audio (Bitrate MP3)",
     dl_format_label: "Format Penamaan File",
+    dl_album_label: "Nama Album (TALB)",
+    dl_album_placeholder: "Otomatis nama playlist",
+    dl_album_artist_label: "Artis Album (TPE2)",
+    dl_folder_label: "Nama Subfolder Playlist",
+    dl_folder_placeholder: "Nama folder",
     dl_cb_sync: "Mode Sinkronisasi Git (Hanya unduh lagu yang belum ada di lokal)",
     dl_cb_lyrics: "Download & Sisipkan Lirik (.lrc / ID3 USLT) otomatis",
     dl_cb_id3: "Sisipkan Metadata ID3 Tag & Cover Art otomatis",
+    dl_opt_cover_title: "Embed Cover Art",
+    dl_opt_cover_sub: "Pasang gambar cover 1:1 ke file MP3",
+    dl_opt_save_cover_title: "Simpan cover.jpg",
+    dl_opt_save_cover_sub: "Simpan file gambar di folder",
+    dl_opt_lyrics_title: "Ambil Lirik Lagu",
+    dl_opt_lyrics_sub: "Embed lirik otomatis dari database",
+    dl_opt_save_lrc_title: "Simpan File .lrc",
+    dl_opt_save_lrc_sub: "Lirik bersinkronisasi waktu",
+    dl_btn_start_download: "Unduh",
     dl_btn_download_selected: "Download Lagu Terpilih",
+    dl_select_all: "Pilih Semua",
+    dl_filter_placeholder: "Saring judul...",
+    dl_uploaded_by: "Diupload oleh",
+    dl_alert_select_min_1: "Pilih minimal 1 lagu.",
 
-    tag_title: "Tag & Sync Manager (ID3)",
-    tag_desc: "Kelola metadata ID3, nomor trek, cover art, dan sinkronisasi lirik",
+    dl_prog_heading_active: "Proses Download Aktif",
+    dl_prog_heading_completed: "Download Selesai!",
+    dl_prog_heading_failed: "Download Terhenti / Gagal",
+    dl_prog_preparing: "Mempersiapkan antrian...",
+    dl_prog_downloading: "Mendownload: ",
+    dl_prog_processing_queue: "Memproses antrian...",
+    dl_prog_speed_prefix: "Kecepatan: ",
+    dl_prog_eta_prefix: "Sisa: ",
+    dl_prog_counts_done: "Selesai",
+    dl_prog_speed_done: "Selesai",
+    dl_prog_completed_all: "✅ Selesai! Semua {count} lagu berhasil diunduh.",
+    dl_prog_failed_count: "❌ {count} lagu gagal diunduh.",
+    dl_btn_open_dest: "Buka Folder Tujuan",
+    dl_banner_completed_title: "Unduhan Selesai & Berhasil!",
+    dl_banner_completed_title_stat: "Unduhan Selesai! ({completed}/{total} Lagu Berhasil)",
+    dl_banner_completed_desc: "Semua lagu telah berhasil diunduh dengan tag ID3 lengkap dan lirik bersinkronisasi.",
+    dl_banner_saved_in: "Tersimpan di \"{folder}\". Tag ID3 & Cover Art telah disematkan.",
+    dl_btn_view_lib: "Lihat di Library",
+    dl_btn_play_now: "Putar Sekarang",
+    dl_queue_header: "Status Antrian Lagu",
+    dl_log_header: "Log Aktivitas",
+    dl_log_clear: "Bersihkan",
+    dl_log_ready: "[Sistem] Siap menerima proses download...",
+    badge_syncing: "Syncing",
+    badge_done: "✓ Selesai",
+
+    queue_status_queued: "Antri",
+    queue_status_downloading: "Unduh",
+    queue_status_converting: "Konversi",
+    queue_status_tagging: "ID3 Tag",
+    queue_status_lyrics: "Lirik",
+    queue_status_ok: "✓ OK",
+    queue_status_failed: "Gagal",
+
+    tag_title: "Manajer Tag & Sinkronisasi Folder",
+    tag_desc: "Inspeksi kesehatan metadata ID3 folder musik, perbaiki cover & lirik, atau bandingkan dengan playlist YouTube.",
+    tag_folder_label: "Path Folder Musik Lokal",
+    tag_folder_placeholder: "Pilih folder musik lokal...",
+    tag_btn_browse: "Pilih Folder",
+    tag_btn_scan: "Scan Folder",
+    tag_btn_open: "Buka",
     tag_select_folder: "Pilih Folder Playlist Lokal",
     tag_btn_refresh: "Refresh Data",
     tag_btn_apply_tags: "Terapkan Tag ID3",
     tag_btn_fetch_lyrics: "Download Lirik (LRC)",
+    tag_chip_cover_yes: "Cover: Ada",
+    tag_chip_cover_no: "Cover: Tidak Ada",
+    tag_chip_missing_lyrics: "Tanpa Lirik",
+    tag_tab_repair: "Perbaiki Tag & Metadata",
+    tag_tab_sync: "Diff & Sinkronisasi YouTube",
+    tag_album_name: "Nama Album (TALB)",
+    tag_album_placeholder: "Otomatis dari nama folder",
+    tag_album_artist: "Artis Album (TPE2)",
+    tag_chk_artist: "Perbaiki nama artis/judul dari nama file jika Unknown",
+    tag_chk_cover: "Sematkan cover.jpg folder ke seluruh MP3",
+    tag_chk_lyrics: "Ambil lirik otomatis (.lrc / USLT) untuk lagu yang belum punya lirik",
+    tag_btn_repair_all: "Perbaiki Semua Tag di Folder Ini",
+    tag_status_repairing: "Memperbaiki tag...",
+    tag_status_repaired: "Berhasil! {count} file diperbarui.",
+    tag_status_failed: "Gagal: {error}",
+    tag_sync_url_placeholder: "Masukkan Link Playlist YouTube...",
+    tag_btn_paste: "Tempel",
+    tag_btn_check_new: "Cek Lagu Baru",
+    tag_diff_existing: "Sudah Ada di Folder",
+    tag_diff_new: "Lagu Baru di YouTube",
+    tag_diff_btn_download_pre: "Download",
+    tag_diff_btn_download_post: "Lagu Baru Saja",
+    tag_diff_local_ok: "Lokal OK",
+    tag_diff_new_pill: "+ Baru",
+    tag_cell_yes: "Ada",
 
     settings_title: "Pengaturan MusicGit",
     settings_desc: "Konfigurasi direktori penyimpanan musik, preferensi unduhan, dan tampilan antarmuka",
@@ -2282,6 +2417,7 @@ const I18N_DICTIONARY = {
     settings_lang_label: "Bahasa (Language)",
     settings_btn_save: "Simpan Pengaturan",
     settings_saved_alert: "Pengaturan MusicGit berhasil disimpan.",
+    settings_developed_by: "Dikembangkan oleh",
 
     lyrics_title: "Lirik Lagu",
     lyrics_select_prompt: "Pilih Lagu untuk Diputar",
@@ -2290,6 +2426,10 @@ const I18N_DICTIONARY = {
     lyrics_btn_back: "Kembali",
     lyrics_offset_title: "Kalibrasi Waktu Lirik",
     lyrics_offset_hint: "Gunakan tombol jika vokal lagu dan teks lirik tidak pas.",
+    lyrics_searching: "Mencari lirik lagu...",
+    lyrics_not_available: "Lirik belum tersedia untuk lagu ini.",
+    lyrics_not_found: "Lirik tidak ditemukan untuk lagu ini.",
+    lyrics_source_none: "Tidak Ada",
 
     player_default_title: "MusicGit Player",
     player_default_artist: "Pilih lagu untuk mulai memutar",
@@ -2302,7 +2442,26 @@ const I18N_DICTIONARY = {
     player_mute_title: "Mute / Unmute",
     queue_title: "Antrian Putar",
     queue_empty: "Antrian kosong.",
-    queue_close_title: "Tutup Antrian"
+    queue_close_title: "Tutup Antrian",
+
+    modal_link_title: "Tautkan Remote YouTube Playlist",
+    modal_link_desc: "Hubungkan folder playlist lokal ini ke URL YouTube Playlist agar Anda dapat menyinkronkan (Git Pull) lagu baru sewaktu-waktu.",
+    modal_link_folder_label: "Folder Lokal",
+    modal_link_url_label: "URL Playlist YouTube",
+    modal_link_custom_title: "Judul Playlist Kustom (Opsional)",
+    modal_link_title_placeholder: "Nama playlist",
+    modal_link_btn_save: "Simpan Remote",
+    modal_sync_title: "Sinkronisasi Playlist YouTube",
+    modal_sync_existing: "Sudah Ada di Lokal",
+    modal_sync_new: "Lagu Baru di Remote",
+    modal_sync_comparing: "Menghubungi YouTube dan membandingkan playlist...",
+    modal_sync_prep: "Menyiapkan download...",
+    modal_sync_prep_count: "Menyiapkan download {count} lagu baru...",
+    modal_sync_downloading: "Mengunduh: ",
+    modal_sync_completed: "✅ Selesai! {completed} lagu baru berhasil ditambahkan.",
+    modal_sync_failed: "❌ Gagal: {error}",
+    modal_sync_btn_download_pre: "Download",
+    modal_sync_btn_download_post: "Lagu Baru Saja",
   },
   en: {
     nav_menu_main: "MAIN MENU",
@@ -2317,6 +2476,24 @@ const I18N_DICTIONARY = {
     theme_btn_label: "Theme",
     theme_dark_label: "Dark",
     theme_light_label: "Light",
+    theme_toggle_title: "Toggle Dark / Light Theme",
+    btn_cancel: "Cancel",
+    btn_close: "Close",
+
+    th_select: "Select",
+    th_num: "#",
+    th_play: "Play",
+    th_cover: "Cover",
+    th_title: "Song Title",
+    th_artist: "Artist",
+    th_album: "Album",
+    th_lyrics: "Lyrics",
+    th_duration: "Duration",
+    th_actions: "Action",
+    th_filename: "Filename",
+    th_yt_title: "YouTube Title",
+    th_folder_status: "Folder Status",
+    th_status: "Status",
 
     lib_title: "Local Music Library",
     lib_desc: "Your synced playlists and songs collection on this device",
@@ -2325,29 +2502,130 @@ const I18N_DICTIONARY = {
     lib_all_songs_tab: "All Songs",
     lib_playlists_tab: "Playlists",
     lib_empty_tracks: "No songs in library yet.",
+    lib_empty_master: "No playlist folders in music directory yet.",
     lib_btn_sync_diff: "Check Git Sync Diff",
     lib_btn_play_all: "Play All",
+    lib_btn_shuffle: "Shuffle",
     lib_btn_edit_tags: "Edit Playlist Tags",
+    lib_btn_back_playlists: "Back to All Playlists",
+    lib_badge_local: "LOCAL PLAYLIST",
+    lib_badge_connected: "Connected to YouTube",
+    lib_filter_placeholder: "Search in this playlist...",
+    lib_songs_suffix: "Songs",
+    lib_empty_folder: "No audio files in this folder yet.",
+    lib_failed_open: "Failed to open playlist.",
+    lib_loading_tracks: "Loading songs...",
+    lib_sync_with_yt: "Sync with YouTube",
+    lib_link_and_sync_yt: "Link & Sync YT",
+    lib_update_lyrics: "Update Lyrics",
+    lib_syncing_lyrics: "Syncing Lyrics...",
+    lib_sync_lyrics_success: "Lyrics synced successfully",
+    lib_link_remote: "Link Remote",
+    lib_open_folder: "Open Folder",
 
     dl_title: "Download & Sync Playlists",
-    dl_desc: "Paste YouTube Playlist URL to download or synchronize new tracks",
+    dl_desc: "Download playlists or single tracks with 1:1 cover art, complete ID3 tags, and synchronized lyrics.",
     dl_url_label: "YouTube Playlist / Video URL",
+    dl_url_placeholder: "Enter YouTube Playlist or Video link...",
+    dl_btn_paste_title: "Paste from Clipboard",
     dl_btn_paste: "Paste",
-    dl_btn_analyze: "Analyze Playlist",
-    dl_folder_label: "Playlist Subfolder Name",
-    dl_bitrate_label: "MP3 Bitrate Quality",
+    dl_btn_analyze: "Analyze Link",
+    dl_card_options: "Format & ID3 Tag Options",
+    dl_bitrate_label: "Audio Quality (MP3 Bitrate)",
     dl_format_label: "Filename Output Format",
+    dl_album_label: "Album Name (TALB)",
+    dl_album_placeholder: "Auto playlist name",
+    dl_album_artist_label: "Album Artist (TPE2)",
+    dl_folder_label: "Playlist Subfolder Name",
+    dl_folder_placeholder: "Folder name",
     dl_cb_sync: "Git Sync Mode (Only download new songs missing locally)",
     dl_cb_lyrics: "Auto-fetch & embed lyrics (.lrc / ID3 USLT)",
     dl_cb_id3: "Auto-embed ID3 Tags & Album Cover Art",
+    dl_opt_cover_title: "Embed Cover Art",
+    dl_opt_cover_sub: "Embed 1:1 cover art into MP3 file",
+    dl_opt_save_cover_title: "Save cover.jpg",
+    dl_opt_save_cover_sub: "Save image file in folder",
+    dl_opt_lyrics_title: "Fetch Lyrics",
+    dl_opt_lyrics_sub: "Auto-embed lyrics from database",
+    dl_opt_save_lrc_title: "Save .lrc File",
+    dl_opt_save_lrc_sub: "Time-synced lyrics file",
+    dl_btn_start_download: "Download",
     dl_btn_download_selected: "Download Selected Songs",
+    dl_select_all: "Select All",
+    dl_filter_placeholder: "Filter titles...",
+    dl_uploaded_by: "Uploaded by",
+    dl_alert_select_min_1: "Please select at least 1 song.",
 
-    tag_title: "Tag & Sync Manager (ID3)",
-    tag_desc: "Manage ID3 metadata, track numbers, cover art, and lyrics synchronization",
+    dl_prog_heading_active: "Download in Progress",
+    dl_prog_heading_completed: "Download Complete!",
+    dl_prog_heading_failed: "Download Stopped / Failed",
+    dl_prog_preparing: "Preparing queue...",
+    dl_prog_downloading: "Downloading: ",
+    dl_prog_processing_queue: "Processing queue...",
+    dl_prog_speed_prefix: "Speed: ",
+    dl_prog_eta_prefix: "ETA: ",
+    dl_prog_counts_done: "Completed",
+    dl_prog_speed_done: "Done",
+    dl_prog_completed_all: "✅ Done! All {count} songs successfully downloaded.",
+    dl_prog_failed_count: "❌ {count} songs failed to download.",
+    dl_btn_open_dest: "Open Destination Folder",
+    dl_banner_completed_title: "Download Complete & Successful!",
+    dl_banner_completed_title_stat: "Download Complete! ({completed}/{total} Songs Successful)",
+    dl_banner_completed_desc: "All songs have been downloaded with full ID3 tags and synced lyrics.",
+    dl_banner_saved_in: "Saved in \"{folder}\". ID3 Tags & Cover Art embedded.",
+    dl_btn_view_lib: "View in Library",
+    dl_btn_play_now: "Play Now",
+    dl_queue_header: "Song Queue Status",
+    dl_log_header: "Activity Log",
+    dl_log_clear: "Clear",
+    dl_log_ready: "[System] Ready to accept download job...",
+    badge_syncing: "Syncing",
+    badge_done: "✓ Done",
+
+    queue_status_queued: "Queued",
+    queue_status_downloading: "Downloading",
+    queue_status_converting: "Converting",
+    queue_status_tagging: "ID3 Tag",
+    queue_status_lyrics: "Lyrics",
+    queue_status_ok: "✓ OK",
+    queue_status_failed: "Failed",
+
+    tag_title: "Tag & Folder Sync Manager",
+    tag_desc: "Inspect music folder ID3 metadata health, repair covers & lyrics, or compare with YouTube playlist.",
+    tag_folder_label: "Local Music Folder Path",
+    tag_folder_placeholder: "Choose local music folder...",
+    tag_btn_browse: "Choose Folder",
+    tag_btn_scan: "Scan Folder",
+    tag_btn_open: "Open",
     tag_select_folder: "Select Local Playlist Folder",
     tag_btn_refresh: "Refresh Data",
     tag_btn_apply_tags: "Apply ID3 Tags",
     tag_btn_fetch_lyrics: "Download Lyrics (LRC)",
+    tag_chip_cover_yes: "Cover: Yes",
+    tag_chip_cover_no: "Cover: None",
+    tag_chip_missing_lyrics: "Missing Lyrics",
+    tag_tab_repair: "Repair Tags & Metadata",
+    tag_tab_sync: "YouTube Diff & Sync",
+    tag_album_name: "Album Name (TALB)",
+    tag_album_placeholder: "Auto from folder name",
+    tag_album_artist: "Album Artist (TPE2)",
+    tag_chk_artist: "Fix artist/title from filename if Unknown",
+    tag_chk_cover: "Embed folder cover.jpg to all MP3s",
+    tag_chk_lyrics: "Auto-fetch lyrics (.lrc / USLT) for songs missing lyrics",
+    tag_btn_repair_all: "Repair All Tags in This Folder",
+    tag_status_repairing: "Repairing tags...",
+    tag_status_repaired: "Success! {count} files updated.",
+    tag_status_failed: "Failed: {error}",
+    tag_sync_url_placeholder: "Enter YouTube Playlist Link...",
+    tag_btn_paste: "Paste",
+    tag_btn_check_new: "Check New Songs",
+    tag_diff_existing: "Already in Folder",
+    tag_diff_new: "New on YouTube",
+    tag_diff_btn_download_pre: "Download",
+    tag_diff_btn_download_post: "New Songs Only",
+    tag_diff_local_ok: "Local OK",
+    tag_diff_new_pill: "+ New",
+    tag_cell_yes: "Yes",
 
     settings_title: "MusicGit Settings",
     settings_desc: "Configure music storage directory, download preferences, and interface appearance",
@@ -2362,6 +2640,7 @@ const I18N_DICTIONARY = {
     settings_lang_label: "Language",
     settings_btn_save: "Save Settings",
     settings_saved_alert: "MusicGit settings saved successfully.",
+    settings_developed_by: "Developed by",
 
     lyrics_title: "Song Lyrics",
     lyrics_select_prompt: "Select a Song to Play",
@@ -2370,6 +2649,10 @@ const I18N_DICTIONARY = {
     lyrics_btn_back: "Back",
     lyrics_offset_title: "Lyrics Timing Calibration",
     lyrics_offset_hint: "Use buttons if song vocals and lyrics timing don't match.",
+    lyrics_searching: "Searching for lyrics...",
+    lyrics_not_available: "Lyrics not available yet for this song.",
+    lyrics_not_found: "Lyrics not found for this song.",
+    lyrics_source_none: "None",
 
     player_default_title: "MusicGit Player",
     player_default_artist: "Select a song to start playing",
@@ -2382,7 +2665,26 @@ const I18N_DICTIONARY = {
     player_mute_title: "Mute / Unmute",
     queue_title: "Play Queue",
     queue_empty: "Queue is empty.",
-    queue_close_title: "Close Queue"
+    queue_close_title: "Close Queue",
+
+    modal_link_title: "Link Remote YouTube Playlist",
+    modal_link_desc: "Connect this local playlist folder to a YouTube Playlist URL to synchronize (Git Pull) new songs anytime.",
+    modal_link_folder_label: "Local Folder",
+    modal_link_url_label: "YouTube Playlist URL",
+    modal_link_custom_title: "Custom Playlist Title (Optional)",
+    modal_link_title_placeholder: "Playlist name",
+    modal_link_btn_save: "Save Remote",
+    modal_sync_title: "YouTube Playlist Sync",
+    modal_sync_existing: "Already in Local",
+    modal_sync_new: "New on Remote",
+    modal_sync_comparing: "Connecting to YouTube and comparing playlist...",
+    modal_sync_prep: "Preparing download...",
+    modal_sync_prep_count: "Preparing download for {count} new songs...",
+    modal_sync_downloading: "Downloading: ",
+    modal_sync_completed: "✅ Done! {completed} new songs successfully added.",
+    modal_sync_failed: "❌ Failed: {error}",
+    modal_sync_btn_download_pre: "Download",
+    modal_sync_btn_download_post: "New Songs Only",
   }
 };
 
@@ -2416,6 +2718,7 @@ const I18nManager = {
     if (!I18N_DICTIONARY[lang]) lang = "id";
     this.currentLang = lang;
     localStorage.setItem("musicgit_language", lang);
+    document.documentElement.lang = lang;
     if (MusicGitState.config) {
       MusicGitState.config.language = lang;
     }
@@ -2452,7 +2755,11 @@ const I18nManager = {
       globalSearch.placeholder = dict.search_placeholder;
     }
 
-    // 6. Update theme toggle label
+    // 6. Update theme toggle label & title
+    const themeToggleBtn = document.getElementById("btn-toggle-theme");
+    if (themeToggleBtn && dict.theme_toggle_title) {
+      themeToggleBtn.title = dict.theme_toggle_title;
+    }
     const themeLabel = document.getElementById("theme-btn-label");
     if (themeLabel) {
       themeLabel.textContent = ThemeManager.currentTheme === "light" 
@@ -2475,6 +2782,7 @@ const I18nManager = {
     }
   }
 };
+
 
 // =============================================================================
 // 7. THEME MANAGER (DARK & LIGHT SOLID MODES)
