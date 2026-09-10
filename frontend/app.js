@@ -540,6 +540,7 @@ class AudioPlayerEngine {
 
           this._renderQueue();
           this._updatePlayButtonState();
+          this._updateMediaSession(track);
         }
       }
     } catch (e) {
@@ -2997,6 +2998,13 @@ const I18nManager = {
 
     // 1. Translate all data-i18n elements
     document.querySelectorAll("[data-i18n]").forEach((el) => {
+      if (
+        (el.id === "player-bar-title" || el.id === "player-bar-artist") &&
+        window.MusicPlayer &&
+        window.MusicPlayer.currentTrack
+      ) {
+        return;
+      }
       const key = el.dataset.i18n;
       if (dict[key]) el.textContent = dict[key];
     });
@@ -3445,12 +3453,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     MusicGitState.config.defaultBitrate = cfg.default_bitrate || "192";
     MusicGitState.config.defaultTemplate = cfg.default_template || "{num}. {title}-{id}.mp3";
     MusicGitState.config.theme = cfg.theme || "dark";
-    MusicGitState.config.language = cfg.language || "id";
+    const localLang = localStorage.getItem("musicgit_language");
+    MusicGitState.config.language = localLang || cfg.language || "id";
 
     const saved = localStorage.getItem("musicgit_config");
     if (saved) {
       const parsed = JSON.parse(saved);
       MusicGitState.config = { ...MusicGitState.config, ...parsed };
+      if (localLang) {
+        MusicGitState.config.language = localLang;
+      }
     }
 
     if (MusicGitState.config.theme) ThemeManager.applyTheme(MusicGitState.config.theme);
@@ -3508,6 +3520,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 3. Load Library Playlists
   window.LibraryManagerEngine = LibraryManagerEngine;
   LibraryManagerEngine.loadPlaylists();
+
+  if (window.MusicPlayer && window.MusicPlayer.currentTrack && LyricsEngine) {
+    LyricsEngine.onTrackChanged(window.MusicPlayer.currentTrack);
+  }
 
   // Auto-refresh when window regains focus (e.g. user returns from Explorer/Browser)
   window.addEventListener("focus", () => {

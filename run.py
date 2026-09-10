@@ -35,6 +35,12 @@ if getattr(sys, "frozen", False):
     if exe_dir not in os.environ.get("PATH", ""):
         os.environ["PATH"] = exe_dir + os.pathsep + os.environ.get("PATH", "")
 
+# Unify WebView2 persistent user data folder across python.exe and MusicGit.exe
+PROFILE_DIR = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "MusicGit", "profile")
+os.makedirs(PROFILE_DIR, exist_ok=True)
+os.environ["WEBVIEW2_USER_DATA_FOLDER"] = PROFILE_DIR
+
+import json
 import socket
 import subprocess
 import uvicorn
@@ -269,12 +275,15 @@ def main():
 
         # Blocks until the desktop window is closed by the user
         is_dev = not getattr(sys, "frozen", False)
-        webview.start(debug=is_dev, private_mode=False)
+        webview.start(debug=is_dev, private_mode=False, storage_path=PROFILE_DIR)
     except BaseException:
         use_fallback = True
 
     if use_fallback:
         open_app_window_fallback(url)
+
+    # Force complete termination so no background processes or port locks linger
+    os._exit(0)
 
 
 if __name__ == "__main__":
