@@ -3151,8 +3151,9 @@ const ThemeManager = {
       if (
         currentSrc.includes("logo-") ||
         currentSrc.includes("MusicGit-logo") ||
-        !Player.currentTrack ||
-        !Player.currentTrack.cover_url
+        !window.MusicPlayer ||
+        !window.MusicPlayer.currentTrack ||
+        !window.MusicPlayer.currentTrack.cover_url
       ) {
         playerThumb.src = logoUrl;
       }
