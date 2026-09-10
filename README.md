@@ -73,11 +73,11 @@ MusicGit treats your **Music Playlists** like a *Remote Repository* and your loc
 - **Click-to-Seek**: Click on any lyric line to instantly seek and jump playback to that timestamp.
 - Playback queue manager, full-screen immersive karaoke view, and desktop keyboard shortcuts (`Space`, `ArrowLeft/Right`, `ArrowUp/Down`).
 
-### 4. Discord Rich Presence (Listening to MusicGit - Spotify Style)
+### 4. Discord Rich Presence (Listening to MusicGit)
 - **Live Status on Discord**: Automatically broadcasts your active music playback to your Discord Desktop profile ("Listening to MusicGit").
-- **Spotify-Style Rich Details**: Shows the active song title, artist ("by Artist"), album name, high-resolution album cover art, and a live progress seekbar with elapsed and remaining timestamps.
+- **Rich Details**: Shows the active song title, artist ("by Artist"), album name, high-resolution album cover art, and a live progress seekbar with elapsed and remaining timestamps.
 - **Pure Native IPC**: Connects directly to Discord Desktop via unbuffered Windows Named Pipes (`\\.\pipe\discord-ipc-0`) with zero external library overhead and non-blocking background queueing.
-- **Configurable Settings**: Toggle Discord Rich Presence on/off in the Settings view or customize your own Discord Application ID.
+- **Configurable Settings**: Easily toggle Discord Rich Presence on or off in the Settings view.
 
 ### 5. Universal Playlist Synchronization (Git Pull for Music)
 - Link local playlist directories to remote playlist URLs (**YouTube, Spotify, Deezer, Apple Music, or SoundCloud**).

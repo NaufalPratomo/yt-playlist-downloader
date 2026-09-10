@@ -2676,10 +2676,8 @@ const I18N_DICTIONARY = {
     settings_theme_light: "Mode Terang (Clean Light Slate)",
     settings_lang_label: "Bahasa (Language)",
     settings_discord_title: "Discord Rich Presence (Status Listening)",
-    settings_discord_desc: "Tampilkan status aktivitas 'Listening to MusicGit' di profil Discord Anda secara realtime saat memutar musik ala Spotify.",
+    settings_discord_desc: "Tampilkan status aktivitas 'Listening to MusicGit' di profil Discord Anda secara realtime saat memutar musik.",
     settings_discord_enable: "Aktifkan Discord Rich Presence",
-    settings_discord_app_id_label: "Discord Application ID (Opsional / Default)",
-    settings_discord_app_id_help: "Gunakan Application ID kustom jika ingin mengganti nama aplikasi di Discord (Default: 1547603041497387099).",
     settings_btn_save: "Simpan Pengaturan",
     settings_saved_alert: "Pengaturan MusicGit berhasil disimpan.",
     settings_developed_by: "Dikembangkan oleh",
@@ -2905,10 +2903,8 @@ const I18N_DICTIONARY = {
     settings_theme_light: "Light Mode (Clean Light)",
     settings_lang_label: "Language",
     settings_discord_title: "Discord Rich Presence (Listening Status)",
-    settings_discord_desc: "Display real-time 'Listening to MusicGit' activity status on your Discord profile when playing music (Spotify-style).",
+    settings_discord_desc: "Display real-time 'Listening to MusicGit' activity status on your Discord profile when playing music.",
     settings_discord_enable: "Enable Discord Rich Presence",
-    settings_discord_app_id_label: "Discord Application ID (Optional / Default)",
-    settings_discord_app_id_help: "Use a custom Application ID if you want to customize the application name on Discord (Default: 1547603041497387099).",
     settings_btn_save: "Save Settings",
     settings_saved_alert: "MusicGit settings saved successfully.",
     settings_developed_by: "Developed by",
@@ -3266,7 +3262,7 @@ const ViewController = {
       const thm = document.getElementById("settings-theme-select").value;
       const lang = document.getElementById("settings-lang-select").value;
       const discordEnabled = document.getElementById("settings-discord-enabled") ? document.getElementById("settings-discord-enabled").checked : true;
-      const discordClientId = document.getElementById("settings-discord-client-id") ? document.getElementById("settings-discord-client-id").value.trim() : "1547603041497387099";
+      const discordClientId = "1547603041497387099";
 
       MusicGitState.config.defaultMusicDir = dir;
       MusicGitState.config.defaultBitrate = br;
@@ -3501,10 +3497,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const discordToggle = document.getElementById("settings-discord-enabled");
     if (discordToggle) {
       discordToggle.checked = MusicGitState.config.discord_rpc_enabled !== false;
-    }
-    const discordClientInput = document.getElementById("settings-discord-client-id");
-    if (discordClientInput) {
-      discordClientInput.value = MusicGitState.config.discord_client_id || "1547603041497387099";
     }
     const discordCard = document.getElementById("discord-rpc-settings-card");
     if (discordCard && isAndroid) {

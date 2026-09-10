@@ -73,11 +73,11 @@ MusicGit memperlakukan **Playlist Musik** seperti *Remote Repository* dan folder
 - **Click-to-Seek**: Klik pada baris lirik mana saja untuk langsung melompat ke detik audio tersebut.
 - Antrian putar (*Playback Queue*), tampilan layar penuh lirik (*Full Karaoke View*), dan pintasan keyboard desktop (`Space`, `ArrowLeft/Right`, `ArrowUp/Down`).
 
-### 4. Discord Rich Presence (Listening to MusicGit - Spotify Style)
+### 4. Discord Rich Presence (Listening to MusicGit)
 - **Status Realtime di Discord**: Otomatis menampilkan aktivitas musik yang sedang berputar di profil Discord Desktop Anda ("Listening to MusicGit").
-- **Detail Lengkap ala Spotify**: Menampilkan judul lagu yang sedang berputar, nama artis ("by Artis"), nama album, cover art resolusi tinggi, serta seekbar durasi live dengan penunjuk menit elapsed dan remaining secara akurat.
+- **Detail Lengkap**: Menampilkan judul lagu yang sedang berputar, nama artis ("by Artis"), nama album, cover art resolusi tinggi, serta seekbar durasi live dengan penunjuk menit elapsed dan remaining secara akurat.
 - **Pure Native IPC**: Terhubung langsung ke Discord Desktop melalui Windows Named Pipe (`\\.\pipe\discord-ipc-0`) tanpa dependensi pihak ketiga yang berat dan berjalan non-blocking di latar belakang.
-- **Pengaturan Fleksibel**: Aktifkan atau nonaktifkan Discord Rich Presence di menu Pengaturan, serta opsi kustomisasi Discord Application ID sesuai preferensi.
+- **Pengaturan Fleksibel**: Aktifkan atau nonaktifkan Discord Rich Presence dengan mudah di menu Pengaturan.
 
 ### 5. Sinkronisasi Playlist Universal (Git Pull for Music)
 - Tautkan folder playlist lokal ke URL playlist remote (**YouTube, Spotify, Deezer, Apple Music, atau SoundCloud**).
