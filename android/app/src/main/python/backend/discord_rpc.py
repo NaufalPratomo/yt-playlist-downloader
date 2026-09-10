@@ -11,6 +11,8 @@ import struct
 import sys
 import threading
 import time
+import urllib.parse
+import urllib.request
 import uuid
 from typing import Any, Dict, Optional
 
@@ -26,6 +28,8 @@ DEFAULT_CLIENT_ID = "1547603041497387099"
 DEFAULT_ASSET_KEY = "logo-lightmode"
 PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/naufalpratomo/yt-playlist-downloader/main/public/image/logo-lightmode.jpg"
 
+_COVER_CACHE: Dict[str, Optional[str]] = {}
+
 
 def _is_public_http_url(url: Optional[str]) -> bool:
     if not url:
@@ -35,6 +39,64 @@ def _is_public_http_url(url: Optional[str]) -> bool:
         return False
     local_hosts = ("localhost", "127.0.0.1", "0.0.0.0", "::1", "192.168.", "10.", "172.16.")
     return not any(h in u for h in local_hosts)
+
+
+def _resolve_online_cover(title: str, artist: str = "") -> Optional[str]:
+    """
+    Search online public music directories (iTunes / Deezer) for high-resolution album artwork.
+    Cached in memory to ensure fast and non-blocking playback.
+    """
+    clean_title = (title or "").strip()
+    clean_artist = (artist or "").strip()
+    if not clean_title:
+        return None
+
+    cache_key = f"{clean_artist.lower()} - {clean_title.lower()}"
+    if cache_key in _COVER_CACHE:
+        return _COVER_CACHE[cache_key]
+
+    term = f"{clean_artist} {clean_title}".strip() if clean_artist else clean_title
+
+    # 1. Try iTunes Search API (returns crisp 512x512 official album artwork)
+    try:
+        query_url = f"https://itunes.apple.com/search?term={urllib.parse.quote(term)}&entity=song&limit=1"
+        req = urllib.request.Request(
+            query_url,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+        )
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode("utf-8"))
+                results = data.get("results", [])
+                if results and "artworkUrl100" in results[0]:
+                    art_100 = results[0]["artworkUrl100"]
+                    art_512 = art_100.replace("100x100bb.jpg", "512x512bb.jpg")
+                    _COVER_CACHE[cache_key] = art_512
+                    return art_512
+    except Exception as e:
+        logger.debug(f"iTunes artwork lookup failed for '{term}': {e}")
+
+    # 2. Try Deezer Search API fallback
+    try:
+        query_url = f"https://api.deezer.com/search?q={urllib.parse.quote(term)}&limit=1"
+        req = urllib.request.Request(
+            query_url,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+        )
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode("utf-8"))
+                tracks = data.get("data", [])
+                if tracks and "album" in tracks[0]:
+                    cover_url = tracks[0]["album"].get("cover_big") or tracks[0]["album"].get("cover_medium")
+                    if cover_url:
+                        _COVER_CACHE[cache_key] = cover_url
+                        return cover_url
+    except Exception as e:
+        logger.debug(f"Deezer artwork lookup failed for '{term}': {e}")
+
+    _COVER_CACHE[cache_key] = None
+    return None
 
 
 class DiscordRPC:
@@ -281,11 +343,22 @@ class DiscordRPC:
             "large_text": f"{title} - {album}" if album else title,
         }
 
-        # If a public online cover exists (e.g. YouTube / Spotify CDN), use it;
-        # otherwise fallback to registered Discord asset key 'logo-lightmode'
+        # Resolve cover image:
+        # Check if incoming thumbnail is already a public HTTP/HTTPS URL
+        cover_image_url = None
         if _is_public_http_url(thumbnail):
-            assets["large_image"] = thumbnail
+            cover_image_url = thumbnail
         else:
+            # Query online music directory for official album artwork
+            cover_image_url = _resolve_online_cover(title, artist)
+
+        if cover_image_url:
+            # Display song's album art as large_image, and MusicGit logo as small_image badge (Spotify style)
+            assets["large_image"] = cover_image_url
+            assets["small_image"] = DEFAULT_ASSET_KEY
+            assets["small_text"] = "MusicGit"
+        else:
+            # Fallback if offline or artwork not found: MusicGit logo as large_image
             assets["large_image"] = DEFAULT_ASSET_KEY
 
         activity["assets"] = assets

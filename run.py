@@ -78,6 +78,54 @@ def run_server(port: int):
     server.run()
 
 
+import json
+
+def get_window_state_path() -> str:
+    folder = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "MusicGit")
+    os.makedirs(folder, exist_ok=True)
+    return os.path.join(folder, "window_state.json")
+
+
+def load_window_state() -> dict:
+    default_state = {
+        "width": 1240,
+        "height": 820,
+        "x": None,
+        "y": None,
+        "maximized": False,
+    }
+    path = get_window_state_path()
+    if os.path.isfile(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    w = data.get("width")
+                    h = data.get("height")
+                    if isinstance(w, int) and w >= 640:
+                        default_state["width"] = w
+                    if isinstance(h, int) and h >= 480:
+                        default_state["height"] = h
+                    if isinstance(data.get("x"), int):
+                        default_state["x"] = data["x"]
+                    if isinstance(data.get("y"), int):
+                        default_state["y"] = data["y"]
+                    if isinstance(data.get("maximized"), bool):
+                        default_state["maximized"] = data["maximized"]
+        except Exception:
+            pass
+    return default_state
+
+
+def save_window_state(state: dict):
+    path = get_window_state_path()
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(state, f, indent=2)
+    except Exception:
+        pass
+
+
 def open_app_window_fallback(url):
     """
     Seamless zero-dependency fallback for Windows:
@@ -87,6 +135,10 @@ def open_app_window_fallback(url):
     # Store profile permanently in LocalAppData so localStorage and user settings are never lost
     profile_dir = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "MusicGit", "profile")
     os.makedirs(profile_dir, exist_ok=True)
+
+    state = load_window_state()
+    w = state.get("width", 1240)
+    h = state.get("height", 820)
 
     candidates = [
         os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
@@ -100,14 +152,17 @@ def open_app_window_fallback(url):
     for exe in candidates:
         if os.path.isfile(exe):
             try:
-                proc = subprocess.Popen([
+                cmd = [
                     exe,
                     f"--app={url}",
                     f"--user-data-dir={profile_dir}",
-                    "--window-size=1240,820",
+                    f"--window-size={w},{h}",
                     "--disable-extensions",
                     "--enable-features=WindowControlsOverlay",
-                ])
+                ]
+                if state.get("maximized"):
+                    cmd.append("--start-maximized")
+                proc = subprocess.Popen(cmd)
                 proc.wait()
                 return
             except Exception:
@@ -152,17 +207,65 @@ def main():
     use_fallback = False
     try:
         import webview
+        state = load_window_state()
+        is_maximized = state.get("maximized", False)
+
+        def on_maximized():
+            nonlocal is_maximized
+            is_maximized = True
+
+        def on_restored():
+            nonlocal is_maximized
+            is_maximized = False
+
+        def on_closing():
+            nonlocal is_maximized
+            try:
+                new_state = {
+                    "maximized": is_maximized,
+                    "width": state.get("width", 1240),
+                    "height": state.get("height", 820),
+                    "x": state.get("x"),
+                    "y": state.get("y"),
+                }
+                # If not maximized, update width, height and coordinates
+                if not is_maximized:
+                    if window.width and window.width >= 640:
+                        new_state["width"] = int(window.width)
+                    if window.height and window.height >= 480:
+                        new_state["height"] = int(window.height)
+                    if window.x is not None and window.y is not None:
+                        new_state["x"] = int(window.x)
+                        new_state["y"] = int(window.y)
+                save_window_state(new_state)
+            except Exception:
+                pass
+
+        def on_shown():
+            if state.get("maximized"):
+                try:
+                    window.maximize()
+                except Exception:
+                    pass
+
         # Create and display native standalone desktop window
-        webview.create_window(
+        window = webview.create_window(
             title="MusicGit - Music Player & Playlist Sync",
             url=url,
-            width=1240,
-            height=820,
+            width=state.get("width", 1240),
+            height=state.get("height", 820),
+            x=state.get("x"),
+            y=state.get("y"),
             min_size=(960, 640),
             text_select=True,
             background_color="#181818",
             easy_drag=True,
         )
+
+        window.events.maximized += on_maximized
+        window.events.restored += on_restored
+        window.events.closing += on_closing
+        window.events.shown += on_shown
 
         # Blocks until the desktop window is closed by the user
         is_dev = not getattr(sys, "frozen", False)

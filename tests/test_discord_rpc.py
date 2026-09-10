@@ -40,16 +40,21 @@ def test_discord_rpc_unit():
     assert activity["type"] == 2  # ActivityType.LISTENING
     assert activity["details"] == "Bohemian Rhapsody"
     assert activity["state"] == "by Queen"
+    # Test public thumbnail: cover as large_image and MusicGit logo as small_image
     assert activity["assets"]["large_image"] == "https://example.com/cover.jpg"
-    assert "timestamps" in activity
-    assert "start" in activity["timestamps"]
-    assert "end" in activity["timestamps"]
-    assert activity["timestamps"]["end"] > activity["timestamps"]["start"]
+    assert activity["assets"]["small_image"] == "logo-lightmode"
+    assert activity["assets"]["small_text"] == "MusicGit"
 
-    # Test local / empty thumbnail fallback to registered Discord asset key
-    payload["thumbnail"] = "http://localhost:8585/local.jpg"
-    activity_local = rpc._format_activity_payload(payload)
-    assert activity_local["assets"]["large_image"] == "logo-lightmode"
+    # Test unknown track fallback to registered Discord logo-lightmode asset key
+    payload_fallback = {
+        "title": "non_existent_random_track_12345",
+        "artist": "unknown_random_artist_99999",
+        "thumbnail": "http://localhost:8585/local.jpg",
+        "is_playing": True,
+    }
+    activity_fallback = rpc._format_activity_payload(payload_fallback)
+    assert activity_fallback["assets"]["large_image"] == "logo-lightmode"
+    assert "small_image" not in activity_fallback["assets"]
 
     # Test paused formatting
     payload["is_playing"] = False

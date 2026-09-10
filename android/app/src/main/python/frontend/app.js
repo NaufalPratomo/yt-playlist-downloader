@@ -113,9 +113,10 @@ class AudioPlayerEngine {
 
     this.isSeeking = false;
     this._wakeLock = null;
+    this._lastStateSave = 0;
 
     this._initListeners();
-    this.setVolume(1.0);
+    this._restorePlaybackState();
   }
 
   _initListeners() {
@@ -126,6 +127,7 @@ class AudioPlayerEngine {
       this._setScreenWake(true);
       this._notifyAndroidMedia(true);
       this._syncDiscordRPC(true);
+      this._savePlaybackState();
       if ("mediaSession" in navigator) {
         navigator.mediaSession.playbackState = "playing";
       }
@@ -137,6 +139,7 @@ class AudioPlayerEngine {
       this._setScreenWake(false);
       this._notifyAndroidMedia(false);
       this._syncDiscordRPC(false);
+      this._savePlaybackState();
       if ("mediaSession" in navigator) {
         navigator.mediaSession.playbackState = "paused";
       }
@@ -365,45 +368,66 @@ class AudioPlayerEngine {
     }
   }
 
-  setVolume(val) {
-    this.volume = val;
-    this.audio.volume = val;
-    this.volumeSlider.value = val;
-    this.volumeFill.style.width = `${val * 100}%`;
-    this.isMuted = val === 0;
+  setVolume(val, save = true) {
+    this.volume = Math.max(0, Math.min(1, val));
+    this.audio.volume = this.volume;
+    this.volumeSlider.value = this.volume;
+    this.volumeFill.style.width = `${this.volume * 100}%`;
+    this.isMuted = this.volume === 0;
     this._updateVolumeIcons();
+    if (save) {
+      localStorage.setItem("musicgit_player_volume", this.volume.toString());
+      localStorage.setItem("musicgit_player_muted", this.isMuted ? "true" : "false");
+    }
   }
 
   toggleMute() {
     if (this.isMuted) {
-      this.setVolume(this.volume || 1.0);
+      const restored = this.volume > 0 ? this.volume : 1.0;
+      this.setVolume(restored, true);
     } else {
       this.audio.volume = 0;
       this.volumeSlider.value = 0;
       this.volumeFill.style.width = "0%";
       this.isMuted = true;
       this._updateVolumeIcons();
+      localStorage.setItem("musicgit_player_muted", "true");
     }
   }
 
-  toggleShuffle() {
-    this.isShuffle = !this.isShuffle;
+  setShuffle(val) {
+    this.isShuffle = Boolean(val);
     this.shuffleBtn.classList.toggle("active", this.isShuffle);
+    localStorage.setItem("musicgit_player_shuffle", this.isShuffle ? "true" : "false");
   }
 
-  toggleRepeat() {
-    if (this.repeatMode === "all") {
-      this.repeatMode = "one";
+  toggleShuffle() {
+    this.setShuffle(!this.isShuffle);
+  }
+
+  setRepeatMode(mode) {
+    this.repeatMode = mode;
+    if (this.repeatMode === "one") {
       this.repeatBtn.classList.add("active");
       this.repeatOneIndicator.classList.remove("hidden");
-    } else if (this.repeatMode === "one") {
-      this.repeatMode = "off";
+    } else if (this.repeatMode === "off") {
       this.repeatBtn.classList.remove("active");
       this.repeatOneIndicator.classList.add("hidden");
     } else {
       this.repeatMode = "all";
       this.repeatBtn.classList.add("active");
       this.repeatOneIndicator.classList.add("hidden");
+    }
+    localStorage.setItem("musicgit_player_repeat", this.repeatMode);
+  }
+
+  toggleRepeat() {
+    if (this.repeatMode === "all") {
+      this.setRepeatMode("one");
+    } else if (this.repeatMode === "one") {
+      this.setRepeatMode("off");
+    } else {
+      this.setRepeatMode("all");
     }
   }
 
@@ -423,6 +447,104 @@ class AudioPlayerEngine {
 
     // Sync MediaSession position for Android Lock Screen
     this._updateMediaSessionPosition();
+
+    // Periodically save playback position
+    const now = Date.now();
+    if (!this._lastStateSave || now - this._lastStateSave > 4000) {
+      this._lastStateSave = now;
+      this._savePlaybackState();
+    }
+  }
+
+  _savePlaybackState() {
+    if (!this.currentTrack) return;
+    try {
+      const state = {
+        track: this.currentTrack,
+        queue: this.queue,
+        currentIndex: this.currentIndex,
+        currentTime: Math.floor(this.audio.currentTime || 0),
+        duration: Math.floor(this.audio.duration || this.currentTrack.duration || 0),
+      };
+      localStorage.setItem("musicgit_last_playback", JSON.stringify(state));
+    } catch (e) {
+      console.warn("Save playback state error:", e);
+    }
+  }
+
+  _restorePlaybackState() {
+    try {
+      // 1. Restore Volume & Mute
+      const savedVol = localStorage.getItem("musicgit_player_volume");
+      const savedMuted = localStorage.getItem("musicgit_player_muted");
+      if (savedVol !== null) {
+        const v = parseFloat(savedVol);
+        if (!isNaN(v)) {
+          this.setVolume(v, false);
+        }
+      } else {
+        this.setVolume(1.0, false);
+      }
+      if (savedMuted === "true") {
+        this.audio.volume = 0;
+        this.volumeSlider.value = 0;
+        this.volumeFill.style.width = "0%";
+        this.isMuted = true;
+        this._updateVolumeIcons();
+      }
+
+      // 2. Restore Repeat & Shuffle
+      const savedRepeat = localStorage.getItem("musicgit_player_repeat");
+      if (savedRepeat) {
+        this.setRepeatMode(savedRepeat);
+      }
+      const savedShuffle = localStorage.getItem("musicgit_player_shuffle");
+      if (savedShuffle !== null) {
+        this.setShuffle(savedShuffle === "true");
+      }
+
+      // 3. Restore Last Track & Queue into Player Bar in standby state
+      const raw = localStorage.getItem("musicgit_last_playback");
+      if (raw) {
+        const state = JSON.parse(raw);
+        if (state && state.track) {
+          const track = state.track;
+          this.currentTrack = track;
+          this.queue = Array.isArray(state.queue) && state.queue.length > 0 ? state.queue : [track];
+          this.currentIndex = typeof state.currentIndex === "number" ? state.currentIndex : 0;
+
+          // Set player bar labels and thumbnail
+          this.barTitle.textContent = track.title || "Judul Lagu";
+          this.barArtist.textContent = track.artist || "Unknown Artist";
+          if (track.cover_url) {
+            this.barThumb.src = track.cover_url;
+            this.barThumb.onerror = () => {
+              this.barThumb.src = ThemeManager.getLogoUrl();
+            };
+          } else {
+            this.barThumb.src = ThemeManager.getLogoUrl();
+          }
+
+          // Preload audio src and timeline positions in paused state
+          if (track.stream_url) {
+            this.audio.src = track.stream_url;
+            const targetPos = state.currentTime || 0;
+            const dur = state.duration || track.duration || 100;
+            this.audio.currentTime = targetPos;
+            this.currentTimeLabel.textContent = this._formatTime(targetPos);
+            this.totalTimeLabel.textContent = this._formatTime(dur);
+            this.seekSlider.max = dur;
+            this.seekSlider.value = targetPos;
+            this.seekFill.style.width = dur > 0 ? `${(targetPos / dur) * 100}%` : "0%";
+          }
+
+          this._renderQueue();
+          this._updatePlayButtonState();
+        }
+      }
+    } catch (e) {
+      console.warn("Restore playback state error:", e);
+    }
   }
 
   _updateMediaSession(track) {
