@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -24,6 +25,7 @@ from .downloader import ACTIVE_JOBS, downloader
 from .library_manager import library_manager, AUDIO_EXTENSIONS
 from .cover_processor import _fetch_image_bytes
 from .metadata_tagger import metadata_tagger
+from .discord_rpc import discord_rpc
 from .utils import (
     browse_folder_dialog,
     get_default_music_dir,
@@ -37,7 +39,42 @@ logging.basicConfig(
 )
 logger = logging.getLogger("app")
 
-app = FastAPI(title="MusicGit API")
+if getattr(sys, "frozen", False):
+    CONFIG_FILE = Path(sys.executable).resolve().parent / "config.json"
+else:
+    CONFIG_FILE = Path(__file__).resolve().parent.parent / "config.json"
+
+
+def load_saved_config() -> dict:
+    if CONFIG_FILE.exists():
+        try:
+            return json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        except Exception as e:
+            logger.warning(f"Failed to read config.json: {e}")
+    return {}
+
+
+def write_saved_config(data: dict) -> bool:
+    try:
+        CONFIG_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to write config.json: {e}")
+        return False
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    saved = load_saved_config()
+    enabled = saved.get("discord_rpc_enabled", True)
+    client_id = saved.get("discord_client_id", "1547603041497387099")
+    discord_rpc.configure(client_id=client_id, enabled=enabled)
+    discord_rpc.start()
+    yield
+    discord_rpc.stop()
+
+
+app = FastAPI(title="MusicGit API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -140,36 +177,24 @@ class StartDownloadRequest(BaseModel):
     remote_url: Optional[str] = None
 
 
-if getattr(sys, "frozen", False):
-    CONFIG_FILE = Path(sys.executable).resolve().parent / "config.json"
-else:
-    CONFIG_FILE = Path(__file__).resolve().parent.parent / "config.json"
-
-
 class SaveConfigRequest(BaseModel):
     default_music_dir: Optional[str] = None
     default_bitrate: Optional[str] = "192"
     default_template: Optional[str] = "{num}. {title}-{id}.mp3"
     theme: Optional[str] = "dark"
     language: Optional[str] = "id"
+    discord_rpc_enabled: Optional[bool] = True
+    discord_client_id: Optional[str] = "1547603041497387099"
 
 
-def load_saved_config() -> dict:
-    if CONFIG_FILE.exists():
-        try:
-            return json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
-        except Exception as e:
-            logger.warning(f"Failed to read config.json: {e}")
-    return {}
-
-
-def write_saved_config(data: dict) -> bool:
-    try:
-        CONFIG_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to write config.json: {e}")
-        return False
+class DiscordRPCUpdateRequest(BaseModel):
+    title: str
+    artist: Optional[str] = "Various Artists"
+    album: Optional[str] = "MusicGit"
+    duration: Optional[float] = 0
+    current_time: Optional[float] = 0
+    is_playing: Optional[bool] = True
+    thumbnail: Optional[str] = ""
 
 
 class OpenFolderRequest(BaseModel):
@@ -189,6 +214,8 @@ async def get_config():
         "default_bitrate": saved.get("default_bitrate") or "192",
         "theme": saved.get("theme") or "dark",
         "language": saved.get("language") or "id",
+        "discord_rpc_enabled": saved.get("discord_rpc_enabled", True),
+        "discord_client_id": saved.get("discord_client_id", "1547603041497387099"),
         "is_android": is_android,
         "available_templates": [
             {"label": "1. Judul-VideoID.mp3", "value": "{num}. {title}-{id}.mp3"},
@@ -221,7 +248,44 @@ async def save_config(req: SaveConfigRequest):
     ok = write_saved_config(current)
     if not ok:
         raise HTTPException(status_code=500, detail="Gagal menyimpan config.json ke disk.")
+
+    if "discord_rpc_enabled" in update_data or "discord_client_id" in update_data:
+        discord_rpc.configure(
+            client_id=current.get("discord_client_id"),
+            enabled=current.get("discord_rpc_enabled", True),
+        )
+
     return {"status": "ok", "config": current}
+
+
+@app.post("/api/discord-rpc/update")
+async def update_discord_rpc(req: DiscordRPCUpdateRequest):
+    """Update Discord Rich Presence playing activity."""
+    try:
+        discord_rpc.update_track(
+            title=req.title,
+            artist=req.artist or "",
+            album=req.album or "",
+            duration=req.duration or 0,
+            current_time=req.current_time or 0,
+            is_playing=req.is_playing if req.is_playing is not None else True,
+            thumbnail=req.thumbnail or "",
+        )
+        return {"status": "ok"}
+    except Exception as e:
+        logger.warning(f"Error updating Discord RPC: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/api/discord-rpc/clear")
+async def clear_discord_rpc():
+    """Clear Discord Rich Presence activity."""
+    try:
+        discord_rpc.clear()
+        return {"status": "ok"}
+    except Exception as e:
+        logger.warning(f"Error clearing Discord RPC: {e}")
+        return {"status": "error", "message": str(e)}
 
 
 @app.post("/api/analyze")

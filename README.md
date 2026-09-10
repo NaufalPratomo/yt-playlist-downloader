@@ -73,20 +73,26 @@ MusicGit treats your **Music Playlists** like a *Remote Repository* and your loc
 - **Click-to-Seek**: Click on any lyric line to instantly seek and jump playback to that timestamp.
 - Playback queue manager, full-screen immersive karaoke view, and desktop keyboard shortcuts (`Space`, `ArrowLeft/Right`, `ArrowUp/Down`).
 
-### 4. YouTube Playlist Synchronization (Git Pull for Music)
-- Link local playlist directories to YouTube Playlist IDs / URLs.
-- Automatically detect newly added tracks on YouTube.
-- Visual diff comparison (*Local OK* vs *+ New*).
-- 1-Click selective batch download for new tracks.
+### 4. Discord Rich Presence (Listening to MusicGit - Spotify Style)
+- **Live Status on Discord**: Automatically broadcasts your active music playback to your Discord Desktop profile ("Listening to MusicGit").
+- **Spotify-Style Rich Details**: Shows the active song title, artist ("by Artist"), album name, high-resolution album cover art, and a live progress seekbar with elapsed and remaining timestamps.
+- **Pure Native IPC**: Connects directly to Discord Desktop via unbuffered Windows Named Pipes (`\\.\pipe\discord-ipc-0`) with zero external library overhead and non-blocking background queueing.
+- **Configurable Settings**: Toggle Discord Rich Presence on/off in the Settings view or customize your own Discord Application ID.
 
-### 5. High-Quality Audio Downloader & ID3v2 Metadata
+### 5. Universal Playlist Synchronization (Git Pull for Music)
+- Link local playlist directories to remote playlist URLs (**YouTube, Spotify, Deezer, Apple Music, or SoundCloud**).
+- Automatically detect newly added tracks on the remote platform playlist.
+- Visual diff comparison (*Local OK* vs *+ New*).
+- 1-Click selective batch download for newly added songs via smart audio matcher.
+
+### 6. High-Quality Audio Downloader & ID3v2 Metadata
 - MP3 bitrate options: **192 kbps**, **256 kbps**, **320 kbps**, and **128 kbps**.
 - Custom filename templates (`{num}. {title}-{id}.mp3`, `{artist} - {title}.mp3`, etc.).
 - Automatically center-crops thumbnails into clean 1:1 square cover art.
 - Embeds complete ID3v2 tags: Track Number (`TRCK`), Title (`TIT2`), Artist (`TPE1`), Album (`TALB`), Album Artist (`TPE2`), and Release Year (`TDRC`).
 - Unifies playlist tracks under one coherent album for Windows Media Player, Apple Music, car head units, and Android music players.
 
-### 6. Tag Manager & Repair Toolkit
+### 7. Tag Manager & Repair Toolkit
 - Inspect metadata health across your local music folders: detects missing artists (*Unknown Artist*), missing cover art, or missing lyric files.
 - 1-Click mass repair tool to embed local `cover.jpg` artwork and auto-fetch missing `.lrc` lyrics from the LRCLIB database.
 
@@ -177,6 +183,7 @@ yt-playlist-downloader/
 │   ├── audio_matcher.py      # Cross-provider fuzzy audio search & duration matcher
 │   ├── library_manager.py    # Music library scanner, .musicgit metadata & LRC parser
 │   ├── cover_processor.py    # 1:1 center-cropping & artwork processing
+│   ├── discord_rpc.py        # Discord Rich Presence manager via Windows Named Pipe IPC
 │   ├── downloader.py         # Multi-provider download engine & playlist diff sync
 │   ├── lyrics_fetcher.py     # LRCLIB API integration (plain & synced .lrc)
 │   ├── metadata_tagger.py    # ID3v2 tagging & album unity writer

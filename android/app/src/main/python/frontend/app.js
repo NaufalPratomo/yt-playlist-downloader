@@ -125,6 +125,7 @@ class AudioPlayerEngine {
       this._updatePlayButtonState();
       this._setScreenWake(true);
       this._notifyAndroidMedia(true);
+      this._syncDiscordRPC(true);
       if ("mediaSession" in navigator) {
         navigator.mediaSession.playbackState = "playing";
       }
@@ -135,6 +136,7 @@ class AudioPlayerEngine {
       this._updatePlayButtonState();
       this._setScreenWake(false);
       this._notifyAndroidMedia(false);
+      this._syncDiscordRPC(false);
       if ("mediaSession" in navigator) {
         navigator.mediaSession.playbackState = "paused";
       }
@@ -160,6 +162,12 @@ class AudioPlayerEngine {
       this._updatePlayButtonState();
       this._setScreenWake(false);
       this._notifyAndroidMedia(false);
+      this._clearDiscordRPC();
+    });
+
+    // Clear Discord RPC on page unload/close
+    window.addEventListener("beforeunload", () => {
+      this._clearDiscordRPC();
     });
 
     // Control buttons
@@ -294,6 +302,9 @@ class AudioPlayerEngine {
 
     // Trigger lyrics load
     LyricsEngine.loadLyrics(track);
+
+    // Sync Discord Rich Presence
+    this._syncDiscordRPC(true);
   }
 
   togglePlayPause() {
@@ -350,6 +361,7 @@ class AudioPlayerEngine {
       this.currentTimeLabel.textContent = this._formatTime(targetTime);
       LyricsEngine.onAudioTimeUpdate(targetTime);
       this._notifyAndroidMedia(!this.audio.paused);
+      this._syncDiscordRPC(!this.audio.paused);
     }
   }
 
@@ -535,6 +547,48 @@ class AudioPlayerEngine {
     }
   }
 
+  _syncDiscordRPC(isPlaying) {
+    if (MusicGitState.config && MusicGitState.config.is_android) return;
+    if (this._discordDebounceTimer) {
+      clearTimeout(this._discordDebounceTimer);
+    }
+    this._discordDebounceTimer = setTimeout(() => {
+      const track = this.currentTrack;
+      if (!track) {
+        this._clearDiscordRPC();
+        return;
+      }
+      const title = track.title || "Music Track";
+      const artist = track.artist || "";
+      const album = track.album || "MusicGit";
+      const duration = this.audio.duration || track.duration || 0;
+      const currentTime = this.audio.currentTime || 0;
+      let thumbnail = track.cover_url || track.thumbnail || "";
+      if (thumbnail && !thumbnail.startsWith("http")) {
+        thumbnail = new URL(thumbnail, window.location.href).href;
+      }
+
+      fetch("/api/discord-rpc/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title,
+          artist: artist,
+          album: album,
+          duration: duration,
+          current_time: currentTime,
+          is_playing: Boolean(isPlaying),
+          thumbnail: thumbnail,
+        }),
+      }).catch(() => {});
+    }, 150);
+  }
+
+  _clearDiscordRPC() {
+    if (MusicGitState.config && MusicGitState.config.is_android) return;
+    fetch("/api/discord-rpc/clear", { method: "POST" }).catch(() => {});
+  }
+
   _onTrackEnded() {
     if (this.repeatMode === "one") {
       this.audio.currentTime = 0;
@@ -544,6 +598,8 @@ class AudioPlayerEngine {
     } else {
       if (this.currentIndex < this.queue.length - 1) {
         this.next();
+      } else {
+        this._clearDiscordRPC();
       }
     }
   }
@@ -1370,7 +1426,7 @@ class LibraryEngine {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playlist_url: playlist.remote_url, folder_path: playlist.folder_path }),
       });
-      if (!res.ok) throw new Error(I18nManager.currentLang === "en" ? "Failed to sync with YouTube." : "Gagal melakukan sinkronisasi dengan YouTube.");
+      if (!res.ok) throw new Error(I18nManager.currentLang === "en" ? "Failed to sync with remote playlist." : "Gagal melakukan sinkronisasi dengan remote playlist.");
       const data = await res.json();
 
       countExisting.textContent = data.existing_tracks.length;
@@ -2358,14 +2414,14 @@ const I18N_DICTIONARY = {
     lib_btn_edit_tags: "Edit Tag Playlist",
     lib_btn_back_playlists: "Kembali ke Semua Playlist",
     lib_badge_local: "PLAYLIST LOKAL",
-    lib_badge_connected: "Connected to YouTube",
+    lib_badge_connected: "Connected to Remote",
     lib_filter_placeholder: "Cari dalam playlist ini...",
     lib_songs_suffix: "Lagu",
     lib_empty_folder: "Belum ada file audio di folder ini.",
     lib_failed_open: "Gagal membuka playlist.",
     lib_loading_tracks: "Memuat lagu...",
-    lib_sync_with_yt: "Sync with YouTube",
-    lib_link_and_sync_yt: "Tautkan & Sync YT",
+    lib_sync_with_yt: "Sync Playlist",
+    lib_link_and_sync_yt: "Tautkan & Sync",
     lib_update_lyrics: "Update Lirik",
     lib_syncing_lyrics: "Menyinkronkan Lirik...",
     lib_sync_lyrics_success: "Lirik berhasil disinkronkan",
@@ -2441,7 +2497,7 @@ const I18N_DICTIONARY = {
     queue_status_failed: "Gagal",
 
     tag_title: "Manajer Tag & Sinkronisasi Folder",
-    tag_desc: "Inspeksi kesehatan metadata ID3 folder musik, perbaiki cover & lirik, atau bandingkan dengan playlist YouTube.",
+    tag_desc: "Inspeksi kesehatan metadata ID3 folder musik, perbaiki cover & lirik, atau bandingkan dengan playlist remote.",
     tag_folder_label: "Path Folder Musik Lokal",
     tag_folder_placeholder: "Pilih folder musik lokal...",
     tag_btn_browse: "Pilih Folder",
@@ -2455,7 +2511,7 @@ const I18N_DICTIONARY = {
     tag_chip_cover_no: "Cover: Tidak Ada",
     tag_chip_missing_lyrics: "Tanpa Lirik",
     tag_tab_repair: "Perbaiki Tag & Metadata",
-    tag_tab_sync: "Diff & Sinkronisasi YouTube",
+    tag_tab_sync: "Diff & Sinkronisasi Playlist",
     tag_album_name: "Nama Album (TALB)",
     tag_album_placeholder: "Otomatis dari nama folder",
     tag_album_artist: "Artis Album (TPE2)",
@@ -2466,11 +2522,11 @@ const I18N_DICTIONARY = {
     tag_status_repairing: "Memperbaiki tag...",
     tag_status_repaired: "Berhasil! {count} file diperbarui.",
     tag_status_failed: "Gagal: {error}",
-    tag_sync_url_placeholder: "Masukkan Link Playlist YouTube...",
+    tag_sync_url_placeholder: "Masukkan Link Playlist (YouTube, Spotify, Deezer, dll)...",
     tag_btn_paste: "Tempel",
     tag_btn_check_new: "Cek Lagu Baru",
     tag_diff_existing: "Sudah Ada di Folder",
-    tag_diff_new: "Lagu Baru di YouTube",
+    tag_diff_new: "Lagu Baru di Remote",
     tag_diff_btn_download_pre: "Download",
     tag_diff_btn_download_post: "Lagu Baru Saja",
     tag_diff_local_ok: "Lokal OK",
@@ -2488,6 +2544,11 @@ const I18N_DICTIONARY = {
     settings_theme_dark: "Mode Gelap (Dark Navy Solid)",
     settings_theme_light: "Mode Terang (Clean Light Slate)",
     settings_lang_label: "Bahasa (Language)",
+    settings_discord_title: "Discord Rich Presence (Status Listening)",
+    settings_discord_desc: "Tampilkan status aktivitas 'Listening to MusicGit' di profil Discord Anda secara realtime saat memutar musik ala Spotify.",
+    settings_discord_enable: "Aktifkan Discord Rich Presence",
+    settings_discord_app_id_label: "Discord Application ID (Opsional / Default)",
+    settings_discord_app_id_help: "Gunakan Application ID kustom jika ingin mengganti nama aplikasi di Discord (Default: 1547603041497387099).",
     settings_btn_save: "Simpan Pengaturan",
     settings_saved_alert: "Pengaturan MusicGit berhasil disimpan.",
     settings_developed_by: "Dikembangkan oleh",
@@ -2517,17 +2578,17 @@ const I18N_DICTIONARY = {
     queue_empty: "Antrian kosong.",
     queue_close_title: "Tutup Antrian",
 
-    modal_link_title: "Tautkan Remote YouTube Playlist",
-    modal_link_desc: "Hubungkan folder playlist lokal ini ke URL YouTube Playlist agar Anda dapat menyinkronkan (Git Pull) lagu baru sewaktu-waktu.",
+    modal_link_title: "Tautkan Remote Playlist",
+    modal_link_desc: "Hubungkan folder playlist lokal ini ke URL Playlist (YouTube, Spotify, Deezer, Apple Music, SoundCloud) agar Anda dapat menyinkronkan (Git Pull) lagu baru sewaktu-waktu.",
     modal_link_folder_label: "Folder Lokal",
-    modal_link_url_label: "URL Playlist YouTube",
+    modal_link_url_label: "URL Playlist Remote",
     modal_link_custom_title: "Judul Playlist Kustom (Opsional)",
     modal_link_title_placeholder: "Nama playlist",
     modal_link_btn_save: "Simpan Remote",
-    modal_sync_title: "Sinkronisasi Playlist YouTube",
+    modal_sync_title: "Sinkronisasi Playlist Remote",
     modal_sync_existing: "Sudah Ada di Lokal",
     modal_sync_new: "Lagu Baru di Remote",
-    modal_sync_comparing: "Menghubungi YouTube dan membandingkan playlist...",
+    modal_sync_comparing: "Menghubungi platform dan membandingkan playlist...",
     modal_sync_prep: "Menyiapkan download...",
     modal_sync_prep_count: "Menyiapkan download {count} lagu baru...",
     modal_sync_downloading: "Mengunduh: ",
@@ -2582,14 +2643,14 @@ const I18N_DICTIONARY = {
     lib_btn_edit_tags: "Edit Playlist Tags",
     lib_btn_back_playlists: "Back to All Playlists",
     lib_badge_local: "LOCAL PLAYLIST",
-    lib_badge_connected: "Connected to YouTube",
+    lib_badge_connected: "Connected to Remote",
     lib_filter_placeholder: "Search in this playlist...",
     lib_songs_suffix: "Songs",
     lib_empty_folder: "No audio files in this folder yet.",
     lib_failed_open: "Failed to open playlist.",
     lib_loading_tracks: "Loading songs...",
-    lib_sync_with_yt: "Sync with YouTube",
-    lib_link_and_sync_yt: "Link & Sync YT",
+    lib_sync_with_yt: "Sync Playlist",
+    lib_link_and_sync_yt: "Link & Sync",
     lib_update_lyrics: "Update Lyrics",
     lib_syncing_lyrics: "Syncing Lyrics...",
     lib_sync_lyrics_success: "Lyrics synced successfully",
@@ -2665,7 +2726,7 @@ const I18N_DICTIONARY = {
     queue_status_failed: "Failed",
 
     tag_title: "Tag & Folder Sync Manager",
-    tag_desc: "Inspect music folder ID3 metadata health, repair covers & lyrics, or compare with YouTube playlist.",
+    tag_desc: "Inspect music folder ID3 metadata health, repair covers & lyrics, or compare with remote playlist.",
     tag_folder_label: "Local Music Folder Path",
     tag_folder_placeholder: "Choose local music folder...",
     tag_btn_browse: "Choose Folder",
@@ -2679,7 +2740,7 @@ const I18N_DICTIONARY = {
     tag_chip_cover_no: "Cover: None",
     tag_chip_missing_lyrics: "Missing Lyrics",
     tag_tab_repair: "Repair Tags & Metadata",
-    tag_tab_sync: "YouTube Diff & Sync",
+    tag_tab_sync: "Playlist Diff & Sync",
     tag_album_name: "Album Name (TALB)",
     tag_album_placeholder: "Auto from folder name",
     tag_album_artist: "Album Artist (TPE2)",
@@ -2690,11 +2751,11 @@ const I18N_DICTIONARY = {
     tag_status_repairing: "Repairing tags...",
     tag_status_repaired: "Success! {count} files updated.",
     tag_status_failed: "Failed: {error}",
-    tag_sync_url_placeholder: "Enter YouTube Playlist Link...",
+    tag_sync_url_placeholder: "Enter Playlist Link (YouTube, Spotify, Deezer, etc)...",
     tag_btn_paste: "Paste",
     tag_btn_check_new: "Check New Songs",
     tag_diff_existing: "Already in Folder",
-    tag_diff_new: "New on YouTube",
+    tag_diff_new: "New on Remote",
     tag_diff_btn_download_pre: "Download",
     tag_diff_btn_download_post: "New Songs Only",
     tag_diff_local_ok: "Local OK",
@@ -2712,6 +2773,11 @@ const I18N_DICTIONARY = {
     settings_theme_dark: "Dark Mode (Solid Dark)",
     settings_theme_light: "Light Mode (Clean Light)",
     settings_lang_label: "Language",
+    settings_discord_title: "Discord Rich Presence (Listening Status)",
+    settings_discord_desc: "Display real-time 'Listening to MusicGit' activity status on your Discord profile when playing music (Spotify-style).",
+    settings_discord_enable: "Enable Discord Rich Presence",
+    settings_discord_app_id_label: "Discord Application ID (Optional / Default)",
+    settings_discord_app_id_help: "Use a custom Application ID if you want to customize the application name on Discord (Default: 1547603041497387099).",
     settings_btn_save: "Save Settings",
     settings_saved_alert: "MusicGit settings saved successfully.",
     settings_developed_by: "Developed by",
@@ -2741,17 +2807,17 @@ const I18N_DICTIONARY = {
     queue_empty: "Queue is empty.",
     queue_close_title: "Close Queue",
 
-    modal_link_title: "Link Remote YouTube Playlist",
-    modal_link_desc: "Connect this local playlist folder to a YouTube Playlist URL to synchronize (Git Pull) new songs anytime.",
+    modal_link_title: "Link Remote Playlist",
+    modal_link_desc: "Connect this local playlist folder to a remote playlist URL (YouTube, Spotify, Deezer, Apple Music, SoundCloud) to synchronize (Git Pull) new songs anytime.",
     modal_link_folder_label: "Local Folder",
-    modal_link_url_label: "YouTube Playlist URL",
+    modal_link_url_label: "Remote Playlist URL",
     modal_link_custom_title: "Custom Playlist Title (Optional)",
     modal_link_title_placeholder: "Playlist name",
     modal_link_btn_save: "Save Remote",
-    modal_sync_title: "YouTube Playlist Sync",
+    modal_sync_title: "Remote Playlist Sync",
     modal_sync_existing: "Already in Local",
     modal_sync_new: "New on Remote",
-    modal_sync_comparing: "Connecting to YouTube and comparing playlist...",
+    modal_sync_comparing: "Connecting to platform and comparing playlist...",
     modal_sync_prep: "Preparing download...",
     modal_sync_prep_count: "Preparing download for {count} new songs...",
     modal_sync_downloading: "Downloading: ",
@@ -3060,12 +3126,16 @@ const ViewController = {
       const tpl = document.getElementById("settings-default-template").value;
       const thm = document.getElementById("settings-theme-select").value;
       const lang = document.getElementById("settings-lang-select").value;
+      const discordEnabled = document.getElementById("settings-discord-enabled") ? document.getElementById("settings-discord-enabled").checked : true;
+      const discordClientId = document.getElementById("settings-discord-client-id") ? document.getElementById("settings-discord-client-id").value.trim() : "1547603041497387099";
 
       MusicGitState.config.defaultMusicDir = dir;
       MusicGitState.config.defaultBitrate = br;
       MusicGitState.config.defaultTemplate = tpl;
       MusicGitState.config.theme = thm;
       MusicGitState.config.language = lang;
+      MusicGitState.config.discord_rpc_enabled = discordEnabled;
+      MusicGitState.config.discord_client_id = discordClientId;
 
       ThemeManager.applyTheme(thm);
       I18nManager.applyLanguage(lang);
@@ -3086,6 +3156,8 @@ const ViewController = {
             default_template: tpl,
             theme: thm,
             language: lang,
+            discord_rpc_enabled: discordEnabled,
+            discord_client_id: discordClientId,
           }),
         });
       } catch (err) {
@@ -3281,6 +3353,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const tplSelect = document.getElementById("settings-default-template");
     if (tplSelect) tplSelect.value = MusicGitState.config.defaultTemplate || "{num}. {title}-{id}.mp3";
+
+    // Discord Rich Presence Settings
+    const discordToggle = document.getElementById("settings-discord-enabled");
+    if (discordToggle) {
+      discordToggle.checked = MusicGitState.config.discord_rpc_enabled !== false;
+    }
+    const discordClientInput = document.getElementById("settings-discord-client-id");
+    if (discordClientInput) {
+      discordClientInput.value = MusicGitState.config.discord_client_id || "1547603041497387099";
+    }
+    const discordCard = document.getElementById("discord-rpc-settings-card");
+    if (discordCard && isAndroid) {
+      discordCard.style.display = "none";
+    }
 
     // Synchronize settings into Downloader page form on start
     syncDownloaderSettingsFromConfig();

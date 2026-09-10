@@ -246,11 +246,11 @@
                   <span data-i18n="lib_btn_shuffle">Acak</span>
                 </button>
 
-                <button type="button" id="btn-hero-git-sync" class="btn btn-git btn-md" data-i18n-title="lib_sync_with_yt" title="Sinkronisasi dengan YouTube">
+                <button type="button" id="btn-hero-git-sync" class="btn btn-git btn-md" data-i18n-title="lib_sync_with_yt" title="Sinkronisasi Playlist (Git Pull)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
                   </svg>
-                  <span id="hero-sync-label" data-i18n="lib_sync_with_yt">Sync with YouTube</span>
+                  <span id="hero-sync-label" data-i18n="lib_sync_with_yt">Sync Playlist</span>
                 </button>
 
                 <button type="button" id="btn-hero-sync-lyrics" class="btn btn-secondary btn-md" data-i18n-title="lib_update_lyrics" title="Sinkronkan & Unduh Semua Lirik Playlist">
@@ -691,7 +691,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
               </svg>
-              <span data-i18n="tag_tab_sync">Diff & Sinkronisasi YouTube</span>
+              <span data-i18n="tag_tab_sync">Diff & Sinkronisasi Playlist</span>
               <span class="badge-pill hidden" id="tagmgr-sync-count-badge">0</span>
             </button>
           </div>
@@ -761,7 +761,7 @@
                     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                   </svg>
                 </div>
-                <input type="text" id="tagmgr-sync-url" class="text-input" data-i18n-placeholder="tag_sync_url_placeholder" placeholder="Masukkan Link Playlist YouTube...">
+                <input type="text" id="tagmgr-sync-url" class="text-input" data-i18n-placeholder="tag_sync_url_placeholder" placeholder="Masukkan Link Playlist (YouTube, Spotify, Deezer, dll)...">
                 <button type="button" id="btn-tagmgr-sync-paste" class="btn-paste" data-i18n-title="tag_btn_paste" title="Tempel">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -887,6 +887,34 @@
                 <option value="id" selected>Bahasa Indonesia</option>
                 <option value="en">English (US)</option>
               </select>
+            </div>
+
+            <div class="field-item col-span-2" id="discord-rpc-settings-card" style="margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="color: #5865F2; flex-shrink: 0;">
+                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                  </svg>
+                  <div>
+                    <h3 class="field-label" style="font-size: 0.95rem; font-weight: 600; margin: 0;" data-i18n="settings_discord_title">Discord Rich Presence (Status Listening)</h3>
+                    <p class="view-subtitle" style="font-size: 0.78rem; margin: 0;" data-i18n="settings_discord_desc">Tampilkan status aktivitas 'Listening to MusicGit' di profil Discord Anda secara realtime saat memutar musik ala Spotify.</p>
+                  </div>
+                </div>
+                <span class="pill pill-primary" style="background: rgba(88, 101, 242, 0.15); color: #5865F2; border-color: rgba(88, 101, 242, 0.3); font-size: 0.7rem;">Discord Desktop</span>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 12px; background: var(--bg-surface-alt, rgba(255,255,255,0.03)); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 14px 16px;">
+                <label class="checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                  <input type="checkbox" id="settings-discord-enabled" checked class="checkbox-custom">
+                  <span style="font-weight: 500; font-size: 0.88rem;" data-i18n="settings_discord_enable">Aktifkan Discord Rich Presence</span>
+                </label>
+
+                <div id="discord-client-id-wrapper" style="margin-top: 4px;">
+                  <label for="settings-discord-client-id" class="field-label" style="font-size: 0.82rem; margin-bottom: 4px;" data-i18n="settings_discord_app_id_label">Discord Application ID (Opsional / Default)</label>
+                  <input type="text" id="settings-discord-client-id" class="text-input" placeholder="1547603041497387099" value="1547603041497387099" style="font-family: monospace; font-size: 0.85rem;">
+                  <small class="field-help" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;" data-i18n="settings_discord_app_id_help">Gunakan Application ID kustom jika ingin mengganti nama aplikasi di Discord (Default: 1547603041497387099).</small>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1203,7 +1231,7 @@
         </div>
 
         <form id="form-link-remote" class="modal-body">
-          <p class="modal-desc" data-i18n="modal_link_desc">Hubungkan folder playlist lokal ini ke URL YouTube Playlist agar Anda dapat menyinkronkan (Git Pull) lagu baru sewaktu-waktu.</p>
+          <p class="modal-desc" data-i18n="modal_link_desc">Hubungkan folder playlist lokal ini ke URL Playlist (YouTube, Spotify, Deezer, Apple Music, SoundCloud) agar Anda dapat menyinkronkan (Git Pull) lagu baru sewaktu-waktu.</p>
           
           <div class="field-item">
             <label class="field-label" data-i18n="modal_link_folder_label">Folder Lokal</label>
@@ -1211,8 +1239,8 @@
           </div>
 
           <div class="field-item">
-            <label for="modal-link-url" class="field-label" data-i18n="modal_link_url_label">URL Playlist YouTube</label>
-            <input type="text" id="modal-link-url" class="text-input" placeholder="https://www.youtube.com/playlist?list=..." required>
+            <label for="modal-link-url" class="field-label" data-i18n="modal_link_url_label">URL Playlist Remote</label>
+            <input type="text" id="modal-link-url" class="text-input" placeholder="https://open.spotify.com/playlist/... atau YouTube link..." required>
           </div>
 
           <div class="field-item">
@@ -1228,11 +1256,11 @@
       </div>
     </div>
 
-    <!-- MODAL: SYNC YOUTUBE PLAYLIST DIFF -->
+    <!-- MODAL: SYNC REMOTE PLAYLIST DIFF -->
     <div id="modal-sync-diff" class="modal-overlay hidden">
       <div class="modal-card modal-lg">
         <div class="modal-header">
-          <h3 class="modal-title" data-i18n="modal_sync_title">Sinkronisasi Playlist YouTube</h3>
+          <h3 class="modal-title" data-i18n="modal_sync_title">Sinkronisasi Playlist Remote</h3>
           <button type="button" id="btn-close-modal-sync" class="btn-icon-xs">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1259,7 +1287,7 @@
               <thead>
                 <tr>
                   <th style="width: 40px; text-align: center;" data-i18n="th_num">#</th>
-                  <th data-i18n="th_yt_title">Judul di YouTube</th>
+                  <th data-i18n="th_yt_title">Judul Lagu Remote</th>
                   <th data-i18n="th_artist">Artis</th>
                   <th style="width: 140px; text-align: center;" data-i18n="th_status">Status</th>
                 </tr>

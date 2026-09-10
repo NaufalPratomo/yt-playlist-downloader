@@ -73,20 +73,26 @@ MusicGit memperlakukan **Playlist Musik** seperti *Remote Repository* dan folder
 - **Click-to-Seek**: Klik pada baris lirik mana saja untuk langsung melompat ke detik audio tersebut.
 - Antrian putar (*Playback Queue*), tampilan layar penuh lirik (*Full Karaoke View*), dan pintasan keyboard desktop (`Space`, `ArrowLeft/Right`, `ArrowUp/Down`).
 
-### 4. Sinkronisasi Playlist YouTube (Git Pull for Music)
-- Tautkan folder playlist lokal ke YouTube Playlist ID / URL.
-- Deteksi otomatis lagu baru yang baru saja ditambahkan di YouTube.
-- Diff perbandingan status lagu (*Lokal OK* vs *+ Baru*).
-- Unduh selektif lagu baru dengan 1-klik saja.
+### 4. Discord Rich Presence (Listening to MusicGit - Spotify Style)
+- **Status Realtime di Discord**: Otomatis menampilkan aktivitas musik yang sedang berputar di profil Discord Desktop Anda ("Listening to MusicGit").
+- **Detail Lengkap ala Spotify**: Menampilkan judul lagu yang sedang berputar, nama artis ("by Artis"), nama album, cover art resolusi tinggi, serta seekbar durasi live dengan penunjuk menit elapsed dan remaining secara akurat.
+- **Pure Native IPC**: Terhubung langsung ke Discord Desktop melalui Windows Named Pipe (`\\.\pipe\discord-ipc-0`) tanpa dependensi pihak ketiga yang berat dan berjalan non-blocking di latar belakang.
+- **Pengaturan Fleksibel**: Aktifkan atau nonaktifkan Discord Rich Presence di menu Pengaturan, serta opsi kustomisasi Discord Application ID sesuai preferensi.
 
-### 5. Downloader Audio Berkualitas Tinggi & ID3v2 Metadata
+### 5. Sinkronisasi Playlist Universal (Git Pull for Music)
+- Tautkan folder playlist lokal ke URL playlist remote (**YouTube, Spotify, Deezer, Apple Music, atau SoundCloud**).
+- Deteksi otomatis lagu baru yang baru saja ditambahkan di playlist remote.
+- Diff perbandingan status lagu (*Lokal OK* vs *+ Baru*).
+- Unduh selektif lagu baru dengan 1-klik melalui engine pencocokan audio cerdas.
+
+### 6. Downloader Audio Berkualitas Tinggi & ID3v2 Metadata
 - Pilihan bitrate MP3: **192 kbps**, **256 kbps**, **320 kbps**, dan **128 kbps**.
 - Template penamaan file kustom (`{num}. {title}-{id}.mp3`, `{artist} - {title}.mp3`, dll).
 - Otomatis memotong (*center-crop*) cover art resolusi tinggi menjadi rasio 1:1.
 - Menulis metadata ID3v2 lengkap: Track Number (`TRCK`), Judul (`TIT2`), Artis (`TPE1`), Album (`TALB`), Artis Album (`TPE2`), dan Tahun rilis (`TDRC`).
 - Menggabungkan lagu dalam 1 playlist menjadi 1 album utuh di Windows Media Player / Groove Music / Apple Music / Head Unit Mobil / Pemutar Musik Android.
 
-### 6. Manajer Tag & Perbaikan Folder Lokal (Repair Toolkit)
+### 7. Manajer Tag & Perbaikan Folder Lokal (Repair Toolkit)
 - Inspeksi kesehatan metadata folder musik: deteksi lagu tanpa artis (*Unknown Artist*), tanpa cover art, atau tanpa lirik.
 - Perbaikan massal 1-klik untuk menyematkan `cover.jpg` dan mengambil lirik otomatis dari database LRCLIB.
 
@@ -177,6 +183,7 @@ yt-playlist-downloader/
 │   ├── audio_matcher.py      # Algoritma pencocokan audio lintas platform & durasi
 │   ├── library_manager.py    # Pemindai library musik, .musicgit metadata, & LRC parser
 │   ├── cover_processor.py    # Pemrosesan & center-cropping cover art 1:1
+│   ├── discord_rpc.py        # Manajer Discord Rich Presence via IPC Windows Named Pipe
 │   ├── downloader.py         # Engine download multi-provider & playlist diff sync
 │   ├── lyrics_fetcher.py     # Integrasi API LRCLIB (lirik plain & .lrc)
 │   ├── metadata_tagger.py    # Penulisan tag ID3v2 & album unity

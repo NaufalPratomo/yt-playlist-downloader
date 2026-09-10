@@ -17,6 +17,7 @@ if exist "dist\MusicGit-v2.2-Windows.zip" del /f /q "dist\MusicGit-v2.2-Windows.
 if exist "dist\MusicGit-v2.2-Android.apk" del /f /q "dist\MusicGit-v2.2-Android.apk"
 if exist "dist\MusicGit-v2.2-Setup.exe" del /f /q "dist\MusicGit-v2.2-Setup.exe"
 if exist "dist\MusicGit-v2.3-Windows.zip" del /f /q "dist\MusicGit-v2.3-Windows.zip"
+if exist "dist\MusicGit-v2.3-Setup.exe" del /f /q "dist\MusicGit-v2.3-Setup.exe"
 
 echo.
 echo 2. Memeriksa dependensi Python...
