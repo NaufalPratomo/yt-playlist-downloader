@@ -92,3 +92,8 @@ desktop.ini
 .coverage
 htmlcov/
 
+# Development Notes
+note-pengembangan*
+notes/
+*.notes
+

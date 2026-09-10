@@ -23,6 +23,18 @@ OP_PING = 3
 OP_PONG = 4
 
 DEFAULT_CLIENT_ID = "1547603041497387099"
+DEFAULT_ASSET_KEY = "logo-lightmode"
+PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/naufalpratomo/yt-playlist-downloader/main/public/image/logo-lightmode.jpg"
+
+
+def _is_public_http_url(url: Optional[str]) -> bool:
+    if not url:
+        return False
+    u = url.strip().lower()
+    if not (u.startswith("http://") or u.startswith("https://")):
+        return False
+    local_hosts = ("localhost", "127.0.0.1", "0.0.0.0", "::1", "192.168.", "10.", "172.16.")
+    return not any(h in u for h in local_hosts)
 
 
 class DiscordRPC:
@@ -264,19 +276,18 @@ class DiscordRPC:
                 timestamps["end"] = int(now + remaining_sec)
             activity["timestamps"] = timestamps
 
-        # Handle Assets (Cover Art & Status Icons)
+        # Handle Assets (Cover Art & Tooltips)
         assets = {
             "large_text": f"{title} - {album}" if album else title,
-            "small_text": "Playing" if is_playing else "Paused",
         }
 
-        # If high-res cover artwork URL exists (https), Discord can render it directly
-        if thumbnail and (thumbnail.startswith("http://") or thumbnail.startswith("https://")):
+        # If a public online cover exists (e.g. YouTube / Spotify CDN), use it;
+        # otherwise fallback to registered Discord asset key 'logo-lightmode'
+        if _is_public_http_url(thumbnail):
             assets["large_image"] = thumbnail
         else:
-            assets["large_image"] = "musicgit_logo"
+            assets["large_image"] = DEFAULT_ASSET_KEY
 
-        assets["small_image"] = "play" if is_playing else "pause"
         activity["assets"] = assets
 
         return activity

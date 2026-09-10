@@ -41,16 +41,19 @@ def test_discord_rpc_unit():
     assert activity["details"] == "Bohemian Rhapsody"
     assert activity["state"] == "by Queen"
     assert activity["assets"]["large_image"] == "https://example.com/cover.jpg"
-    assert activity["assets"]["small_image"] == "play"
     assert "timestamps" in activity
     assert "start" in activity["timestamps"]
     assert "end" in activity["timestamps"]
     assert activity["timestamps"]["end"] > activity["timestamps"]["start"]
 
+    # Test local / empty thumbnail fallback to registered Discord asset key
+    payload["thumbnail"] = "http://localhost:8585/local.jpg"
+    activity_local = rpc._format_activity_payload(payload)
+    assert activity_local["assets"]["large_image"] == "logo-lightmode"
+
     # Test paused formatting
     payload["is_playing"] = False
     activity_paused = rpc._format_activity_payload(payload)
-    assert activity_paused["assets"]["small_image"] == "pause"
     assert "timestamps" not in activity_paused
 
     # Test configure

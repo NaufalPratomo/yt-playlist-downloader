@@ -563,9 +563,17 @@ class AudioPlayerEngine {
       const album = track.album || "MusicGit";
       const duration = this.audio.duration || track.duration || 0;
       const currentTime = this.audio.currentTime || 0;
-      let thumbnail = track.cover_url || track.thumbnail || "";
-      if (thumbnail && !thumbnail.startsWith("http")) {
-        thumbnail = new URL(thumbnail, window.location.href).href;
+      let thumbnail = "";
+      if (track.thumbnail && (track.thumbnail.startsWith("http://") || track.thumbnail.startsWith("https://"))) {
+        const u = track.thumbnail.toLowerCase();
+        if (!u.includes("localhost") && !u.includes("127.0.0.1")) {
+          thumbnail = track.thumbnail;
+        }
+      } else if (track.cover_url && (track.cover_url.startsWith("http://") || track.cover_url.startsWith("https://"))) {
+        const u = track.cover_url.toLowerCase();
+        if (!u.includes("localhost") && !u.includes("127.0.0.1")) {
+          thumbnail = track.cover_url;
+        }
       }
 
       fetch("/api/discord-rpc/update", {
