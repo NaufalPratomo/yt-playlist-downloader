@@ -1,6 +1,6 @@
 {
   "name": "musicgit",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "YouTube Playlist Remote Sync & Desktop/Android Music Player",
   "author": "Naufal Pratomo",
   "main": "frontend/app.js",

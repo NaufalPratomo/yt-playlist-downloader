@@ -77,6 +77,57 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "Error writing clipboard: " + e.getMessage());
             }
         }
+
+        @JavascriptInterface
+        public void setKeepScreenOn(final boolean keepOn) {
+            mainHandler.post(() -> {
+                try {
+                    if (keepOn) {
+                        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                        Log.d(TAG, "Screen flag KEEP_SCREEN_ON enabled");
+                    } else {
+                        getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                        Log.d(TAG, "Screen flag KEEP_SCREEN_ON cleared");
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "Error updating KEEP_SCREEN_ON: " + e.getMessage());
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void updatePlaybackState(String title, String artist, String album, String coverUrl, double durationSec, double positionSec, boolean isPlaying) {
+            try {
+                Intent intent = new Intent(MainActivity.this, MusicGitBackgroundService.class);
+                intent.setAction(MusicGitBackgroundService.ACTION_UPDATE_PLAYBACK);
+                intent.putExtra(MusicGitBackgroundService.EXTRA_TITLE, title);
+                intent.putExtra(MusicGitBackgroundService.EXTRA_ARTIST, artist);
+                intent.putExtra(MusicGitBackgroundService.EXTRA_ALBUM, album);
+                intent.putExtra(MusicGitBackgroundService.EXTRA_COVER_URL, coverUrl);
+                intent.putExtra(MusicGitBackgroundService.EXTRA_DURATION, (long) (durationSec * 1000));
+                intent.putExtra(MusicGitBackgroundService.EXTRA_POSITION, (long) (positionSec * 1000));
+                intent.putExtra(MusicGitBackgroundService.EXTRA_IS_PLAYING, isPlaying);
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(intent);
+                } else {
+                    startService(intent);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error updating playback state in background service: " + e.getMessage());
+            }
+        }
+
+        @JavascriptInterface
+        public void stopMediaNotification() {
+            try {
+                Intent intent = new Intent(MainActivity.this, MusicGitBackgroundService.class);
+                intent.setAction(MusicGitBackgroundService.ACTION_STOP);
+                startService(intent);
+            } catch (Exception e) {
+                Log.e(TAG, "Error stopping media notification: " + e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -85,6 +136,9 @@ public class MainActivity extends AppCompatActivity {
 
         // 1. Request storage permissions
         checkAndRequestPermissions();
+
+        // 1.5 Setup Media Action Listener for Android Notification & Lock Screen Controls
+        setupMediaActionListener();
 
         // 2. Setup WebView
         webView = new WebView(this);
@@ -253,7 +307,7 @@ public class MainActivity extends AppCompatActivity {
                 + ".btn{display:inline-block;background:#2563eb;color:#fff;border:none;padding:10px 20px;"
                 + "border-radius:8px;font-size:0.9rem;font-weight:600;margin-top:16px;text-decoration:none;}"
                 + "</style></head><body>"
-                + "<h1>\u26a0\ufe0f MusicGit Engine Error</h1>"
+                + "<h1>MusicGit Engine Error</h1>"
                 + "<p style='color:#94a3b8'>Python backend gagal dijalankan. Detail error di bawah ini:</p>"
                 + "<pre>" + escapeHtml(errorDetail) + "</pre>"
                 + "<h2>Info Sistem:</h2>"
@@ -271,7 +325,71 @@ public class MainActivity extends AppCompatActivity {
                 .replace("\"", "&quot;").replace("'", "&#39;");
     }
 
+    private void setupMediaActionListener() {
+        MusicGitBackgroundService.setMediaActionListener(new MusicGitBackgroundService.MediaActionListener() {
+            @Override
+            public void onPlay() {
+                mainHandler.post(() -> {
+                    if (webView != null) {
+                        webView.evaluateJavascript(
+                                "if (window.MusicPlayer && window.MusicPlayer.audio && window.MusicPlayer.audio.paused) { window.MusicPlayer.audio.play().catch(console.warn); }",
+                                null
+                        );
+                    }
+                });
+            }
+
+            @Override
+            public void onPause() {
+                mainHandler.post(() -> {
+                    if (webView != null) {
+                        webView.evaluateJavascript(
+                                "if (window.MusicPlayer && window.MusicPlayer.audio && !window.MusicPlayer.audio.paused) { window.MusicPlayer.audio.pause(); }",
+                                null
+                        );
+                    }
+                });
+            }
+
+            @Override
+            public void onNext() {
+                mainHandler.post(() -> {
+                    if (webView != null) {
+                        webView.evaluateJavascript("if (window.MusicPlayer) { window.MusicPlayer.next(); }", null);
+                    }
+                });
+            }
+
+            @Override
+            public void onPrev() {
+                mainHandler.post(() -> {
+                    if (webView != null) {
+                        webView.evaluateJavascript("if (window.MusicPlayer) { window.MusicPlayer.prev(); }", null);
+                    }
+                });
+            }
+
+            @Override
+            public void onSeekTo(long positionMs) {
+                mainHandler.post(() -> {
+                    if (webView != null) {
+                        double seconds = positionMs / 1000.0;
+                        webView.evaluateJavascript("if (window.MusicPlayer) { window.MusicPlayer.seek(" + seconds + "); }", null);
+                    }
+                });
+            }
+        });
+    }
+
     private void checkAndRequestPermissions() {
+        // Notification permission for Android 13+ (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 102);
+            }
+        }
+
+        // Storage permissions
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
                 try {
@@ -293,6 +411,12 @@ public class MainActivity extends AppCompatActivity {
                 ActivityCompat.requestPermissions(this, perms, PERMISSION_REQ_CODE);
             }
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        MusicGitBackgroundService.setMediaActionListener(null);
     }
 
     @Override

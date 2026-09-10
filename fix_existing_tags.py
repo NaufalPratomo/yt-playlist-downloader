@@ -8,7 +8,7 @@ Memperbaiki masalah album terpecah di Windows Media Player dengan menyetel:
 Penggunaan:
     python fix_existing_tags.py
     atau
-    python fix_existing_tags.py "C:\\Users\\USER\\Music\\MELOW MELOWWWW" "C:\\Users\\USER\\Music\\old but fun 😊"
+    python fix_existing_tags.py "C:\\Users\\USER\\Music\\MELOW MELOWWWW" "C:\\Users\\USER\\Music\\old but fun"
 """
 
 import os
@@ -33,10 +33,10 @@ from backend.utils import get_default_music_dir
 def fix_folder(folder_path: str, album_name: str = None, album_artist: str = "Various Artists"):
     abs_path = os.path.abspath(folder_path)
     if not os.path.exists(abs_path):
-        print(f"❌ Folder tidak ditemukan: {abs_path}")
+        print(f"[GAGAL] Folder tidak ditemukan: {abs_path}")
         return
 
-    print(f"\n📂 Memproses folder: {abs_path}")
+    print(f"\n[DIR] Memproses folder: {abs_path}")
     res = metadata_tagger.retag_folder(
         folder_path=abs_path,
         album_name=album_name,
@@ -44,14 +44,14 @@ def fix_folder(folder_path: str, album_name: str = None, album_artist: str = "Va
     )
 
     if res.get("success"):
-        print(f"✅ Berhasil! {res['updated_files']} lagu telah digabungkan ke dalam 1 album:")
+        print(f"[OK] Berhasil! {res['updated_files']} lagu telah digabungkan ke dalam 1 album:")
         print(f"   • Nama Album (TALB) : {res['album']}")
         print(f"   • Artis Album (TPE2): {res['album_artist']}")
         print(f"   • Compilation (TCMP): 1 (Aktif)")
         for item in res.get("details", []):
             print(f"     [{item['track']}] {item['artist']} - {item['title']} ({item['file']})")
     else:
-        print(f"❌ Gagal: {res.get('error')}")
+        print(f"[GAGAL] Gagal: {res.get('error')}")
 
 
 def main():
@@ -93,12 +93,12 @@ def main():
         elif choice.lower() == "a":
             for s in subdirs:
                 fix_folder(s)
-            print("\n🎉 Semua folder selesai diperbaiki! Buka Windows Media Player untuk melihat hasilnya.")
+            print("\n[OK] Semua folder selesai diperbaiki! Buka Windows Media Player untuk melihat hasilnya.")
             return
         elif choice.isdigit() and 1 <= int(choice) <= len(subdirs):
             selected = subdirs[int(choice) - 1]
             fix_folder(selected)
-            print("\n🎉 Selesai! Buka Windows Media Player untuk melihat hasilnya.")
+            print("\n[OK] Selesai! Buka Windows Media Player untuk melihat hasilnya.")
             return
 
     # Manual input

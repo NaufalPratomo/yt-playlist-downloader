@@ -828,9 +828,61 @@ a,
   color: var(--text-muted);
   border-radius: var(--radius-sm);
   padding: 4px 8px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   cursor: pointer;
+  transition: all var(--transition-fast);
 }
+
+/* Supported Providers Bar */
+.supported-providers-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.provider-support-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.provider-tags-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.provider-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 500;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+.provider-tag:hover {
+  border-color: var(--text-subtle);
+  color: var(--text-main);
+  background-color: var(--bg-surface-hover);
+}
+.provider-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+.provider-icon.yt-icon { color: #ff0000; }
+.provider-icon.sp-icon { color: #1db954; }
+.provider-icon.dz-icon { color: #a238ff; }
+.provider-icon.am-icon { color: #fa243c; }
+.provider-icon.sc-icon { color: #ff5500; }
+
 .btn-paste:hover {
   background-color: var(--border-subtle);
   color: var(--text-main);

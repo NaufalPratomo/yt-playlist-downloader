@@ -42,7 +42,7 @@ pre {{ background: #1a2634; color: #69db7c; padding: 16px; border-radius: 8px;
        border: 1px solid #2c3e50; }}
 .info {{ color: #74c0fc; margin-top: 20px; font-size: 0.9em; }}
 </style></head><body>
-<h1>⚠️ MusicGit Engine Failed to Start</h1>
+<h1>MusicGit Engine Failed to Start</h1>
 <h2>Error Details:</h2>
 <pre>{error_message}</pre>
 <div class="info">

@@ -112,6 +112,7 @@ class AudioPlayerEngine {
     this.timelineWrap = document.querySelector(".timeline-slider-wrap");
 
     this.isSeeking = false;
+    this._wakeLock = null;
 
     this._initListeners();
     this.setVolume(1.0);
@@ -122,6 +123,8 @@ class AudioPlayerEngine {
     this.audio.addEventListener("play", () => {
       this.isPlaying = true;
       this._updatePlayButtonState();
+      this._setScreenWake(true);
+      this._notifyAndroidMedia(true);
       if ("mediaSession" in navigator) {
         navigator.mediaSession.playbackState = "playing";
       }
@@ -130,6 +133,8 @@ class AudioPlayerEngine {
     this.audio.addEventListener("pause", () => {
       this.isPlaying = false;
       this._updatePlayButtonState();
+      this._setScreenWake(false);
+      this._notifyAndroidMedia(false);
       if ("mediaSession" in navigator) {
         navigator.mediaSession.playbackState = "paused";
       }
@@ -145,7 +150,16 @@ class AudioPlayerEngine {
     });
 
     this.audio.addEventListener("ended", () => {
+      this._setScreenWake(false);
+      this._notifyAndroidMedia(false);
       this._onTrackEnded();
+    });
+
+    this.audio.addEventListener("error", () => {
+      this.isPlaying = false;
+      this._updatePlayButtonState();
+      this._setScreenWake(false);
+      this._notifyAndroidMedia(false);
     });
 
     // Control buttons
@@ -276,6 +290,7 @@ class AudioPlayerEngine {
 
     // Trigger Android lock screen and system media controls
     this._updateMediaSession(track);
+    this._notifyAndroidMedia(true);
 
     // Trigger lyrics load
     LyricsEngine.loadLyrics(track);
@@ -334,6 +349,7 @@ class AudioPlayerEngine {
       this.seekFill.style.width = `${(targetTime / dur) * 100}%`;
       this.currentTimeLabel.textContent = this._formatTime(targetTime);
       LyricsEngine.onAudioTimeUpdate(targetTime);
+      this._notifyAndroidMedia(!this.audio.paused);
     }
   }
 
@@ -462,6 +478,61 @@ class AudioPlayerEngine {
         });
       }
     } catch (e) {}
+  }
+
+  _setScreenWake(keepAwake) {
+    // 1. Android Native Java-JS Bridge (MainActivity AndroidBridge)
+    if (window.AndroidBridge && typeof window.AndroidBridge.setKeepScreenOn === "function") {
+      try {
+        window.AndroidBridge.setKeepScreenOn(keepAwake);
+      } catch (e) {
+        console.warn("AndroidBridge setKeepScreenOn error:", e);
+      }
+    }
+
+    // 2. Web Screen Wake Lock API (if supported by modern browser / PWA)
+    if ("wakeLock" in navigator && navigator.wakeLock.request) {
+      if (keepAwake) {
+        if (!this._wakeLock) {
+          navigator.wakeLock
+            .request("screen")
+            .then((lock) => {
+              this._wakeLock = lock;
+              lock.addEventListener("release", () => {
+                this._wakeLock = null;
+              });
+            })
+            .catch(() => {});
+        }
+      } else {
+        if (this._wakeLock) {
+          try {
+            this._wakeLock.release();
+          } catch (e) {}
+          this._wakeLock = null;
+        }
+      }
+    }
+  }
+
+  _notifyAndroidMedia(isPlaying) {
+    if (window.AndroidBridge && typeof window.AndroidBridge.updatePlaybackState === "function") {
+      try {
+        const track = this.currentTrack || {};
+        const title = track.title || "Judul Lagu";
+        const artist = track.artist || "Unknown Artist";
+        const album = track.album || "MusicGit";
+        let coverUrl = track.cover_url || "";
+        if (coverUrl && !coverUrl.startsWith("http")) {
+          coverUrl = new URL(coverUrl, window.location.href).href;
+        }
+        const duration = this.audio.duration || 0;
+        const position = this.audio.currentTime || 0;
+        window.AndroidBridge.updatePlaybackState(title, artist, album, coverUrl, duration, position, isPlaying);
+      } catch (e) {
+        console.warn("AndroidBridge updatePlaybackState error:", e);
+      }
+    }
   }
 
   _onTrackEnded() {
@@ -1653,9 +1724,10 @@ class DownloaderSyncEngine {
       const data = await res.json();
       MusicGitState.analyzedData = data;
 
+      const providerLabel = (data.provider || "youtube").toUpperCase();
       document.getElementById("dl-banner-title").textContent = data.title;
-      document.getElementById("dl-banner-author").textContent = data.uploader ? `${I18nManager.t("dl_uploaded_by")}: ${data.uploader}` : "";
-      document.getElementById("dl-banner-count").textContent = `${data.total_tracks} ${I18nManager.t("lib_songs_suffix")}`;
+      document.getElementById("dl-banner-author").textContent = data.uploader ? `[${providerLabel}] ${data.uploader}` : `[${providerLabel}]`;
+      document.getElementById("dl-banner-count").textContent = `${data.total_tracks || data.track_count || (data.tracks ? data.tracks.length : 0)} ${I18nManager.t("lib_songs_suffix")}`;
       document.getElementById("dl-banner-duration").textContent = data.total_duration_formatted || "--:--";
       document.getElementById("input-dl-album").value = data.title;
       document.getElementById("input-dl-subfolder").value = data.title;
@@ -2302,8 +2374,9 @@ const I18N_DICTIONARY = {
 
     dl_title: "Download & Sinkronisasi Playlist",
     dl_desc: "Unduh playlist atau video satuan dengan cover art 1:1, ID3 tags lengkap, dan lirik bersinkronisasi.",
-    dl_url_label: "URL YouTube Playlist / Video",
-    dl_url_placeholder: "Masukkan link Playlist atau Video YouTube...",
+    dl_url_label: "URL Playlist / Lagu (YouTube, Spotify, Deezer, Apple Music, SoundCloud)",
+    dl_url_placeholder: "Tempel link YouTube, Spotify, Deezer, Apple Music, atau SoundCloud...",
+    dl_supported_platforms: "Mendukung:",
     dl_btn_paste_title: "Tempel dari Clipboard",
     dl_btn_paste: "Tempel",
     dl_btn_analyze: "Analisis Link",
@@ -2343,8 +2416,8 @@ const I18N_DICTIONARY = {
     dl_prog_eta_prefix: "Sisa: ",
     dl_prog_counts_done: "Selesai",
     dl_prog_speed_done: "Selesai",
-    dl_prog_completed_all: "✅ Selesai! Semua {count} lagu berhasil diunduh.",
-    dl_prog_failed_count: "❌ {count} lagu gagal diunduh.",
+    dl_prog_completed_all: "Selesai! Semua {count} lagu berhasil diunduh.",
+    dl_prog_failed_count: "{count} lagu gagal diunduh.",
     dl_btn_open_dest: "Buka Folder Tujuan",
     dl_banner_completed_title: "Unduhan Selesai & Berhasil!",
     dl_banner_completed_title_stat: "Unduhan Selesai! ({completed}/{total} Lagu Berhasil)",
@@ -2357,14 +2430,14 @@ const I18N_DICTIONARY = {
     dl_log_clear: "Bersihkan",
     dl_log_ready: "[Sistem] Siap menerima proses download...",
     badge_syncing: "Syncing",
-    badge_done: "✓ Selesai",
+    badge_done: "Selesai",
 
     queue_status_queued: "Antri",
     queue_status_downloading: "Unduh",
     queue_status_converting: "Konversi",
     queue_status_tagging: "ID3 Tag",
     queue_status_lyrics: "Lirik",
-    queue_status_ok: "✓ OK",
+    queue_status_ok: "OK",
     queue_status_failed: "Gagal",
 
     tag_title: "Manajer Tag & Sinkronisasi Folder",
@@ -2458,8 +2531,8 @@ const I18N_DICTIONARY = {
     modal_sync_prep: "Menyiapkan download...",
     modal_sync_prep_count: "Menyiapkan download {count} lagu baru...",
     modal_sync_downloading: "Mengunduh: ",
-    modal_sync_completed: "✅ Selesai! {completed} lagu baru berhasil ditambahkan.",
-    modal_sync_failed: "❌ Gagal: {error}",
+    modal_sync_completed: "Selesai! {completed} lagu baru berhasil ditambahkan.",
+    modal_sync_failed: "Gagal: {error}",
     modal_sync_btn_download_pre: "Download",
     modal_sync_btn_download_post: "Lagu Baru Saja",
   },
@@ -2524,9 +2597,10 @@ const I18N_DICTIONARY = {
     lib_open_folder: "Open Folder",
 
     dl_title: "Download & Sync Playlists",
-    dl_desc: "Download playlists or single tracks with 1:1 cover art, complete ID3 tags, and synchronized lyrics.",
-    dl_url_label: "YouTube Playlist / Video URL",
-    dl_url_placeholder: "Enter YouTube Playlist or Video link...",
+    dl_desc: "Download playlists or single tracks with 1:1 cover art, full ID3 tags, and synced lyrics.",
+    dl_url_label: "Playlist / Track URL (YouTube, Spotify, Deezer, Apple Music, SoundCloud)",
+    dl_url_placeholder: "Paste YouTube, Spotify, Deezer, Apple Music, or SoundCloud link...",
+    dl_supported_platforms: "Supported:",
     dl_btn_paste_title: "Paste from Clipboard",
     dl_btn_paste: "Paste",
     dl_btn_analyze: "Analyze Link",
@@ -2566,8 +2640,8 @@ const I18N_DICTIONARY = {
     dl_prog_eta_prefix: "ETA: ",
     dl_prog_counts_done: "Completed",
     dl_prog_speed_done: "Done",
-    dl_prog_completed_all: "✅ Done! All {count} songs successfully downloaded.",
-    dl_prog_failed_count: "❌ {count} songs failed to download.",
+    dl_prog_completed_all: "Done! All {count} songs successfully downloaded.",
+    dl_prog_failed_count: "{count} songs failed to download.",
     dl_btn_open_dest: "Open Destination Folder",
     dl_banner_completed_title: "Download Complete & Successful!",
     dl_banner_completed_title_stat: "Download Complete! ({completed}/{total} Songs Successful)",
@@ -2580,14 +2654,14 @@ const I18N_DICTIONARY = {
     dl_log_clear: "Clear",
     dl_log_ready: "[System] Ready to accept download job...",
     badge_syncing: "Syncing",
-    badge_done: "✓ Done",
+    badge_done: "Done",
 
     queue_status_queued: "Queued",
     queue_status_downloading: "Downloading",
     queue_status_converting: "Converting",
     queue_status_tagging: "ID3 Tag",
     queue_status_lyrics: "Lyrics",
-    queue_status_ok: "✓ OK",
+    queue_status_ok: "OK",
     queue_status_failed: "Failed",
 
     tag_title: "Tag & Folder Sync Manager",
@@ -2681,8 +2755,8 @@ const I18N_DICTIONARY = {
     modal_sync_prep: "Preparing download...",
     modal_sync_prep_count: "Preparing download for {count} new songs...",
     modal_sync_downloading: "Downloading: ",
-    modal_sync_completed: "✅ Done! {completed} new songs successfully added.",
-    modal_sync_failed: "❌ Failed: {error}",
+    modal_sync_completed: "Done! {completed} new songs successfully added.",
+    modal_sync_failed: "Failed: {error}",
     modal_sync_btn_download_pre: "Download",
     modal_sync_btn_download_post: "New Songs Only",
   }

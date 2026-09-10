@@ -14,6 +14,7 @@ if exist "dist\MusicGit" rmdir /s /q "dist\MusicGit"
 if exist "dist\MusicGit.zip" del /f /q "dist\MusicGit.zip"
 if exist "dist\MusicGit-v2.0-Windows.zip" del /f /q "dist\MusicGit-v2.0-Windows.zip"
 if exist "dist\MusicGit-v2.2-Windows.zip" del /f /q "dist\MusicGit-v2.2-Windows.zip"
+if exist "dist\MusicGit-v2.3-Windows.zip" del /f /q "dist\MusicGit-v2.3-Windows.zip"
 
 echo.
 echo 2. Memeriksa dependensi Python...
@@ -35,13 +36,13 @@ if exist "%LOCALAPPDATA%\Microsoft\WinGet\Links\ffmpeg.exe" (
 echo.
 echo 5. Menyinkronkan APK Android terbaru jika tersedia...
 if exist "android\app\build\outputs\apk\debug\app-debug.apk" (
-    copy /Y "android\app\build\outputs\apk\debug\app-debug.apk" "dist\MusicGit-v2.2-Android.apk"
+    copy /Y "android\app\build\outputs\apk\debug\app-debug.apk" "dist\MusicGit-v2.3-Android.apk"
 )
 
 echo.
 echo.
 echo 6. Membuat file ZIP rilis untuk GitHub Releases...
-python -c "import shutil; shutil.make_archive('dist/MusicGit-v2.2-Windows', 'zip', 'dist', 'MusicGit')"
+python -c "import shutil; shutil.make_archive('dist/MusicGit-v2.3-Windows', 'zip', 'dist', 'MusicGit')"
 
 echo.
 echo 7. Memeriksa Inno Setup untuk membuat file installer Setup (.exe)...
@@ -52,9 +53,9 @@ if exist "%LocalAppData%\Programs\Inno Setup 6\iscc.exe" set "ISCC_EXE=%LocalApp
 
 if "%ISCC_EXE%"=="" goto NO_INNO
 echo    Inno Setup ditemukan: %ISCC_EXE%
-echo    Mengompilasi dist\MusicGit-v2.2-Setup.exe...
+echo    Mengompilasi dist\MusicGit-v2.3-Setup.exe...
 "%ISCC_EXE%" installer.iss
-echo    File Installer: dist\MusicGit-v2.2-Setup.exe
+echo    File Installer: dist\MusicGit-v2.3-Setup.exe
 goto INNO_DONE
 
 :NO_INNO
@@ -66,8 +67,8 @@ echo.
 echo ========================================================
 echo   BUILD DESKTOP WINDOWS SELESAI!
 echo   Folder App : dist\MusicGit\MusicGit.exe
-echo   File ZIP   : dist\MusicGit-v2.2-Windows.zip
-if exist "dist\MusicGit-v2.2-Setup.exe" echo   Installer  : dist\MusicGit-v2.2-Setup.exe
+echo   File ZIP   : dist\MusicGit-v2.3-Windows.zip
+if exist "dist\MusicGit-v2.3-Setup.exe" echo   Installer  : dist\MusicGit-v2.3-Setup.exe
 echo ========================================================
 
 

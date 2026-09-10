@@ -46,7 +46,8 @@ MusicGit memperlakukan **YouTube Playlist** seperti *Remote Repository* dan fold
 ### 1. Dukungan Multi-Platform (Desktop Windows & Android APK)
 - **Desktop (Windows)**: Aplikasi native ringan menggunakan framework `pywebview` dan server FastAPI lokal.
 - **Mobile (Android APK)**: Ditenagai embedded Python engine (`Chaquopy`) yang menjalankan backend FastAPI langsung di dalam perangkat Android. Python dijalankan langsung dari `MainActivity` dengan diagnostik error lengkap dan polling server otomatis.
-- **Background Media Playback (Android)**: Dilengkapi Android Foreground Service dan notifikasi media sehingga musik tetap berputar mulus saat layar mati atau berpindah aplikasi.
+- **Playback Media & Pusat Notifikasi Android**: Dilengkapi Android Foreground Service dengan kontrol native `MediaSessionCompat` dan `NotificationCompat.MediaStyle` (Previous, Play/Pause, Next, Seekbar, dan Cover Album) pada Pusat Notifikasi dan Layar Kunci Android 13+.
+- **Pertahankan Layar Menyala (Keep Screen Awake)**: Layar ponsel tidak akan mati atau meredup otomatis saat lagu sedang berputar.
 - **Mobile Responsive UI**: Tampilan adaptif dengan *Bottom Navigation Bar*, *compact player bar*, dan navigasi sentuh yang dioptimalkan untuk layar ponsel.
 - **Tema Gelap / Terang**: Pergantian tema lengkap dengan pertukaran logo dinamis (aset branding dark mode & light mode), preferensi disimpan via `localStorage`.
 
@@ -56,19 +57,21 @@ MusicGit memperlakukan **YouTube Playlist** seperti *Remote Repository* dan fold
 - **Click-to-Seek**: Klik pada baris lirik mana saja untuk langsung melompat ke detik audio tersebut.
 - Antrian putar (*Playback Queue*), tampilan layar penuh lirik (*Full Karaoke View*), dan pintasan keyboard desktop (`Space`, `ArrowLeft/Right`, `ArrowUp/Down`).
 
-### 3. Sinkronisasi Playlist YouTube (Git Pull for Music)
+### 3. Downloader Musik & Playlist Multi-Provider (v2.3)
+- **Universal Music Engine**: Unduh playlist, album, dan track dari **YouTube, Spotify, Deezer, Apple Music, dan SoundCloud**.
+- **Artwork Asli & Resolusi Tinggi**: Otomatis mengambil cover art resolusi tinggi langsung dari Deezer (1000x1000), Apple Music, dan Spotify.
+- **Pencocokan Audio Cerdas (Audio Matcher)**: Menggunakan algoritma fuzzy search berbobot durasi untuk mencocokkan track platform eksternal ke audio stream resmi berkualitas terbaik.
+- **Preservasi Metadata Bersih**: Judul asli, artis, album, nomor track, dan tahun rilis tertanam bersih tanpa embel-embel judul video.
+
+### 4. Sinkronisasi Playlist YouTube (Git Pull for Music)
 - Tautkan folder playlist lokal ke YouTube Playlist ID / URL.
 - Deteksi otomatis lagu baru yang baru saja ditambahkan di YouTube.
 - Diff perbandingan status lagu (*Lokal OK* vs *+ Baru*).
 - Unduh selektif lagu baru dengan 1-klik saja.
 
-### 4. Downloader Audio Berkualitas Tinggi
-- Mendukung tautan playlist YouTube maupun single video.
+### 5. Downloader Audio Berkualitas Tinggi & ID3v2 Metadata
 - Pilihan bitrate MP3: **192 kbps**, **256 kbps**, **320 kbps**, dan **128 kbps**.
 - Template penamaan file kustom (`{num}. {title}-{id}.mp3`, `{artist} - {title}.mp3`, dll).
-- Real-time progress bar, kecepatan unduh, perkiraan sisa waktu (ETA), dan log aktivitas SSE.
-
-### 5. ID3v2 Metadata & Album Unity
 - Otomatis memotong (*center-crop*) cover art resolusi tinggi menjadi rasio 1:1.
 - Menulis metadata ID3v2 lengkap: Track Number (`TRCK`), Judul (`TIT2`), Artis (`TPE1`), Album (`TALB`), Artis Album (`TPE2`), dan Tahun rilis (`TDRC`).
 - Menggabungkan lagu dalam 1 playlist menjadi 1 album utuh di Windows Media Player / Groove Music / Apple Music / Head Unit Mobil / Pemutar Musik Android.
@@ -115,7 +118,7 @@ Untuk menghasilkan file `.exe` mandiri beserta arsip `.zip` menggunakan PyInstal
 # Double-click build_exe.bat atau jalankan melalui CMD:
 build_exe.bat
 ```
-File output akan tersedia di direktori `dist/MusicGit/MusicGit.exe` dan `dist/MusicGit-v2.2-Windows.zip`.
+File output akan tersedia di direktori `dist/MusicGit/MusicGit.exe` dan `dist/MusicGit-v2.3-Windows.zip`.
 
 ---
 
@@ -157,11 +160,13 @@ yt-playlist-downloader/
 ├── backend/
 │   ├── __init__.py           # Penanda package Python
 │   ├── app.py                # Server FastAPI, endpoint REST & SSE event streaming
+│   ├── audio_matcher.py      # Algoritma pencocokan audio lintas platform & durasi
 │   ├── library_manager.py    # Pemindai library musik, .musicgit metadata, & LRC parser
 │   ├── cover_processor.py    # Pemrosesan & center-cropping cover art 1:1
-│   ├── downloader.py         # Engine download yt-dlp & playlist diff sync
+│   ├── downloader.py         # Engine download multi-provider & playlist diff sync
 │   ├── lyrics_fetcher.py     # Integrasi API LRCLIB (lirik plain & .lrc)
 │   ├── metadata_tagger.py    # Penulisan tag ID3v2 & album unity
+│   ├── providers/            # Modul multi-provider (Spotify, Apple Music, Deezer, dll)
 │   └── utils.py              # Helper dialog Windows, deteksi path lintas OS (Win/Android)
 ├── frontend/
 │   ├── assets/

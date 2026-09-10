@@ -18,6 +18,8 @@ from .cover_processor import cover_processor
 from .lyrics_fetcher import lyrics_fetcher
 from .metadata_tagger import metadata_tagger
 from .utils import get_ffmpeg_path, sanitize_filename
+from .audio_matcher import audio_matcher
+from .providers import get_provider_for_url
 
 logger = logging.getLogger("downloader")
 
@@ -36,73 +38,16 @@ class PlaylistDownloader:
 
     def analyze_url(self, url: str) -> Dict[str, Any]:
         """
-        Analyze YouTube URL (Playlist or Single Video) and extract tracklist and metadata.
+        Analyze URL from supported providers (YouTube, Spotify, Deezer, Apple Music, SoundCloud)
+        and extract tracklist and metadata.
         """
-        ydl_opts = {
-            "extract_flat": True,
-            "skip_download": True,
-            "quiet": True,
-            "no_warnings": True,
-            "ignoreerrors": True,
-            "nocheckcertificate": True,
-            "geo_bypass": True,
-            "extractor_args": DEFAULT_EXTRACTOR_ARGS,
-        }
+        provider = get_provider_for_url(url)
+        res = provider.extract_tracklist(url)
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-
-        if not info:
-            raise ValueError("Tidak dapat menemukan informasi playlist atau video.")
-
-        is_playlist = info.get("_type") == "playlist" or "entries" in info
-        playlist_title = info.get("title", "YouTube Playlist")
-        
-        if not is_playlist:
-            tracks_raw = [info]
-            playlist_title = info.get("title", "Downloads")
-        else:
-            entries = info.get("entries", [])
-            tracks_raw = [e for e in entries if e]
-
-        tracks = []
-        for idx, entry in enumerate(tracks_raw, start=1):
-            raw_title = entry.get("title", "Unknown Title")
-            raw_artist = (
-                entry.get("artist")
-                or entry.get("creator")
-                or entry.get("uploader")
-                or entry.get("channel")
-            )
-            raw_uploader = entry.get("uploader") or entry.get("channel")
-            
-            clean_title, clean_artist = metadata_tagger.clean_title_and_artist(
-                raw_title, raw_artist=raw_artist, raw_uploader=raw_uploader
-            )
-
-            thumbnail = entry.get("thumbnail") or ""
-            if not thumbnail and entry.get("thumbnails"):
-                thumbs = entry.get("thumbnails", [])
-                thumbnail = thumbs[-1].get("url", "")
-
-            video_id = entry.get("id") or ""
-            if not thumbnail and video_id:
-                thumbnail = f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
-
-            duration = entry.get("duration") or 0
-            
-            tracks.append({
-                "index": idx,
-                "id": video_id,
-                "url": f"https://www.youtube.com/watch?v={video_id}" if video_id else entry.get("url", ""),
-                "raw_title": raw_title,
-                "title": clean_title,
-                "artist": clean_artist,
-                "duration": duration,
-                "duration_formatted": self._format_duration(duration),
-                "thumbnail": thumbnail,
-                "selected": True,
-            })
+        tracks = res.get("tracks", [])
+        for t in tracks:
+            t["duration_formatted"] = self._format_duration(t.get("duration", 0))
+            t["selected"] = True
 
         unique_artists = list(dict.fromkeys(t["artist"] for t in tracks if t.get("artist") and t["artist"] != "Unknown Artist"))
         if len(unique_artists) == 1:
@@ -112,15 +57,19 @@ class PlaylistDownloader:
             suggested_album_artist = "Various Artists"
             is_compilation = len(tracks) > 1
 
+        is_playlist = res.get("type") == "playlist" or len(tracks) > 1
+        cover_thumb = res.get("cover_url") or (tracks[0]["thumbnail"] if tracks else "")
+
         return {
             "is_playlist": is_playlist,
-            "playlist_id": info.get("id", ""),
-            "title": playlist_title,
-            "uploader": info.get("uploader") or info.get("channel") or "YouTube",
+            "playlist_id": res.get("id", ""),
+            "title": res.get("title", "Music Playlist"),
+            "uploader": suggested_album_artist,
             "track_count": len(tracks),
-            "thumbnail": tracks[0]["thumbnail"] if tracks else "",
+            "thumbnail": cover_thumb,
             "album_artist": suggested_album_artist,
             "is_compilation": is_compilation,
+            "provider": res.get("provider", provider.name),
             "tracks": tracks,
         }
 
@@ -235,12 +184,26 @@ class PlaylistDownloader:
         playlist_cover_saved = False
 
         for idx, track in enumerate(tracks, start=1):
-            track_id = track["id"]
+            track_id = str(track["id"])
+            safe_track_id = sanitize_filename(track_id)
             track_num = track.get("index", idx)
             title = track.get("title", "Unknown Title")
             artist = track.get("artist", "Unknown Artist")
-            video_url = track.get("url") or f"https://www.youtube.com/watch?v={track_id}"
+            provider_name = track.get("provider", "youtube")
             thumb_url = track.get("thumbnail", "")
+
+            # Resolve video audio URL if from Spotify / Deezer / Apple Music
+            video_url = track.get("url") or ""
+            if provider_name in ["spotify", "deezer", "apple_music"] or track.get("search_query"):
+                if is_en:
+                    self._add_log(job, f"[{idx}/{len(tracks)}] Searching best audio on YouTube: {artist} - {title}...")
+                else:
+                    self._add_log(job, f"[{idx}/{len(tracks)}] Mencocokkan audio di YouTube: {artist} - {title}...")
+                matched = audio_matcher.match_track(track)
+                if matched:
+                    video_url = matched
+            elif not video_url:
+                video_url = f"https://www.youtube.com/watch?v={track_id}"
 
             job["current_track_index"] = idx
             job["current_track_title"] = f"{artist} - {title}"
@@ -258,11 +221,11 @@ class PlaylistDownloader:
                 track_number=track_num,
                 title=title,
                 artist=artist,
-                video_id=track_id,
+                video_id=safe_track_id,
             )
             final_mp3_path = os.path.join(target_dir, final_filename)
-            raw_out_path = os.path.join(target_dir, f"{track_id}.%(ext)s")
-            expected_intermediate_mp3 = os.path.join(target_dir, f"{track_id}.mp3")
+            raw_out_path = os.path.join(target_dir, f"{safe_track_id}.%(ext)s")
+            expected_intermediate_mp3 = os.path.join(target_dir, f"{safe_track_id}.mp3")
 
             try:
                 def progress_hook(d):

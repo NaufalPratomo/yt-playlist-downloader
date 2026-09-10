@@ -46,7 +46,8 @@ MusicGit treats your **YouTube Playlist** like a *Remote Repository* and your lo
 ### 1. Multi-Platform Support (Desktop Windows & Android APK)
 - **Desktop (Windows)**: Lightweight native window powered by `pywebview` and local FastAPI server.
 - **Mobile (Android APK)**: Powered by an embedded Python runtime (`Chaquopy`) executing the FastAPI backend natively on your Android device. Python boots directly from `MainActivity` with full error diagnostics and automatic server polling.
-- **Background Media Playback (Android)**: Features an Android Foreground Service and system media notification so music keeps playing seamlessly when the screen is locked or while multitasking.
+- **Android Media Playback & Notification Center**: Built-in Android Foreground Service with native `MediaSessionCompat` and `NotificationCompat.MediaStyle` controls (Previous, Play/Pause, Next, Seekbar, and Artwork) on Android 13+ Notification Centre and Lock Screen.
+- **Keep Screen Awake**: Configurable display wake lock prevents screen dimming/sleeping while music is actively playing.
 - **Mobile Responsive UI**: Adaptive glassmorphism UI with *Bottom Navigation Bar*, *compact player bar*, and touch-optimized navigation for smartphone screens.
 - **Dark / Light Theme**: Full theme switching with dynamic logo swap (dark mode & light mode branding assets), persistent user preference via `localStorage`.
 
@@ -56,20 +57,22 @@ MusicGit treats your **YouTube Playlist** like a *Remote Repository* and your lo
 - **Click-to-Seek**: Click on any lyric line to instantly seek and jump playback to that timestamp.
 - Playback queue manager, full-screen immersive karaoke view, and desktop keyboard shortcuts (`Space`, `ArrowLeft/Right`, `ArrowUp/Down`).
 
-### 3. YouTube Playlist Synchronization (Git Pull for Music)
+### 3. Multi-Provider Music & Playlist Downloader (v2.3)
+- **Universal Provider Engine**: Download playlists, albums, and tracks from **YouTube, Spotify, Deezer, Apple Music, and SoundCloud**.
+- **Lossless & Official Artwork**: Fetches high-resolution cover artwork directly from Deezer (1000x1000), Apple Music, and Spotify.
+- **Intelligent Audio Matcher**: Duration-weighted fuzzy matching automatically pairs external platform tracks with the highest quality official audio streams.
+- **Clean Tag Preservation**: Original track titles, artists, album names, track numbers, and release dates are faithfully embedded without YouTube video noise.
+
+### 4. YouTube Playlist Synchronization (Git Pull for Music)
 - Link local playlist directories to YouTube Playlist IDs / URLs.
 - Automatically detect newly added tracks on YouTube.
 - Visual diff comparison (*Local OK* vs *+ New*).
 - 1-Click selective batch download for new tracks.
 
-### 4. High-Quality Audio Downloader
-- Supports both YouTube playlists and individual video URLs.
+### 5. High-Quality Audio Downloader & ID3v2 Metadata
 - MP3 bitrate options: **192 kbps**, **256 kbps**, **320 kbps**, and **128 kbps**.
 - Custom filename templates (`{num}. {title}-{id}.mp3`, `{artist} - {title}.mp3`, etc.).
-- Real-time download progress bar, network speed, estimated time remaining (ETA), and Server-Sent Events (SSE) activity log.
-
-### 5. ID3v2 Metadata & Album Unity
-- Automatically center-crops high-resolution YouTube thumbnails into clean 1:1 square cover art.
+- Automatically center-crops thumbnails into clean 1:1 square cover art.
 - Embeds complete ID3v2 tags: Track Number (`TRCK`), Title (`TIT2`), Artist (`TPE1`), Album (`TALB`), Album Artist (`TPE2`), and Release Year (`TDRC`).
 - Unifies playlist tracks under one coherent album for Windows Media Player, Apple Music, car head units, and Android music players.
 
@@ -115,7 +118,7 @@ To generate a standalone `.exe` and portable `.zip` archive using PyInstaller:
 # Double-click build_exe.bat or execute in CMD:
 build_exe.bat
 ```
-The compiled output will be generated in `dist/MusicGit.exe` and `dist/MusicGit-v2.2-Windows.zip`.
+The compiled output will be generated in `dist/MusicGit.exe` and `dist/MusicGit-v2.3-Windows.zip`.
 
 ---
 
@@ -157,11 +160,13 @@ yt-playlist-downloader/
 ├── backend/
 │   ├── __init__.py           # Python package marker
 │   ├── app.py                # FastAPI server, REST endpoints & SSE streaming
+│   ├── audio_matcher.py      # Cross-provider fuzzy audio search & duration matcher
 │   ├── library_manager.py    # Music library scanner, .musicgit metadata & LRC parser
 │   ├── cover_processor.py    # 1:1 center-cropping & artwork processing
-│   ├── downloader.py         # yt-dlp download engine & playlist diff sync
+│   ├── downloader.py         # Multi-provider download engine & playlist diff sync
 │   ├── lyrics_fetcher.py     # LRCLIB API integration (plain & synced .lrc)
 │   ├── metadata_tagger.py    # ID3v2 tagging & album unity writer
+│   ├── providers/            # Multi-provider modules (Spotify, Apple Music, Deezer, etc.)
 │   └── utils.py              # Cross-platform path helpers (Windows / Android)
 ├── frontend/
 │   ├── assets/

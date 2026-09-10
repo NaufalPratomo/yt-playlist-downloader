@@ -122,10 +122,13 @@ class TrackItem(BaseModel):
     url: Optional[str] = None
     title: str
     artist: str
+    album: Optional[str] = None
     duration: Optional[float] = 0
     duration_formatted: Optional[str] = "--:--"
     thumbnail: Optional[str] = ""
     selected: Optional[bool] = True
+    provider: Optional[str] = "youtube"
+    search_query: Optional[str] = None
 
 
 class StartDownloadRequest(BaseModel):
