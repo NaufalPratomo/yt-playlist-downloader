@@ -4,9 +4,9 @@
 
 # MusicGit
 
-**Cross-Platform (Desktop & Android) Music Player, Real-Time Synchronized Lyrics, and YouTube Playlist Git-Like Sync Engine**
+**Cross-Platform (Desktop Windows & Android) Multi-Provider Music Downloader, Player, Real-Time Synchronized Lyrics, dan Git-Like Sync Engine**
 
-Unduh playlist atau video YouTube menjadi file MP3 berkualitas tinggi lengkap dengan metadata ID3v2, cover art 1:1, lirik lagu otomatis (.lrc), pemutar musik bawaan (*Built-in Music Player*), tampilan lirik karaoke (*Time-Synced LRC*), sinkronisasi cerdas playlist YouTube (*Git Pull for Music*), serta dukungan penuh untuk **Desktop Windows (.exe)** dan **Android Mobile (.apk)**.
+Unduh playlist, album, dan lagu dari **YouTube, Spotify, Deezer, Apple Music, dan SoundCloud** menjadi file MP3 berkualitas tinggi lengkap dengan metadata ID3v2 resmi, cover art kotak 1:1, lirik lagu otomatis (.lrc), kontrol media notification centre & lock screen Android, fitur layar tetap menyala (*Keep Screen Awake*), pemutar musik bawaan (*Built-in Music Player*), tampilan lirik karaoke (*Time-Synced LRC*), serta sinkronisasi cerdas playlist (*Git Pull for Music*).
 
 [English](README.md) • [Bahasa Indonesia](README.id.md)
 
@@ -18,6 +18,11 @@ Unduh playlist atau video YouTube menjadi file MP3 berkualitas tinggi lengkap de
 
 <br/>
 
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtube.com/)
+[![Spotify](https://img.shields.io/badge/Spotify-1ED760?style=flat-square&logo=spotify&logoColor=white)](https://spotify.com/)
+[![Deezer](https://img.shields.io/badge/Deezer-A238FF?style=flat-square&logo=deezer&logoColor=white)](https://deezer.com/)
+[![Apple Music](https://img.shields.io/badge/Apple_Music-FA2D48?style=flat-square&logo=apple-music&logoColor=white)](https://music.apple.com/)
+[![SoundCloud](https://img.shields.io/badge/SoundCloud-FF5500?style=flat-square&logo=soundcloud&logoColor=white)](https://soundcloud.com/)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Android](https://img.shields.io/badge/Mobile-Android_(Chaquopy)-3ddc84?style=flat-square&logo=android)](https://developer.android.com/)
@@ -32,36 +37,41 @@ Unduh playlist atau video YouTube menjadi file MP3 berkualitas tinggi lengkap de
 
 ## Konsep Filosofi MusicGit
 
-MusicGit memperlakukan **YouTube Playlist** seperti *Remote Repository* dan folder musik lokal di PC / Android Anda sebagai *Local Repository*:
-- **Remote Mapping**: Setiap folder playlist lokal otomatis menyimpan tautan remote YouTube dalam file metadata `.musicgit.json`.
-- **Git Pull / Sync Engine**: Bandingkan perbedaan (*Diff*) antara daftar lagu di YouTube dengan koleksi file lokal. Cukup 1-klik tombol **"Sync with YouTube"** untuk mengunduh lagu-lagu baru yang belum tersimpan di lokal tanpa mengunduh ulang lagu yang sudah ada.
+MusicGit memperlakukan **Playlist Musik** seperti *Remote Repository* dan folder musik lokal di PC atau ponsel Android Anda sebagai *Local Repository*:
+- **Remote Mapping**: Setiap folder playlist lokal otomatis menyimpan tautan remote dalam file metadata `.musicgit.json`.
+- **Git Pull / Sync Engine**: Bandingkan perbedaan (*Diff*) antara daftar lagu pada remote playlist dengan koleksi file lokal Anda. Cukup 1-klik tombol **"Sync with YouTube"** untuk mengunduh lagu-lagu baru yang belum tersimpan di lokal tanpa mengunduh ulang lagu yang sudah ada.
+- **Dukungan Multi-Provider Universal**: Cukup tempel link dari YouTube, Spotify, Deezer, Apple Music, atau SoundCloud. Sistem secara cerdas mendeteksi platform penyedia, mengekstrak tracklist resmi, dan mengunduh audio dengan akurasi tinggi.
 - **Built-in Music Player**: Dengarkan seluruh koleksi musik langsung di dalam aplikasi (Desktop & Mobile) tanpa membutuhkan player pihak ketiga.
 - **Real-Time Synchronized Lyrics**: Menampilkan lirik lagu berjalan dengan sorotan baris aktif secara otomatis serta fitur interaktif *click-to-seek* (klik baris lirik untuk langsung melompat ke detik lagu tersebut).
-- **Cross-Platform Ready**: Nikmati pengalaman yang sama di Windows PC maupun ponsel pintar Android dengan sinkronisasi penyimpanan lokal (`Music/` folder).
+- **Cross-Platform Ready**: Nikmati pengalaman yang konsisten di Windows PC maupun ponsel pintar Android dengan sinkronisasi penyimpanan lokal (`Music/` folder).
 
 ---
 
 ## Fitur Utama
 
 ### 1. Dukungan Multi-Platform (Desktop Windows & Android APK)
-- **Desktop (Windows)**: Aplikasi native ringan menggunakan framework `pywebview` dan server FastAPI lokal.
+- **Desktop (Windows)**: Aplikasi native ringan menggunakan framework `pywebview` dan server FastAPI lokal. Tersedia dalam format installer setup (`.exe`) dan arsip portable (`.zip`).
 - **Mobile (Android APK)**: Ditenagai embedded Python engine (`Chaquopy`) yang menjalankan backend FastAPI langsung di dalam perangkat Android. Python dijalankan langsung dari `MainActivity` dengan diagnostik error lengkap dan polling server otomatis.
 - **Playback Media & Pusat Notifikasi Android**: Dilengkapi Android Foreground Service dengan kontrol native `MediaSessionCompat` dan `NotificationCompat.MediaStyle` (Previous, Play/Pause, Next, Seekbar, dan Cover Album) pada Pusat Notifikasi dan Layar Kunci Android 13+.
-- **Pertahankan Layar Menyala (Keep Screen Awake)**: Layar ponsel tidak akan mati atau meredup otomatis saat lagu sedang berputar.
+- **Pertahankan Layar Menyala (Keep Screen Awake)**: Fitur *Display Wake Lock* mencegah layar ponsel mati atau meredup otomatis saat lagu sedang berputar.
+- **Sistem Ikon 100% SVG**: Seluruh antarmuka menggunakan vektor SVG murni tanpa karakter emoji Unicode, menjamin ketajaman visual di seluruh resolusi layar.
 - **Mobile Responsive UI**: Tampilan adaptif dengan *Bottom Navigation Bar*, *compact player bar*, dan navigasi sentuh yang dioptimalkan untuk layar ponsel.
 - **Tema Gelap / Terang**: Pergantian tema lengkap dengan pertukaran logo dinamis (aset branding dark mode & light mode), preferensi disimpan via `localStorage`.
 
-### 2. Built-in Music Player & Real-time LRC Lyrics (Karaoke Mode)
+### 2. Downloader Musik & Playlist Multi-Provider (v2.3)
+- **Spotify**: Ekstraksi playlist, album, dan lagu tunggal melalui decoding schema JSON embed Next.js. Menghasilkan judul bersih, nama artis resmi, urutan lagu, dan cover art kotak 640x640 tanpa memerlukan API key developer Spotify.
+- **Deezer**: Terintegrasi langsung dengan API publik Deezer. Mendukung playlist, album, dan track tunggal dengan cover art lossless super jernih 1000x1000 pixels.
+- **Apple Music**: Penguraian katalog resmi untuk playlist terkurasi dan album musik.
+- **SoundCloud**: Ekstraksi langsung untuk sets/playlist dan lagu tunggal via engine native yt-dlp.
+- **YouTube & YouTube Music**: Sinkronisasi diff playlist lengkap, lagu tunggal, dan video Shorts.
+- **Pencocokan Audio Cerdas (Audio Matcher)**: Menggunakan algoritma fuzzy search berbobot durasi untuk mencocokkan lagu dari Spotify, Deezer, dan Apple Music ke audio resmi terbaik di YouTube Music.
+- **Preservasi Metadata Bersih**: Judul asli, artis, album, nomor track, dan tahun rilis tertanam bersih ke tag ID3v2 tanpa embel-embel judul video.
+
+### 3. Built-in Music Player & Real-time LRC Lyrics (Karaoke Mode)
 - Pemutar musik persisten dengan kontrol lengkap: *Play/Pause, Next, Previous, Shuffle, Repeat (All / One / Off), Timeline Seekbar, Volume Booster*.
 - Panel lirik bersinkronisasi waktu (*Time-Synced LRC*) dengan auto-scroll dan penanda baris aktif yang elegan.
 - **Click-to-Seek**: Klik pada baris lirik mana saja untuk langsung melompat ke detik audio tersebut.
 - Antrian putar (*Playback Queue*), tampilan layar penuh lirik (*Full Karaoke View*), dan pintasan keyboard desktop (`Space`, `ArrowLeft/Right`, `ArrowUp/Down`).
-
-### 3. Downloader Musik & Playlist Multi-Provider (v2.3)
-- **Universal Music Engine**: Unduh playlist, album, dan track dari **YouTube, Spotify, Deezer, Apple Music, dan SoundCloud**.
-- **Artwork Asli & Resolusi Tinggi**: Otomatis mengambil cover art resolusi tinggi langsung dari Deezer (1000x1000), Apple Music, dan Spotify.
-- **Pencocokan Audio Cerdas (Audio Matcher)**: Menggunakan algoritma fuzzy search berbobot durasi untuk mencocokkan track platform eksternal ke audio stream resmi berkualitas terbaik.
-- **Preservasi Metadata Bersih**: Judul asli, artis, album, nomor track, dan tahun rilis tertanam bersih tanpa embel-embel judul video.
 
 ### 4. Sinkronisasi Playlist YouTube (Git Pull for Music)
 - Tautkan folder playlist lokal ke YouTube Playlist ID / URL.
@@ -113,12 +123,15 @@ pip install -r requirements.txt
 
 ### 2. Build Standalone Windows Executable (.exe)
 
-Untuk menghasilkan file `.exe` mandiri beserta arsip `.zip` menggunakan PyInstaller:
+Untuk menghasilkan file `.exe` mandiri, installer setup, dan arsip `.zip`:
 ```bash
 # Double-click build_exe.bat atau jalankan melalui CMD:
 build_exe.bat
 ```
-File output akan tersedia di direktori `dist/MusicGit/MusicGit.exe` dan `dist/MusicGit-v2.3-Windows.zip`.
+File output akan tersedia di direktori `dist/`:
+- Folder portable: `dist/MusicGit/MusicGit.exe`
+- File ZIP rilis: `dist/MusicGit-v2.3-Windows.zip`
+- File Installer Setup (.exe): `dist/MusicGit-v2.3-Setup.exe` (via Inno Setup)
 
 ---
 
@@ -139,7 +152,8 @@ Aplikasi Android dibangun dengan Gradle dan Chaquopy yang mengemas backend Pytho
   ```
 
 > File APK hasil build akan tersimpan di:
-> `android/app/build/outputs/apk/debug/app-debug.apk`
+> - `dist/MusicGit-v2.3-Android.apk`
+> - `android/app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
@@ -152,7 +166,7 @@ yt-playlist-downloader/
 │   │   ├── build.gradle      # Konfigurasi dependensi Android & Chaquopy Python
 │   │   └── src/main/
 │   │       ├── AndroidManifest.xml
-│   │       ├── java/         # MainActivity (boot Python langsung) & BackgroundService
+│   │       ├── java/         # MainActivity, MediaSessionCompat & BackgroundService
 │   │       ├── python/       # Runner backend embedded (android_server.py)
 │   │       └── res/          # Ikon launcher (mipmap), tema & konfigurasi XML
 │   ├── build.gradle          # Root Gradle build script
@@ -166,7 +180,7 @@ yt-playlist-downloader/
 │   ├── downloader.py         # Engine download multi-provider & playlist diff sync
 │   ├── lyrics_fetcher.py     # Integrasi API LRCLIB (lirik plain & .lrc)
 │   ├── metadata_tagger.py    # Penulisan tag ID3v2 & album unity
-│   ├── providers/            # Modul multi-provider (Spotify, Apple Music, Deezer, dll)
+│   ├── providers/            # Modul multi-provider (Spotify, Apple Music, Deezer, SoundCloud, YouTube)
 │   └── utils.py              # Helper dialog Windows, deteksi path lintas OS (Win/Android)
 ├── frontend/
 │   ├── assets/
@@ -182,6 +196,7 @@ yt-playlist-downloader/
 ├── build_apk.bat             # Skrip otomatis build Android APK (.apk)
 ├── build_exe.bat             # Skrip otomatis build Windows Executable (.exe & .zip)
 ├── fix_existing_tags.py      # Skrip CLI perbaikan ID3 tags folder lokal
+├── installer.iss             # Skrip Inno Setup untuk installer Windows
 ├── package.json              # Konfigurasi package & scripts (dev:web, capacitor)
 ├── requirements.txt          # Dependensi Python
 ├── run.py                    # Launcher aplikasi desktop (pywebview + server)

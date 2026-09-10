@@ -4,9 +4,9 @@
 
 # MusicGit
 
-**Cross-Platform (Desktop & Android) Music Player, Real-Time Synchronized Lyrics, and YouTube Playlist Git-Like Sync Engine**
+**Cross-Platform (Desktop Windows & Android) Multi-Provider Music Downloader, Player, Real-Time Synchronized Lyrics, and Git-Like Sync Engine**
 
-Download YouTube playlists or videos into high-quality MP3 files with complete ID3v2 metadata, 1:1 center-cropped album artwork, automatic synchronized lyrics (.lrc), built-in desktop & mobile music player, real-time karaoke lyrics display (*Time-Synced LRC*), intelligent playlist synchronization (*Git Pull for Music*), and full support for both **Desktop Windows (.exe)** and **Android Mobile (.apk)**.
+Download playlists, albums, and tracks from **YouTube, Spotify, Deezer, Apple Music, and SoundCloud** into high-quality MP3 files with complete ID3v2 metadata, 1:1 square album artwork, automatic synchronized lyrics (.lrc), native Android lock screen and notification centre media controls, display wake lock, built-in desktop and mobile music player, real-time karaoke lyrics display (*Time-Synced LRC*), and intelligent playlist synchronization (*Git Pull for Music*).
 
 [English](README.md) • [Bahasa Indonesia](README.id.md)
 
@@ -18,6 +18,11 @@ Download YouTube playlists or videos into high-quality MP3 files with complete I
 
 <br/>
 
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtube.com/)
+[![Spotify](https://img.shields.io/badge/Spotify-1ED760?style=flat-square&logo=spotify&logoColor=white)](https://spotify.com/)
+[![Deezer](https://img.shields.io/badge/Deezer-A238FF?style=flat-square&logo=deezer&logoColor=white)](https://deezer.com/)
+[![Apple Music](https://img.shields.io/badge/Apple_Music-FA2D48?style=flat-square&logo=apple-music&logoColor=white)](https://music.apple.com/)
+[![SoundCloud](https://img.shields.io/badge/SoundCloud-FF5500?style=flat-square&logo=soundcloud&logoColor=white)](https://soundcloud.com/)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Android](https://img.shields.io/badge/Mobile-Android_(Chaquopy)-3ddc84?style=flat-square&logo=android)](https://developer.android.com/)
@@ -32,9 +37,10 @@ Download YouTube playlists or videos into high-quality MP3 files with complete I
 
 ## MusicGit Philosophy & Concept
 
-MusicGit treats your **YouTube Playlist** like a *Remote Repository* and your local music folder on PC / Android as the *Local Repository*:
-- **Remote Mapping**: Each local playlist directory automatically stores the remote YouTube link in a `.musicgit.json` metadata file.
-- **Git Pull / Sync Engine**: Compares the difference (*Diff*) between the tracks on YouTube and your local storage. Click the **"Sync with YouTube"** button to download only newly added songs without re-downloading existing ones.
+MusicGit treats your **Music Playlists** like a *Remote Repository* and your local music folder on PC or Android as the *Local Repository*:
+- **Remote Mapping**: Each local playlist directory automatically stores the remote link in a `.musicgit.json` metadata file.
+- **Git Pull / Sync Engine**: Compares the difference (*Diff*) between remote playlist tracks and your local storage. Click the **"Sync with YouTube"** button to download only newly added songs without re-downloading existing ones.
+- **Universal Provider Parsing**: Paste links from YouTube, Spotify, Deezer, Apple Music, or SoundCloud. The system detects the provider automatically, extracts clean tracklists, and downloads audio with matching fidelity.
 - **Built-in Music Player**: Listen to your entire music collection directly inside the application (Desktop & Mobile) without requiring third-party media players.
 - **Real-Time Synchronized Lyrics**: Displays synchronized scrolling lyrics with automated active line highlighting and interactive *click-to-seek* (click any lyric line to instantly jump to that exact audio timestamp).
 - **Cross-Platform Ready**: Enjoy a consistent experience across Windows PC and Android smartphones with local music storage synchronization (`Music/` directory).
@@ -44,24 +50,28 @@ MusicGit treats your **YouTube Playlist** like a *Remote Repository* and your lo
 ## Key Features
 
 ### 1. Multi-Platform Support (Desktop Windows & Android APK)
-- **Desktop (Windows)**: Lightweight native window powered by `pywebview` and local FastAPI server.
-- **Mobile (Android APK)**: Powered by an embedded Python runtime (`Chaquopy`) executing the FastAPI backend natively on your Android device. Python boots directly from `MainActivity` with full error diagnostics and automatic server polling.
-- **Android Media Playback & Notification Center**: Built-in Android Foreground Service with native `MediaSessionCompat` and `NotificationCompat.MediaStyle` controls (Previous, Play/Pause, Next, Seekbar, and Artwork) on Android 13+ Notification Centre and Lock Screen.
-- **Keep Screen Awake**: Configurable display wake lock prevents screen dimming/sleeping while music is actively playing.
+- **Desktop (Windows)**: Lightweight native window powered by `pywebview` and local FastAPI server. Available as a Setup installer (`.exe`) and portable standalone archive (`.zip`).
+- **Mobile (Android APK)**: Powered by an embedded Python runtime (`Chaquopy`) executing the FastAPI backend natively on your Android device. Python boots directly from `MainActivity` with error diagnostics and automatic server polling.
+- **Android Media Playback & Notification Center**: Built-in Android Foreground Service with native `MediaSessionCompat` and `NotificationCompat.MediaStyle` controls (Previous, Play/Pause, Next, Seekbar, and Album Cover) on Android 13+ Notification Centre and Lock Screen.
+- **Keep Screen Awake (Display Wake Lock)**: Configurable screen wake lock prevents the display from dimming or sleeping while music is actively playing.
+- **100% SVG Vector System**: Zero Unicode emojis across the codebase and interface; all icons are rendered using crisp, scalable SVG paths.
 - **Mobile Responsive UI**: Adaptive glassmorphism UI with *Bottom Navigation Bar*, *compact player bar*, and touch-optimized navigation for smartphone screens.
 - **Dark / Light Theme**: Full theme switching with dynamic logo swap (dark mode & light mode branding assets), persistent user preference via `localStorage`.
 
-### 2. Built-in Music Player & Real-Time LRC Lyrics (Karaoke Mode)
+### 2. Universal Multi-Provider Music & Playlist Downloader (v2.3)
+- **Spotify**: Extracts playlists, albums, and tracks using embed-based Next.js JSON decoding. Retrieves clean titles, artists, track order, and high-resolution 640x640 album artwork without requiring Spotify developer API keys.
+- **Deezer**: Deep integration with Deezer public REST API. Supports playlists, albums, and single tracks with ultra-crisp 1000x1000 lossless cover artwork.
+- **Apple Music**: Direct catalog schema parsing for curated playlists and albums.
+- **SoundCloud**: Direct set and track extraction powered by yt-dlp native extraction.
+- **YouTube & YouTube Music**: Full playlist synchronization, individual tracks, and Shorts support.
+- **Intelligent Audio Matcher**: Duration-weighted fuzzy matching algorithm pairs external platform tracks with the highest quality official audio streams on YouTube Music.
+- **Clean Tag Preservation**: Original track titles, artists, album names, track numbers, and release dates are faithfully embedded into ID3v2 tags without YouTube video title noise.
+
+### 3. Built-in Music Player & Real-Time LRC Lyrics (Karaoke Mode)
 - Persistent audio player bar with full controls: *Play/Pause, Next, Previous, Shuffle, Repeat (All / One / Off), Timeline Seekbar, Volume Booster*.
 - Time-synchronized LRC lyric stream panel with smooth auto-scrolling and active line highlighting.
 - **Click-to-Seek**: Click on any lyric line to instantly seek and jump playback to that timestamp.
 - Playback queue manager, full-screen immersive karaoke view, and desktop keyboard shortcuts (`Space`, `ArrowLeft/Right`, `ArrowUp/Down`).
-
-### 3. Multi-Provider Music & Playlist Downloader (v2.3)
-- **Universal Provider Engine**: Download playlists, albums, and tracks from **YouTube, Spotify, Deezer, Apple Music, and SoundCloud**.
-- **Lossless & Official Artwork**: Fetches high-resolution cover artwork directly from Deezer (1000x1000), Apple Music, and Spotify.
-- **Intelligent Audio Matcher**: Duration-weighted fuzzy matching automatically pairs external platform tracks with the highest quality official audio streams.
-- **Clean Tag Preservation**: Original track titles, artists, album names, track numbers, and release dates are faithfully embedded without YouTube video noise.
 
 ### 4. YouTube Playlist Synchronization (Git Pull for Music)
 - Link local playlist directories to YouTube Playlist IDs / URLs.
@@ -113,12 +123,15 @@ pip install -r requirements.txt
 
 ### 2. Build Standalone Windows Executable (.exe)
 
-To generate a standalone `.exe` and portable `.zip` archive using PyInstaller:
+To generate a standalone `.exe`, installer setup, and portable `.zip` archive:
 ```bash
 # Double-click build_exe.bat or execute in CMD:
 build_exe.bat
 ```
-The compiled output will be generated in `dist/MusicGit.exe` and `dist/MusicGit-v2.3-Windows.zip`.
+The compiled output will be generated in:
+- Portable directory: `dist/MusicGit/MusicGit.exe`
+- Standalone portable ZIP: `dist/MusicGit-v2.3-Windows.zip`
+- Setup Installer (.exe): `dist/MusicGit-v2.3-Setup.exe` (via Inno Setup)
 
 ---
 
@@ -139,7 +152,8 @@ The Android app is built with Gradle and Chaquopy, bundling the Python backend a
   ```
 
 > The compiled debug APK will be located at:
-> `android/app/build/outputs/apk/debug/app-debug.apk`
+> - `dist/MusicGit-v2.3-Android.apk`
+> - `android/app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
@@ -152,7 +166,7 @@ yt-playlist-downloader/
 │   │   ├── build.gradle      # Android dependencies & Chaquopy Python config
 │   │   └── src/main/
 │   │       ├── AndroidManifest.xml
-│   │       ├── java/         # MainActivity (direct Python boot) & BackgroundService
+│   │       ├── java/         # MainActivity, MediaSessionCompat & BackgroundService
 │   │       ├── python/       # Embedded backend runner (android_server.py)
 │   │       └── res/          # Launcher icons (mipmap), themes & XML configs
 │   ├── build.gradle          # Root Gradle build script
@@ -166,7 +180,7 @@ yt-playlist-downloader/
 │   ├── downloader.py         # Multi-provider download engine & playlist diff sync
 │   ├── lyrics_fetcher.py     # LRCLIB API integration (plain & synced .lrc)
 │   ├── metadata_tagger.py    # ID3v2 tagging & album unity writer
-│   ├── providers/            # Multi-provider modules (Spotify, Apple Music, Deezer, etc.)
+│   ├── providers/            # Multi-provider modules (Spotify, Apple Music, Deezer, SoundCloud, YouTube)
 │   └── utils.py              # Cross-platform path helpers (Windows / Android)
 ├── frontend/
 │   ├── assets/
@@ -182,6 +196,7 @@ yt-playlist-downloader/
 ├── build_apk.bat             # Automated script to build Android APK (.apk)
 ├── build_exe.bat             # Automated script to build Windows Executable (.exe & .zip)
 ├── fix_existing_tags.py      # CLI script for repairing local folder ID3 tags
+├── installer.iss             # Inno Setup script for Windows installer
 ├── package.json              # Package config & scripts (dev:web, capacitor)
 ├── requirements.txt          # Python dependencies
 ├── run.py                    # Desktop app launcher (pywebview + local server)
