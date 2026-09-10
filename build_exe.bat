@@ -14,6 +14,8 @@ if exist "dist\MusicGit" rmdir /s /q "dist\MusicGit"
 if exist "dist\MusicGit.zip" del /f /q "dist\MusicGit.zip"
 if exist "dist\MusicGit-v2.0-Windows.zip" del /f /q "dist\MusicGit-v2.0-Windows.zip"
 if exist "dist\MusicGit-v2.2-Windows.zip" del /f /q "dist\MusicGit-v2.2-Windows.zip"
+if exist "dist\MusicGit-v2.2-Android.apk" del /f /q "dist\MusicGit-v2.2-Android.apk"
+if exist "dist\MusicGit-v2.2-Setup.exe" del /f /q "dist\MusicGit-v2.2-Setup.exe"
 if exist "dist\MusicGit-v2.3-Windows.zip" del /f /q "dist\MusicGit-v2.3-Windows.zip"
 
 echo.
