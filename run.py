@@ -92,6 +92,50 @@ def get_window_state_path() -> str:
     return os.path.join(folder, "window_state.json")
 
 
+def is_window_position_valid(x: int, y: int, width: int = 200, height: int = 200) -> bool:
+    """
+    Ensure the window position is actually visible on at least one connected display.
+    In Windows, minimized windows have coordinates like (-32000, -32000).
+    Also prevents windows from opening offscreen if an external monitor was unplugged.
+    """
+    if x is None or y is None:
+        return False
+    # Check Windows minimized window coordinates (-32000) or absurd values
+    if x <= -10000 or y <= -10000 or x >= 50000 or y >= 50000:
+        return False
+
+    # Check against active monitors via pywebview screens if available
+    try:
+        import webview
+        screens = getattr(webview, "screens", None)
+        if screens:
+            for s in screens:
+                overlap_w = max(0, min(x + width, s.x + s.width) - max(x, s.x))
+                overlap_h = max(0, min(y + height, s.y + s.height) - max(y, s.y))
+                if overlap_w >= 100 and overlap_h >= 100:
+                    return True
+            return False
+    except Exception:
+        pass
+
+    # Windows API fallback
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        vx = user32.GetSystemMetrics(76)  # SM_XVIRTUALSCREEN
+        vy = user32.GetSystemMetrics(77)  # SM_YVIRTUALSCREEN
+        vw = user32.GetSystemMetrics(78)  # SM_CXVIRTUALSCREEN
+        vh = user32.GetSystemMetrics(79)  # SM_CYVIRTUALSCREEN
+        if vw > 0 and vh > 0:
+            overlap_w = max(0, min(x + width, vx + vw) - max(x, vx))
+            overlap_h = max(0, min(y + height, vy + vh) - max(y, vy))
+            return overlap_w >= 100 and overlap_h >= 100
+    except Exception:
+        pass
+
+    return -50 <= x <= 10000 and -50 <= y <= 10000
+
+
 def load_window_state() -> dict:
     default_state = {
         "width": 1240,
@@ -108,14 +152,18 @@ def load_window_state() -> dict:
                 if isinstance(data, dict):
                     w = data.get("width")
                     h = data.get("height")
-                    if isinstance(w, int) and w >= 640:
+                    if isinstance(w, int) and 640 <= w <= 8000:
                         default_state["width"] = w
-                    if isinstance(h, int) and h >= 480:
+                    if isinstance(h, int) and 480 <= h <= 8000:
                         default_state["height"] = h
-                    if isinstance(data.get("x"), int):
-                        default_state["x"] = data["x"]
-                    if isinstance(data.get("y"), int):
-                        default_state["y"] = data["y"]
+
+                    x = data.get("x")
+                    y = data.get("y")
+                    if isinstance(x, int) and isinstance(y, int):
+                        if is_window_position_valid(x, y, default_state["width"], default_state["height"]):
+                            default_state["x"] = x
+                            default_state["y"] = y
+
                     if isinstance(data.get("maximized"), bool):
                         default_state["maximized"] = data["maximized"]
         except Exception:
@@ -215,34 +263,76 @@ def main():
         import webview
         state = load_window_state()
         is_maximized = state.get("maximized", False)
+        is_minimized = False
+
+        # Keep track of last known valid bounds (normal state)
+        last_valid_bounds = {
+            "width": state.get("width", 1240),
+            "height": state.get("height", 820),
+            "x": state.get("x"),
+            "y": state.get("y"),
+        }
 
         def on_maximized():
-            nonlocal is_maximized
+            nonlocal is_maximized, is_minimized
             is_maximized = True
+            is_minimized = False
+
+        def on_minimized():
+            nonlocal is_minimized
+            is_minimized = True
 
         def on_restored():
-            nonlocal is_maximized
+            nonlocal is_maximized, is_minimized
             is_maximized = False
+            is_minimized = False
+
+        def on_resized(*args, **kwargs):
+            nonlocal is_maximized, is_minimized
+            if not is_maximized and not is_minimized:
+                try:
+                    w = int(window.width) if window.width else None
+                    h = int(window.height) if window.height else None
+                    if w and 640 <= w <= 8000:
+                        last_valid_bounds["width"] = w
+                    if h and 480 <= h <= 8000:
+                        last_valid_bounds["height"] = h
+                except Exception:
+                    pass
+
+        def on_moved(*args, **kwargs):
+            nonlocal is_maximized, is_minimized
+            if not is_maximized and not is_minimized:
+                try:
+                    if window.x is not None and window.y is not None:
+                        wx, wy = int(window.x), int(window.y)
+                        if is_window_position_valid(wx, wy, last_valid_bounds["width"], last_valid_bounds["height"]):
+                            last_valid_bounds["x"] = wx
+                            last_valid_bounds["y"] = wy
+                except Exception:
+                    pass
 
         def on_closing():
-            nonlocal is_maximized
+            nonlocal is_maximized, is_minimized
             try:
                 new_state = {
                     "maximized": is_maximized,
-                    "width": state.get("width", 1240),
-                    "height": state.get("height", 820),
-                    "x": state.get("x"),
-                    "y": state.get("y"),
+                    "width": last_valid_bounds.get("width", 1240),
+                    "height": last_valid_bounds.get("height", 820),
+                    "x": last_valid_bounds.get("x"),
+                    "y": last_valid_bounds.get("y"),
                 }
-                # If not maximized, update width, height and coordinates
-                if not is_maximized:
-                    if window.width and window.width >= 640:
+                # If currently normal (not minimized or maximized), capture latest position
+                if not is_maximized and not is_minimized:
+                    if window.width and 640 <= int(window.width) <= 8000:
                         new_state["width"] = int(window.width)
-                    if window.height and window.height >= 480:
+                    if window.height and 480 <= int(window.height) <= 8000:
                         new_state["height"] = int(window.height)
                     if window.x is not None and window.y is not None:
-                        new_state["x"] = int(window.x)
-                        new_state["y"] = int(window.y)
+                        wx, wy = int(window.x), int(window.y)
+                        if is_window_position_valid(wx, wy, new_state["width"], new_state["height"]):
+                            new_state["x"] = wx
+                            new_state["y"] = wy
                 save_window_state(new_state)
             except Exception:
                 pass
@@ -251,6 +341,17 @@ def main():
             if state.get("maximized"):
                 try:
                     window.maximize()
+                except Exception:
+                    pass
+            else:
+                # Sanity check: ensure window is not positioned offscreen
+                try:
+                    if window.x is not None and window.y is not None:
+                        wx, wy = int(window.x), int(window.y)
+                        w = int(window.width or 1240)
+                        h = int(window.height or 820)
+                        if not is_window_position_valid(wx, wy, w, h):
+                            window.move(100, 100)
                 except Exception:
                     pass
 
@@ -269,7 +370,10 @@ def main():
         )
 
         window.events.maximized += on_maximized
+        window.events.minimized += on_minimized
         window.events.restored += on_restored
+        window.events.resized += on_resized
+        window.events.moved += on_moved
         window.events.closing += on_closing
         window.events.shown += on_shown
 
