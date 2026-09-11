@@ -181,28 +181,29 @@ img {
 .brand-logo-wrap {
   width: 42px;
   height: 42px;
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   overflow: hidden;
   background-color: transparent;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   flex-shrink: 0;
-  box-shadow: none;
-  transition: transform var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
 }
 
 .brand-logo-wrap:hover {
   transform: scale(1.06);
+  border-color: rgba(29, 140, 248, 0.5);
 }
 
 .brand-logo-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: var(--radius-md);
+  border-radius: 11px;
 }
 
 .brand-text {
@@ -1759,13 +1760,14 @@ a,
   gap: 18px;
 }
 .about-logo {
-  width: 54px;
-  height: 54px;
-  border-radius: var(--radius-md);
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
   background-color: transparent;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   padding: 0;
   object-fit: cover;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 .about-title { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
 .about-desc { font-size: 0.85rem; color: var(--text-muted); }

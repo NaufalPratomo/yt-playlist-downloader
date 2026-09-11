@@ -3059,7 +3059,7 @@ const ThemeManager = {
   currentTheme: "dark",
 
   getLogoUrl() {
-    return "assets/logo-darkmode-v2.jpg";
+    return "assets/logo-darkmode-v2.png";
   },
 
   init() {
