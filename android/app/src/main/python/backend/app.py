@@ -26,6 +26,7 @@ from .library_manager import library_manager, AUDIO_EXTENSIONS
 from .cover_processor import _fetch_image_bytes
 from .metadata_tagger import metadata_tagger
 from .discord_rpc import discord_rpc
+from .updater import app_updater
 from .utils import (
     browse_folder_dialog,
     get_default_music_dir,
@@ -201,6 +202,12 @@ class OpenFolderRequest(BaseModel):
     path: str
 
 
+class DownloadUpdateRequest(BaseModel):
+    asset_url: str
+    asset_name: str
+    target_version: str
+
+
 # Endpoints
 @app.get("/api/config")
 async def get_config():
@@ -286,6 +293,46 @@ async def clear_discord_rpc():
     except Exception as e:
         logger.warning(f"Error clearing Discord RPC: {e}")
         return {"status": "error", "message": str(e)}
+
+
+@app.get("/api/system/check-update")
+async def check_update(force: bool = False):
+    """Check GitHub Releases for newer version of MusicGit."""
+    try:
+        data = app_updater.check_for_updates(force=force)
+        return data
+    except Exception as e:
+        logger.error(f"Failed checking updates: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/system/download-update")
+async def download_update(req: DownloadUpdateRequest):
+    """Start downloading the update asset in background thread."""
+    success = app_updater.start_download(
+        asset_url=req.asset_url,
+        filename=req.asset_name,
+        target_version=req.target_version,
+    )
+    if not success:
+        raise HTTPException(status_code=400, detail="Pengunduhan update sedang berlangsung.")
+    return {"status": "started", "message": "Pengunduhan pembaruan dimulai."}
+
+
+@app.get("/api/system/update-progress")
+async def update_progress():
+    """Get current download progress of update asset."""
+    return app_updater.get_progress()
+
+
+@app.post("/api/system/install-update")
+async def install_update():
+    """Trigger update installation (silent install on Windows or return APK path for Android)."""
+    try:
+        res = app_updater.apply_update()
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/api/analyze")

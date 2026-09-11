@@ -196,7 +196,7 @@
                     <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
                     <line x1="6" y1="9" x2="6" y2="21"></line>
                   </svg>
-                  <span data-i18n="lib_badge_connected">Connected to YouTube</span>
+                  <span data-i18n="lib_badge_connected">Connected to Remote</span>
                 </span>
               </div>
               <h2 id="detail-title" class="hero-title">Nama Playlist</h2>
@@ -247,7 +247,7 @@
                   <span id="hero-sync-lyrics-label" data-i18n="lib_update_lyrics">Update Lirik</span>
                 </button>
 
-                <button type="button" id="btn-hero-link-remote" class="btn btn-secondary btn-md" data-i18n-title="lib_link_remote" title="Tautkan URL YouTube Playlist">
+                <button type="button" id="btn-hero-link-remote" class="btn btn-secondary btn-md" data-i18n-title="lib_link_remote" title="Tautkan URL Remote Playlist (Multi-Platform)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
@@ -307,7 +307,7 @@
       <section id="view-downloader" class="view-container">
         <div class="view-header">
           <div>
-            <h2 class="view-title" data-i18n="dl_title">Unduh dari YouTube</h2>
+            <h2 class="view-title" data-i18n="dl_title">Download & Sinkronisasi Playlist</h2>
             <p class="view-subtitle" data-i18n="dl_desc">Unduh playlist atau video satuan dengan cover art 1:1, ID3 tags lengkap, dan lirik bersinkronisasi.</p>
           </div>
         </div>
@@ -612,7 +612,7 @@
         <div class="view-header">
           <div>
             <h2 class="view-title" data-i18n="tag_title">Manajer Tag & Sinkronisasi Folder</h2>
-            <p class="view-subtitle" data-i18n="tag_desc">Inspeksi kesehatan metadata ID3 folder musik, perbaiki cover & lirik, atau bandingkan dengan playlist YouTube.</p>
+            <p class="view-subtitle" data-i18n="tag_desc">Inspeksi kesehatan metadata ID3 folder musik, perbaiki cover & lirik, atau bandingkan dengan playlist remote.</p>
           </div>
         </div>
 
@@ -770,7 +770,7 @@
                 <div class="sync-stat-divider"></div>
                 <div class="sync-stat-item">
                   <span class="stat-num text-accent" id="tagmgr-diff-new-count">0</span>
-                  <span class="stat-lbl" data-i18n="tag_diff_new">Lagu Baru di YouTube</span>
+                  <span class="stat-lbl" data-i18n="tag_diff_new">Lagu Baru di Remote</span>
                 </div>
                 <div class="sync-action-slot">
                   <button type="button" id="btn-tagmgr-download-new-only" class="btn btn-accent">
@@ -789,7 +789,7 @@
                   <thead>
                     <tr>
                       <th style="width: 40px; text-align: center;" data-i18n="th_num">#</th>
-                      <th data-i18n="th_yt_title">Judul di YouTube</th>
+                      <th data-i18n="th_yt_title">Judul di Remote</th>
                       <th data-i18n="th_artist">Artis</th>
                       <th style="width: 140px; text-align: center;" data-i18n="th_folder_status">Status di Folder</th>
                     </tr>
@@ -905,12 +905,53 @@
           </div>
         </div>
 
+        <!-- APP UPDATE CARD -->
+        <div class="card-panel update-card" id="settings-update-card">
+          <div class="update-header-row">
+            <div class="update-header-left">
+              <div class="update-icon-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </div>
+              <div class="update-title-group">
+                <div class="update-title-flex">
+                  <h3 class="card-title" data-i18n="update_title" style="margin-bottom: 0;">Pembaruan Aplikasi</h3>
+                  <span class="update-ver-chip" id="update-current-ver-chip">v2.3.0</span>
+                </div>
+                <p class="card-desc" id="update-status-desc" data-i18n="update_status_idle" style="margin-top: 2px;">Periksa ketersediaan versi terbaru di GitHub Releases.</p>
+              </div>
+            </div>
+            <button type="button" id="btn-check-update" class="btn btn-secondary btn-sm">
+              <svg id="icon-check-update" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-icon-update hidden">
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+              </svg>
+              <svg id="icon-check-static" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              <span id="btn-check-update-label" data-i18n="update_btn_check">Periksa Pembaruan</span>
+            </button>
+          </div>
+
+          <!-- DYNAMIC UPDATE DETAILS PANEL -->
+          <div id="update-panel-container" class="update-panel-container hidden"></div>
+        </div>
+
         <div class="card-panel about-card">
           <div class="about-header">
             <img id="app-about-logo" src="assets/logo-darkmode-v2.png" alt="MusicGit" class="about-logo">
             <div>
               <h3 class="about-title">MusicGit</h3>
-              <p class="about-desc">YouTube Playlist Remote Sync & Desktop Music Player</p>
+              <p class="about-desc" data-i18n="about_tagline">Sinkronisasi Remote Playlist Multi-Platform & Pemutar Musik</p>
               <p class="about-author"><span data-i18n="settings_developed_by">Dikembangkan oleh</span> <a href="https://naufalpratomo.my.id" target="_blank" rel="noopener noreferrer">Naufal Pratomo</a></p>
             </div>
           </div>
@@ -1194,11 +1235,11 @@
       </button>
     </nav>
 
-    <!-- MODAL: LINK REMOTE YOUTUBE PLAYLIST -->
+    <!-- MODAL: LINK REMOTE MULTI-PLATFORM PLAYLIST -->
     <div id="modal-link-remote" class="modal-overlay hidden">
       <div class="modal-card">
         <div class="modal-header">
-          <h3 class="modal-title" data-i18n="modal_link_title">Tautkan Remote YouTube Playlist</h3>
+          <h3 class="modal-title" data-i18n="modal_link_title">Tautkan Remote Playlist (Multi-Platform)</h3>
           <button type="button" id="btn-close-modal-link" class="btn-icon-xs">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1217,7 +1258,7 @@
 
           <div class="field-item">
             <label for="modal-link-url" class="field-label" data-i18n="modal_link_url_label">URL Playlist Remote</label>
-            <input type="text" id="modal-link-url" class="text-input" placeholder="https://open.spotify.com/playlist/... atau YouTube link..." required>
+            <input type="text" id="modal-link-url" class="text-input" placeholder="https://open.spotify.com/..., youtube.com/..., deezer.com/..., dll..." required>
           </div>
 
           <div class="field-item">

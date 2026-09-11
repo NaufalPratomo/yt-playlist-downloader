@@ -2515,6 +2515,20 @@ const I18N_DICTIONARY = {
     theme_toggle_title: "Ganti Tema Gelap / Terang",
     btn_cancel: "Batal",
     btn_close: "Tutup",
+    update_title: "Pembaruan Aplikasi",
+    update_btn_check: "Periksa Pembaruan",
+    update_btn_checking: "Memeriksa...",
+    update_status_idle: "Periksa ketersediaan versi terbaru di GitHub Releases.",
+    update_status_checking: "Menghubungi server GitHub untuk memeriksa pembaruan...",
+    update_up_to_date: "Aplikasi Anda sudah menggunakan versi terbaru.",
+    update_available_title: "Pembaruan Baru Tersedia!",
+    update_btn_download: "Unduh Pembaruan",
+    update_downloading: "Mengunduh pembaruan...",
+    update_ready_windows: "Pembaruan siap dipasang. Klik tombol di bawah untuk memasang dan me-restart aplikasi.",
+    update_ready_android: "File APK pembaruan siap dipasang di perangkat Android Anda.",
+    update_btn_install: "Pasang & Restart Sekarang",
+    update_btn_install_android: "Pasang Pembaruan APK",
+    update_view_release: "Lihat di GitHub",
 
     th_select: "Pilih",
     th_num: "#",
@@ -2527,7 +2541,7 @@ const I18N_DICTIONARY = {
     th_duration: "Durasi",
     th_actions: "Aksi",
     th_filename: "Nama File",
-    th_yt_title: "Judul di YouTube",
+    th_yt_title: "Judul di Remote",
     th_folder_status: "Status di Folder",
     th_status: "Status",
 
@@ -2681,6 +2695,7 @@ const I18N_DICTIONARY = {
     settings_btn_save: "Simpan Pengaturan",
     settings_saved_alert: "Pengaturan MusicGit berhasil disimpan.",
     settings_developed_by: "Dikembangkan oleh",
+    about_tagline: "Sinkronisasi Remote Playlist Multi-Platform & Pemutar Musik",
 
     lyrics_title: "Lirik Lagu",
     lyrics_select_prompt: "Pilih Lagu untuk Diputar",
@@ -2742,6 +2757,20 @@ const I18N_DICTIONARY = {
     theme_toggle_title: "Toggle Dark / Light Theme",
     btn_cancel: "Cancel",
     btn_close: "Close",
+    update_title: "App Updates",
+    update_btn_check: "Check for Updates",
+    update_btn_checking: "Checking...",
+    update_status_idle: "Check for newer versions published on GitHub Releases.",
+    update_status_checking: "Connecting to GitHub server to check for updates...",
+    update_up_to_date: "You are already using the latest version.",
+    update_available_title: "New Update Available!",
+    update_btn_download: "Download Update",
+    update_downloading: "Downloading update...",
+    update_ready_windows: "Update is ready. Click below to install and restart MusicGit.",
+    update_ready_android: "APK update package is ready to install on your Android device.",
+    update_btn_install: "Install & Restart Now",
+    update_btn_install_android: "Install APK Update",
+    update_view_release: "View on GitHub",
 
     th_select: "Select",
     th_num: "#",
@@ -2754,7 +2783,7 @@ const I18N_DICTIONARY = {
     th_duration: "Duration",
     th_actions: "Action",
     th_filename: "Filename",
-    th_yt_title: "YouTube Title",
+    th_yt_title: "Remote Title",
     th_folder_status: "Folder Status",
     th_status: "Status",
 
@@ -2908,6 +2937,7 @@ const I18N_DICTIONARY = {
     settings_btn_save: "Save Settings",
     settings_saved_alert: "MusicGit settings saved successfully.",
     settings_developed_by: "Developed by",
+    about_tagline: "Multi-Platform Playlist Remote Sync & Music Player",
 
     lyrics_title: "Song Lyrics",
     lyrics_select_prompt: "Select a Song to Play",
@@ -3122,6 +3152,288 @@ const ThemeManager = {
 };
 
 // =============================================================================
+// 7.5 APP AUTO-UPDATE MANAGER (WINDOWS & ANDROID)
+// =============================================================================
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+const UpdateManager = {
+  currentVersion: "2.3.0",
+  pollInterval: null,
+  latestRelease: null,
+
+  init() {
+    const btnCheck = document.getElementById("btn-check-update");
+    if (btnCheck) {
+      btnCheck.addEventListener("click", () => this.checkForUpdates(true));
+    }
+  },
+
+  async checkForUpdates(manual = false) {
+    const btnCheck = document.getElementById("btn-check-update");
+    const label = document.getElementById("btn-check-update-label");
+    const iconSpin = document.getElementById("icon-check-update");
+    const iconStatic = document.getElementById("icon-check-static");
+    const panel = document.getElementById("update-panel-container");
+    const statusDesc = document.getElementById("update-status-desc");
+
+    if (btnCheck) btnCheck.disabled = true;
+    if (label) label.textContent = I18nManager.t("update_btn_checking") || "Memeriksa...";
+    if (iconSpin) iconSpin.classList.remove("hidden");
+    if (iconStatic) iconStatic.classList.add("hidden");
+    if (statusDesc) statusDesc.textContent = I18nManager.t("update_status_checking") || "Menghubungi server GitHub...";
+
+    try {
+      const res = await fetch(`/api/system/check-update?force=${manual ? "true" : "false"}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Gagal memeriksa update.");
+      }
+      const data = await res.json();
+      this.latestRelease = data;
+
+      if (panel) {
+        panel.classList.remove("hidden");
+        if (data.update_available) {
+          this.renderUpdateAvailable(data);
+          if (statusDesc) {
+            statusDesc.textContent = (I18nManager.currentLang === "en")
+              ? `New version ${data.latest_version} is available!`
+              : `Versi baru ${data.latest_version} tersedia!`;
+          }
+        } else {
+          this.renderUpToDate(data);
+          if (statusDesc) {
+            statusDesc.textContent = I18nManager.t("update_up_to_date") || "Aplikasi Anda sudah versi terbaru.";
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Update check failed:", err);
+      if (panel) {
+        panel.classList.remove("hidden");
+        panel.innerHTML = `
+          <div class="update-status-box error">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>${escapeHtml(err.message || "Tidak dapat memeriksa pembaruan saat ini.")}</span>
+          </div>
+        `;
+      }
+      if (statusDesc) {
+        statusDesc.textContent = (I18nManager.currentLang === "en")
+          ? "Failed to check for updates."
+          : "Gagal memeriksa pembaruan.";
+      }
+    } finally {
+      if (btnCheck) btnCheck.disabled = false;
+      if (label) label.textContent = I18nManager.t("update_btn_check") || "Periksa Pembaruan";
+      if (iconSpin) iconSpin.classList.add("hidden");
+      if (iconStatic) iconStatic.classList.remove("hidden");
+    }
+  },
+
+  renderUpToDate(data) {
+    const panel = document.getElementById("update-panel-container");
+    if (!panel) return;
+    const isEn = I18nManager.currentLang === "en";
+    panel.innerHTML = `
+      <div class="update-status-box up-to-date">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <div>
+          <strong style="display: block;">${I18nManager.t("update_up_to_date") || "Aplikasi Anda sudah versi terbaru."}</strong>
+          <span style="font-size: 0.8rem; opacity: 0.85;">${isEn ? "Installed version" : "Versi terpasang"}: ${escapeHtml(data.current_version || "2.3.0")}</span>
+        </div>
+      </div>
+    `;
+  },
+
+  renderUpdateAvailable(data) {
+    const panel = document.getElementById("update-panel-container");
+    if (!panel) return;
+    const isAndroid = data.platform === "android" || /android/i.test(navigator.userAgent);
+    const dateFormatted = data.published_at ? new Date(data.published_at).toLocaleDateString() : "";
+    const assetSizeMb = data.asset_size ? (data.asset_size / (1024 * 1024)).toFixed(1) + " MB" : "";
+
+    panel.innerHTML = `
+      <div class="update-available-card">
+        <div class="update-avail-header">
+          <div class="update-avail-title-row">
+            <h4 class="update-avail-title">${I18nManager.t("update_available_title") || "Pembaruan Baru Tersedia!"}</h4>
+            <span class="update-new-badge">${escapeHtml(data.latest_version)}</span>
+          </div>
+          ${dateFormatted ? `<span class="update-avail-date">Dirilis: ${escapeHtml(dateFormatted)}</span>` : ""}
+        </div>
+
+        <div class="update-changelog-box">${escapeHtml(data.release_notes || "Peningkatan performa dan perbaikan bug.")}</div>
+
+        <div id="update-download-section" class="update-progress-wrap hidden">
+          <div class="update-progress-labels">
+            <span id="update-prog-status-text">${I18nManager.t("update_downloading") || "Mengunduh pembaruan..."}</span>
+            <span id="update-prog-percent">0%</span>
+          </div>
+          <div class="update-progress-track">
+            <div id="update-prog-bar-fill" class="update-progress-fill" style="width: 0%;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-subtle);">
+            <span id="update-prog-speed">0 KB/s</span>
+            <span id="update-prog-size">${assetSizeMb ? `Ukuran: ${assetSizeMb}` : ""}</span>
+          </div>
+        </div>
+
+        <div class="update-action-row" id="update-actions-box">
+          ${data.asset_url ? `
+            <button type="button" id="btn-start-update-download" class="btn btn-primary btn-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>${I18nManager.t("update_btn_download") || "Unduh Pembaruan"} ${assetSizeMb ? `(${assetSizeMb})` : ""}</span>
+            </button>
+          ` : `
+            <a href="${escapeHtml(data.html_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+              <span>${I18nManager.t("update_view_release") || "Lihat di GitHub"}</span>
+            </a>
+          `}
+          <a href="${escapeHtml(data.html_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+            <span>GitHub Release</span>
+          </a>
+        </div>
+      </div>
+    `;
+
+    const dlBtn = document.getElementById("btn-start-update-download");
+    if (dlBtn) {
+      dlBtn.addEventListener("click", () => this.startDownload(data));
+    }
+  },
+
+  async startDownload(data) {
+    const dlSection = document.getElementById("update-download-section");
+    const actionsBox = document.getElementById("update-actions-box");
+    if (dlSection) dlSection.classList.remove("hidden");
+    if (actionsBox) actionsBox.classList.add("hidden");
+
+    try {
+      const res = await fetch("/api/system/download-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          asset_url: data.asset_url,
+          asset_name: data.asset_name,
+          target_version: data.latest_version
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Gagal memulai unduhan update.");
+      }
+
+      this.startProgressPolling(data);
+    } catch (err) {
+      alert("Error unduh pembaruan: " + err.message);
+      if (actionsBox) actionsBox.classList.remove("hidden");
+    }
+  },
+
+  startProgressPolling(data) {
+    if (this.pollInterval) clearInterval(this.pollInterval);
+
+    const isAndroid = data.platform === "android" || /android/i.test(navigator.userAgent);
+    const fill = document.getElementById("update-prog-bar-fill");
+    const pct = document.getElementById("update-prog-percent");
+    const speed = document.getElementById("update-prog-speed");
+    const statusText = document.getElementById("update-prog-status-text");
+    const actionsBox = document.getElementById("update-actions-box");
+
+    this.pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/system/update-progress");
+        const prog = await res.json();
+
+        if (fill) fill.style.width = `${prog.percentage}%`;
+        if (pct) pct.textContent = `${prog.percentage}%`;
+        if (speed) speed.textContent = prog.download_speed || "";
+
+        if (prog.status === "ready") {
+          clearInterval(this.pollInterval);
+          this.pollInterval = null;
+
+          if (statusText) {
+            statusText.textContent = isAndroid
+              ? (I18nManager.t("update_ready_android") || "Unduhan selesai. Siap dipasang di Android.")
+              : (I18nManager.t("update_ready_windows") || "Unduhan selesai. Siap dipasang & restart.");
+          }
+
+          if (actionsBox) {
+            actionsBox.classList.remove("hidden");
+            actionsBox.innerHTML = `
+              <button type="button" id="btn-apply-update-now" class="btn btn-primary btn-sm" style="background-color: #10b981;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>${isAndroid ? (I18nManager.t("update_btn_install_android") || "Pasang Pembaruan APK") : (I18nManager.t("update_btn_install") || "Pasang & Restart Sekarang")}</span>
+              </button>
+            `;
+
+            const applyBtn = document.getElementById("btn-apply-update-now");
+            if (applyBtn) {
+              applyBtn.addEventListener("click", () => this.applyUpdate(prog.file_path, isAndroid));
+            }
+          }
+        } else if (prog.status === "error") {
+          clearInterval(this.pollInterval);
+          this.pollInterval = null;
+          if (statusText) statusText.textContent = `Error: ${prog.error_message || "Unduhan gagal."}`;
+          if (actionsBox) actionsBox.classList.remove("hidden");
+        }
+      } catch (e) {
+        console.warn("Polling update progress error:", e);
+      }
+    }, 500);
+  },
+
+  async applyUpdate(filePath, isAndroid) {
+    try {
+      const res = await fetch("/api/system/install-update", { method: "POST" });
+      const result = await res.json();
+
+      if (isAndroid || result.platform === "android") {
+        const apkPath = result.apk_path || filePath;
+        if (window.AndroidBridge && typeof window.AndroidBridge.installApk === "function") {
+          window.AndroidBridge.installApk(apkPath);
+        } else {
+          alert(`File APK siap di: ${apkPath}. Silakan buka file ini untuk memperbarui.`);
+        }
+      } else {
+        alert("Pembaruan sedang dipasang di latar belakang. Aplikasi akan me-restart secara otomatis.");
+      }
+    } catch (err) {
+      alert("Gagal memasang pembaruan: " + err.message);
+    }
+  }
+};
+
+// =============================================================================
 // 8. VIEW CONTROLLER & APP INITIALIZATION
 // =============================================================================
 const ViewController = {
@@ -3130,6 +3442,7 @@ const ViewController = {
   init() {
     I18nManager.init();
     ThemeManager.init();
+    UpdateManager.init();
 
     // Nav menu switching (Desktop Sidebar & Mobile Bottom Nav)
     document.querySelectorAll(".nav-item, .mobile-nav-item").forEach((btn) => {

@@ -96,6 +96,13 @@ MusicGit treats your **Music Playlists** like a *Remote Repository* and your loc
 - Inspect metadata health across your local music folders: detects missing artists (*Unknown Artist*), missing cover art, or missing lyric files.
 - 1-Click mass repair tool to embed local `cover.jpg` artwork and auto-fetch missing `.lrc` lyrics from the LRCLIB database.
 
+### 8. Integrated In-App Auto-Update (Windows & Android)
+- **GitHub Releases Integration**: Instantly checks for new updates directly from the in-app Settings menu.
+- **Robust Version Comparison**: Supports SemVer with optional prefixes (`vX.Y.Z`, `VX.Y.Z`, or `X.Y.Z`).
+- **Changelog & Download Progress**: Displays release notes, live download speed, and animated progress track before applying the update.
+- **Silent In-Place Update (Windows)**: Downloads and executes the setup installer seamlessly in the background without manual wizard steps, automatically restarting the app.
+- **Native Android APK Installer**: Automatically prepares the updated APK and invokes Android's package installer via FileProvider.
+
 ---
 
 ## Installation & Build Guide

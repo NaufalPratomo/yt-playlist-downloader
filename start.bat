@@ -1,8 +1,8 @@
 @echo off
-title YouTube Playlist Downloader
+title MusicGit - Multi-Platform Music Downloader & Player
 cd /d "%~dp0"
 echo ========================================================
-echo   YouTube Playlist Downloader HD ^& Metadata
+echo   MusicGit - Multi-Platform Music Downloader & Player
 echo ========================================================
 echo Memeriksa dependensi dan menjalankan server...
 python run.py

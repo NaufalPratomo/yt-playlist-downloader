@@ -4,9 +4,9 @@
 
 # MusicGit
 
-**Cross-Platform (Desktop & Android) Music Player, Real-Time Synchronized Lyrics, and YouTube Playlist Git-Like Sync Engine**
+**Cross-Platform (Desktop & Android) Multi-Provider Music Downloader, Player, Real-Time Synchronized Lyrics, and Git-Like Sync Engine**
 
-Unduh playlist atau video YouTube menjadi file MP3 berkualitas tinggi lengkap dengan metadata ID3v2, cover art 1:1, lirik lagu otomatis (.lrc), pemutar musik bawaan (*Built-in Music Player*), tampilan lirik karaoke (*Time-Synced LRC*), sinkronisasi cerdas playlist YouTube (*Git Pull for Music*), serta dukungan penuh untuk **Desktop Windows (.exe)** dan **Android Mobile (.apk)**.
+Unduh playlist, album, dan track dari **YouTube, Spotify, Deezer, Apple Music, dan SoundCloud** menjadi file MP3 berkualitas tinggi lengkap dengan metadata ID3v2, cover art 1:1, lirik lagu otomatis (.lrc), pemutar musik bawaan (*Built-in Music Player*), tampilan lirik karaoke (*Time-Synced LRC*), sinkronisasi cerdas playlist (*Git Pull for Music*), serta dukungan penuh untuk **Desktop Windows (.exe)** dan **Android Mobile (.apk)**.
 
 [English](README.md) • [Bahasa Indonesia](README.id.md)
 
@@ -32,9 +32,10 @@ Unduh playlist atau video YouTube menjadi file MP3 berkualitas tinggi lengkap de
 
 ## Konsep Filosofi MusicGit
 
-MusicGit memperlakukan **YouTube Playlist** seperti *Remote Repository* dan folder musik lokal di PC / Android Anda sebagai *Local Repository*:
-- **Remote Mapping**: Setiap folder playlist lokal otomatis menyimpan tautan remote YouTube dalam file metadata `.musicgit.json`.
-- **Git Pull / Sync Engine**: Bandingkan perbedaan (*Diff*) antara daftar lagu di YouTube dengan koleksi file lokal. Cukup 1-klik tombol **"Sync with YouTube"** untuk mengunduh lagu-lagu baru yang belum tersimpan di lokal tanpa mengunduh ulang lagu yang sudah ada.
+MusicGit memperlakukan **Music Playlist** seperti *Remote Repository* dan folder musik lokal di PC / Android Anda sebagai *Local Repository*:
+- **Remote Mapping**: Setiap folder playlist lokal otomatis menyimpan tautan remote dalam file metadata `.musicgit.json`.
+- **Git Pull / Sync Engine**: Bandingkan perbedaan (*Diff*) antara daftar lagu di remote playlist (YouTube, Spotify, Deezer, Apple Music, SoundCloud) dengan koleksi file lokal. Cukup 1-klik tombol **"Sync Playlist"** untuk mengunduh lagu-lagu baru yang belum tersimpan di lokal tanpa mengunduh ulang lagu yang sudah ada.
+- **Universal Provider Parsing**: Tempel tautan dari YouTube, Spotify, Deezer, Apple Music, atau SoundCloud. Sistem otomatis mendeteksi platform, mengekstrak tracklist bersih, dan mengunduh audio beresolusi tinggi.
 - **Built-in Music Player**: Dengarkan seluruh koleksi musik langsung di dalam aplikasi (Desktop & Mobile) tanpa membutuhkan player pihak ketiga.
 - **Real-Time Synchronized Lyrics**: Menampilkan lirik lagu berjalan dengan sorotan baris aktif secara otomatis serta fitur interaktif *click-to-seek* (klik baris lirik untuk langsung melompat ke detik lagu tersebut).
 - **Cross-Platform Ready**: Nikmati pengalaman yang sama di Windows PC maupun ponsel pintar Android dengan sinkronisasi penyimpanan lokal (`Music/` folder).
@@ -49,7 +50,7 @@ MusicGit memperlakukan **YouTube Playlist** seperti *Remote Repository* dan fold
 - **Playback Media & Pusat Notifikasi Android**: Dilengkapi Android Foreground Service dengan kontrol native `MediaSessionCompat` dan `NotificationCompat.MediaStyle` (Previous, Play/Pause, Next, Seekbar, dan Cover Album) pada Pusat Notifikasi dan Layar Kunci Android 13+.
 - **Pertahankan Layar Menyala (Keep Screen Awake)**: Layar ponsel tidak akan mati atau meredup otomatis saat lagu sedang berputar.
 - **Mobile Responsive UI**: Tampilan adaptif dengan *Bottom Navigation Bar*, *compact player bar*, dan navigasi sentuh yang dioptimalkan untuk layar ponsel.
-- **Tema Gelap / Terang**: Pergantian tema lengkap dengan pertukaran logo dinamis (aset branding dark mode & light mode), preferensi disimpan via `localStorage`.
+- **Pure Solid Dark Theme**: Tampilan tema studio dark yang elegan, berfokus tinggi tanpa distraksi.
 
 ### 2. Built-in Music Player & Real-time LRC Lyrics (Karaoke Mode)
 - Pemutar musik persisten dengan kontrol lengkap: *Play/Pause, Next, Previous, Shuffle, Repeat (All / One / Off), Timeline Seekbar, Volume Booster*.
@@ -63,11 +64,11 @@ MusicGit memperlakukan **YouTube Playlist** seperti *Remote Repository* dan fold
 - **Pencocokan Audio Cerdas (Audio Matcher)**: Menggunakan algoritma fuzzy search berbobot durasi untuk mencocokkan track platform eksternal ke audio stream resmi berkualitas terbaik.
 - **Preservasi Metadata Bersih**: Judul asli, artis, album, nomor track, dan tahun rilis tertanam bersih tanpa embel-embel judul video.
 
-### 4. Sinkronisasi Playlist YouTube (Git Pull for Music)
-- Tautkan folder playlist lokal ke YouTube Playlist ID / URL.
-- Deteksi otomatis lagu baru yang baru saja ditambahkan di YouTube.
+### 4. Sinkronisasi Playlist Multi-Platform (Git Pull for Music)
+- Tautkan folder playlist lokal ke URL playlist remote (**YouTube, Spotify, Deezer, Apple Music, atau SoundCloud**).
+- Deteksi otomatis lagu baru yang baru saja ditambahkan di playlist platform remote.
 - Diff perbandingan status lagu (*Lokal OK* vs *+ Baru*).
-- Unduh selektif lagu baru dengan 1-klik saja.
+- Unduh selektif lagu baru dengan 1-klik saja via smart audio matcher.
 
 ### 5. Downloader Audio Berkualitas Tinggi & ID3v2 Metadata
 - Pilihan bitrate MP3: **192 kbps**, **256 kbps**, **320 kbps**, dan **128 kbps**.
@@ -79,6 +80,13 @@ MusicGit memperlakukan **YouTube Playlist** seperti *Remote Repository* dan fold
 ### 6. Manajer Tag & Perbaikan Folder Lokal (Repair Toolkit)
 - Inspeksi kesehatan metadata folder musik: deteksi lagu tanpa artis (*Unknown Artist*), tanpa cover art, atau tanpa lirik.
 - Perbaikan massal 1-klik untuk menyematkan `cover.jpg` dan mengambil lirik otomatis dari database LRCLIB.
+
+### 8. Fitur Pembaruan Otomatis Terintegrasi (In-App Auto-Update)
+- **Integrasi GitHub Releases**: Periksa ketersediaan versi baru langsung dari menu Pengaturan tanpa harus browsing manual.
+- **Deteksi Versi SemVer Fleksibel**: Mendukung format tag `vX.Y.Z`, `VX.Y.Z`, maupun `X.Y.Z`.
+- **Changelog & Progres Download Real-Time**: Menampilkan catatan rilis, kecepatan unduh, dan progress bar interaktif.
+- **Silent Update (Windows)**: Memasang pembaruan secara hening di latar belakang tanpa popup wizard setup dan membuka kembali aplikasi secara otomatis.
+- **Instalasi Native APK (Android)**: Membuka installer native Android secara otomatis via FileProvider setelah unduhan APK selesai.
 
 ---
 

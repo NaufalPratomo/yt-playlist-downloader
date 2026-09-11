@@ -30,10 +30,12 @@ import androidx.core.content.ContextCompat;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import androidx.core.content.FileProvider;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MusicGitActivity";
@@ -127,6 +129,39 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 Log.e(TAG, "Error stopping media notification: " + e.getMessage());
             }
+        }
+
+        @JavascriptInterface
+        public void installApk(String filePath) {
+            mainHandler.post(() -> {
+                try {
+                    File apkFile = new File(filePath);
+                    if (!apkFile.exists()) {
+                        Log.e(TAG, "File APK pembaruan tidak ditemukan: " + filePath);
+                        return;
+                    }
+
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    Uri apkUri;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        apkUri = FileProvider.getUriForFile(
+                            MainActivity.this,
+                            getPackageName() + ".fileprovider",
+                            apkFile
+                        );
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    } else {
+                        apkUri = Uri.fromFile(apkFile);
+                    }
+
+                    intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    Log.i(TAG, "Memulai intent instalasi APK: " + filePath);
+                } catch (Exception e) {
+                    Log.e(TAG, "Gagal memulai instalasi APK: " + e.getMessage(), e);
+                }
+            });
         }
     }
 
