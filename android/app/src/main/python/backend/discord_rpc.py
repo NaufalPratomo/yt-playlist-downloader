@@ -25,7 +25,7 @@ OP_PING = 3
 OP_PONG = 4
 
 DEFAULT_CLIENT_ID = "1547603041497387099"
-DEFAULT_ASSET_KEY = "logo-lightmode"
+DEFAULT_ASSET_KEY = "logo-darkmode-v2"
 PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/naufalpratomo/yt-playlist-downloader/main/public/image/logo-darkmode-v2.jpg"
 
 _COVER_CACHE: Dict[str, Optional[str]] = {}

@@ -42,10 +42,10 @@ def test_discord_rpc_unit():
     assert activity["state"] == "by Queen"
     # Test public thumbnail: cover as large_image and MusicGit logo as small_image
     assert activity["assets"]["large_image"] == "https://example.com/cover.jpg"
-    assert activity["assets"]["small_image"] == "logo-lightmode"
+    assert activity["assets"]["small_image"] == "logo-darkmode-v2"
     assert activity["assets"]["small_text"] == "MusicGit"
 
-    # Test unknown track fallback to registered Discord logo-lightmode asset key
+    # Test unknown track fallback to registered Discord logo-darkmode-v2 asset key
     payload_fallback = {
         "title": "non_existent_random_track_12345",
         "artist": "unknown_random_artist_99999",
@@ -53,7 +53,7 @@ def test_discord_rpc_unit():
         "is_playing": True,
     }
     activity_fallback = rpc._format_activity_payload(payload_fallback)
-    assert activity_fallback["assets"]["large_image"] == "logo-lightmode"
+    assert activity_fallback["assets"]["large_image"] == "logo-darkmode-v2"
     assert "small_image" not in activity_fallback["assets"]
 
     # Test paused formatting
