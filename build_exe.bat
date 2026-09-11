@@ -26,7 +26,7 @@ pip install pyinstaller
 
 echo.
 echo 3. Menjalankan PyInstaller untuk MusicGit...
-pyinstaller --noconfirm --onedir --windowed --name "MusicGit" --icon "app_icon.ico" --add-data "frontend;frontend" --hidden-import "webview" --hidden-import "webview.platforms.winforms" --hidden-import "webview.platforms.edgechromium" --hidden-import "clr" --hidden-import "clr_loader" --hidden-import "pythonnet" --hidden-import "bottle" --hidden-import "proxy_tools" --hidden-import "uvicorn.logging" --hidden-import "uvicorn.loops" --hidden-import "uvicorn.loops.auto" --hidden-import "uvicorn.protocols" --hidden-import "uvicorn.protocols.http" --hidden-import "uvicorn.protocols.http.auto" --hidden-import "uvicorn.protocols.websockets" --hidden-import "uvicorn.protocols.websockets.auto" --hidden-import "mutagen" --hidden-import "mutagen.mp3" --hidden-import "mutagen.mp4" --hidden-import "mutagen.id3" --hidden-import "PIL" --hidden-import "yt_dlp" --hidden-import "tkinter" --hidden-import "tkinter.filedialog" --hidden-import "requests" run.py
+pyinstaller --noconfirm --onedir --windowed --name "MusicGit" --icon "app_icon.ico" --add-data "frontend;frontend" --add-data "app_icon.ico;." --hidden-import "webview" --hidden-import "webview.platforms.winforms" --hidden-import "webview.platforms.edgechromium" --hidden-import "clr" --hidden-import "clr_loader" --hidden-import "pythonnet" --hidden-import "bottle" --hidden-import "proxy_tools" --hidden-import "uvicorn.logging" --hidden-import "uvicorn.loops" --hidden-import "uvicorn.loops.auto" --hidden-import "uvicorn.protocols" --hidden-import "uvicorn.protocols.http" --hidden-import "uvicorn.protocols.http.auto" --hidden-import "uvicorn.protocols.websockets" --hidden-import "uvicorn.protocols.websockets.auto" --hidden-import "mutagen" --hidden-import "mutagen.mp3" --hidden-import "mutagen.mp4" --hidden-import "mutagen.id3" --hidden-import "PIL" --hidden-import "yt_dlp" --hidden-import "tkinter" --hidden-import "tkinter.filedialog" --hidden-import "requests" run.py
 
 echo.
 echo 4. Menyalin ffmpeg.exe ke folder dist\MusicGit...
@@ -43,12 +43,7 @@ if exist "android\app\build\outputs\apk\debug\app-debug.apk" (
 )
 
 echo.
-echo.
-echo 6. Membuat file ZIP rilis untuk GitHub Releases...
-python -c "import shutil; shutil.make_archive('dist/MusicGit-v2.3-Windows', 'zip', 'dist', 'MusicGit')"
-
-echo.
-echo 7. Memeriksa Inno Setup untuk membuat file installer Setup (.exe)...
+echo 6. Memeriksa Inno Setup untuk membuat file installer Setup (.exe)...
 set "ISCC_EXE="
 if exist "C:\Program Files (x86)\Inno Setup 6\iscc.exe" set "ISCC_EXE=C:\Program Files (x86)\Inno Setup 6\iscc.exe"
 if exist "C:\Program Files\Inno Setup 6\iscc.exe" set "ISCC_EXE=C:\Program Files\Inno Setup 6\iscc.exe"
@@ -62,7 +57,7 @@ echo    File Installer: dist\MusicGit-v2.3-Setup.exe
 goto INNO_DONE
 
 :NO_INNO
-echo    (Info) Inno Setup tidak terdeteksi. File rilis utama ZIP siap digunakan.
+echo    (Peringatan) Inno Setup tidak terdeteksi. Silakan pasang Inno Setup untuk mengompilasi installer Setup.exe.
 
 :INNO_DONE
 
@@ -70,8 +65,8 @@ echo.
 echo ========================================================
 echo   BUILD DESKTOP WINDOWS SELESAI!
 echo   Folder App : dist\MusicGit\MusicGit.exe
-echo   File ZIP   : dist\MusicGit-v2.3-Windows.zip
 if exist "dist\MusicGit-v2.3-Setup.exe" echo   Installer  : dist\MusicGit-v2.3-Setup.exe
+if exist "dist\MusicGit-v2.3-Android.apk" echo   Android    : dist\MusicGit-v2.3-Android.apk
 echo ========================================================
 
 

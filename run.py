@@ -35,10 +35,19 @@ if getattr(sys, "frozen", False):
     if exe_dir not in os.environ.get("PATH", ""):
         os.environ["PATH"] = exe_dir + os.pathsep + os.environ.get("PATH", "")
 
+# Set explicit AppUserModelID on Windows so the taskbar groups and shows the correct icon
+if sys.platform == "win32":
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("MusicGit.PlaylistSync.Player.2.3")
+    except Exception:
+        pass
+
 # Unify WebView2 persistent user data folder across python.exe and MusicGit.exe
 PROFILE_DIR = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "MusicGit", "profile")
 os.makedirs(PROFILE_DIR, exist_ok=True)
 os.environ["WEBVIEW2_USER_DATA_FOLDER"] = PROFILE_DIR
+
 
 import json
 import socket
@@ -377,9 +386,21 @@ def main():
         window.events.closing += on_closing
         window.events.shown += on_shown
 
+        # Resolve path to app_icon.ico for native window & taskbar
+        if getattr(sys, "frozen", False):
+            base_icon_dir = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+        else:
+            base_icon_dir = os.path.dirname(os.path.abspath(__file__))
+
+        icon_path = os.path.join(base_icon_dir, "app_icon.ico")
+        if not os.path.isfile(icon_path):
+            icon_path = os.path.join(os.path.dirname(sys.executable), "app_icon.ico")
+        if not os.path.isfile(icon_path):
+            icon_path = None
+
         # Blocks until the desktop window is closed by the user
         is_dev = not getattr(sys, "frozen", False)
-        webview.start(debug=is_dev, private_mode=False, storage_path=PROFILE_DIR)
+        webview.start(debug=is_dev, private_mode=False, storage_path=PROFILE_DIR, icon=icon_path)
     except BaseException:
         use_fallback = True
 
