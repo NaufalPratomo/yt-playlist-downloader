@@ -1,10 +1,10 @@
 /* ==========================================================================
    MusicGit - Design System (Solid Colors, Zero Gradients, Zero Emojis)
-   Support for Solid Dark Mode & Solid Light Mode
+   Pure Solid Dark Mode Studio
    ========================================================================== */
 
-/* Dark Mode Tokens (Default) - Solid Studio Dark */
-:root, body.theme-dark {
+/* Dark Mode Tokens (Default & Pure Dark) - Solid Studio Dark */
+:root, body, body.theme-dark {
   --bg-app: #121212;
   --bg-sidebar: #181818;
   --bg-card: #1f1f1f;
@@ -48,42 +48,6 @@
 
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
-}
-
-/* Light Mode Tokens */
-body.theme-light {
-  --bg-app: #f4f6f9;
-  --bg-sidebar: #ffffff;
-  --bg-card: #ffffff;
-  --bg-card-hover: #f1f5f9;
-  --bg-surface: #edf2f7;
-  --bg-input: #ffffff;
-  --bg-player: #ffffff;
-  --bg-drawer: #ffffff;
-  --bg-modal: #ffffff;
-  --bg-table-head: #edf2f7;
-
-  --border-subtle: #e2e8f0;
-  --border-card: #e2e8f0;
-  --border-focus: #1976d2;
-  --border-accent: #1976d2;
-
-  --accent-primary: #1976d2;
-  --accent-primary-hover: #1565c0;
-  --accent-primary-subtle: rgba(25, 118, 210, 0.1);
-  --accent-git: #1976d2;
-  --accent-git-subtle: rgba(25, 118, 210, 0.1);
-  --accent-success: #1976d2;
-  --accent-warning: #d97706;
-  --accent-danger: #e53935;
-
-  --text-main: #0f172a;
-  --text-muted: #475569;
-  --text-subtle: #8492a6;
-  --text-inverse: #ffffff;
-
-  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-player: 0 -3px 16px rgba(0, 0, 0, 0.08);
 }
 
 *, *::before, *::after {
@@ -2047,10 +2011,6 @@ a,
   transform: translateX(4px);
 }
 
-body.theme-light .lyric-line-full.active,
-[data-theme="light"] .lyric-line-full.active {
-  color: var(--text-main);
-}
 
 /* ==========================================================================
    RIGHT DRAWERS: LYRICS & QUEUE
@@ -2147,10 +2107,6 @@ body.theme-light .lyric-line-full.active,
   background: transparent;
 }
 
-body.theme-light .lyric-line.active,
-[data-theme="light"] .lyric-line.active {
-  color: var(--text-main);
-}
 
 .lyrics-empty-state, .queue-empty-msg {
   display: flex;

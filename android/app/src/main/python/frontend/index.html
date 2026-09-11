@@ -8,8 +8,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>MusicGit - Music Player & Playlist Sync</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/jpeg" href="assets/logo-lightmode.jpg">
-  <link rel="apple-touch-icon" href="assets/logo-lightmode.jpg">
+  <link rel="icon" type="image/jpeg" href="assets/logo-darkmode-v2.jpg">
+  <link rel="apple-touch-icon" href="assets/logo-darkmode-v2.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
       <!-- Sidebar Brand -->
       <div class="sidebar-brand">
         <div class="brand-logo-wrap">
-          <img id="app-brand-logo" src="assets/logo-darkmode.jpg" alt="MusicGit Logo" class="brand-logo-img theme-reactive-logo">
+          <img id="app-brand-logo" src="assets/logo-darkmode-v2.jpg" alt="MusicGit Logo" class="brand-logo-img">
         </div>
         <div class="brand-text">
           <h1 class="brand-title">MusicGit</h1>
@@ -124,22 +124,6 @@
         </div>
 
         <div class="topbar-right">
-          <button type="button" id="btn-toggle-theme" class="btn btn-secondary btn-sm" data-i18n-title="theme_toggle_title" title="Ganti Tema Gelap / Terang">
-            <svg id="icon-theme-sun" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
-            <svg id="icon-theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-            <span id="theme-btn-label" data-i18n="theme_btn_label">Tema</span>
-          </button>
         </div>
       </header>
 
@@ -875,9 +859,8 @@
 
             <div class="field-item">
               <label for="settings-theme-select" class="field-label" data-i18n="settings_theme_label">Mode Tampilan (Tema)</label>
-              <select id="settings-theme-select" class="select-input">
-                <option value="dark" selected data-i18n="settings_theme_dark">Mode Gelap (Dark Navy Solid)</option>
-                <option value="light" data-i18n="settings_theme_light">Mode Terang (Clean Light Slate)</option>
+              <select id="settings-theme-select" class="select-input" disabled>
+                <option value="dark" selected data-i18n="settings_theme_dark">Pure Dark Mode</option>
               </select>
             </div>
 
@@ -924,7 +907,7 @@
 
         <div class="card-panel about-card">
           <div class="about-header">
-            <img id="app-about-logo" src="assets/logo-darkmode.jpg" alt="MusicGit" class="about-logo theme-reactive-logo">
+            <img id="app-about-logo" src="assets/logo-darkmode-v2.jpg" alt="MusicGit" class="about-logo">
             <div>
               <h3 class="about-title">MusicGit</h3>
               <p class="about-desc">YouTube Playlist Remote Sync & Desktop Music Player</p>
@@ -1049,7 +1032,7 @@
       <!-- Player Left: Track Details -->
       <div class="player-track-meta">
         <div class="player-cover-frame">
-          <img id="player-bar-thumb" src="assets/logo-darkmode.jpg" alt="Cover" class="player-bar-img">
+          <img id="player-bar-thumb" src="assets/logo-darkmode-v2.jpg" alt="Cover" class="player-bar-img">
           <div class="player-cover-fallback hidden" id="player-bar-fallback">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 18V5l12-2v13"></path>

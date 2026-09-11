@@ -3029,16 +3029,10 @@ const I18nManager = {
       globalSearch.placeholder = dict.search_placeholder;
     }
 
-    // 6. Update theme toggle label & title
+    // 6. Update theme toggle label & title if present
     const themeToggleBtn = document.getElementById("btn-toggle-theme");
     if (themeToggleBtn && dict.theme_toggle_title) {
       themeToggleBtn.title = dict.theme_toggle_title;
-    }
-    const themeLabel = document.getElementById("theme-btn-label");
-    if (themeLabel) {
-      themeLabel.textContent = ThemeManager.currentTheme === "light" 
-        ? dict.theme_light_label || "Terang" 
-        : dict.theme_dark_label || "Gelap";
     }
 
     // 7. Update empty queue message if currently active
@@ -3059,52 +3053,35 @@ const I18nManager = {
 
 
 // =============================================================================
-// 7. THEME MANAGER (DARK & LIGHT SOLID MODES)
+// 7. THEME MANAGER (PURE DARK MODE ONLY)
 // =============================================================================
 const ThemeManager = {
   currentTheme: "dark",
 
-  getLogoUrl(theme = this.currentTheme) {
-    return theme === "light"
-      ? "assets/logo-lightmode.jpg"
-      : "assets/logo-darkmode.jpg";
+  getLogoUrl() {
+    return "assets/logo-darkmode-v2.jpg";
   },
 
   init() {
-    const saved = localStorage.getItem("musicgit_theme");
-    if (saved === "light" || saved === "dark") {
-      this.currentTheme = saved;
-    } else {
-      this.currentTheme = "dark";
-    }
-    this.applyTheme(this.currentTheme);
-
-    const toggleBtn = document.getElementById("btn-toggle-theme");
-    if (toggleBtn) {
-      toggleBtn.addEventListener("click", () => {
-        const next = this.currentTheme === "dark" ? "light" : "dark";
-        this.applyTheme(next);
-      });
-    }
+    this.currentTheme = "dark";
+    localStorage.setItem("musicgit_theme", "dark");
+    this.applyTheme("dark");
 
     const themeSelect = document.getElementById("settings-theme-select");
     if (themeSelect) {
-      themeSelect.value = this.currentTheme;
-      themeSelect.addEventListener("change", (e) => {
-        this.applyTheme(e.target.value);
-      });
+      themeSelect.value = "dark";
     }
   },
 
-  applyTheme(theme) {
-    this.currentTheme = theme;
-    document.body.classList.remove("theme-dark", "theme-light");
-    document.body.classList.add(`theme-${theme}`);
-    document.documentElement.setAttribute("data-theme", theme);
-    document.body.setAttribute("data-theme", theme);
-    localStorage.setItem("musicgit_theme", theme);
+  applyTheme(theme = "dark") {
+    this.currentTheme = "dark";
+    document.body.classList.remove("theme-light");
+    document.body.classList.add("theme-dark");
+    document.documentElement.setAttribute("data-theme", "dark");
+    document.body.setAttribute("data-theme", "dark");
+    localStorage.setItem("musicgit_theme", "dark");
 
-    // Update browser / desktop titlebar theme-color dynamically
+    // Browser / desktop titlebar theme-color dynamically
     let metaTheme = document.getElementById("meta-theme-color");
     if (!metaTheme) {
       metaTheme = document.createElement("meta");
@@ -3112,31 +3089,10 @@ const ThemeManager = {
       metaTheme.name = "theme-color";
       document.head.appendChild(metaTheme);
     }
-    metaTheme.setAttribute("content", theme === "light" ? "#ffffff" : "#181818");
+    metaTheme.setAttribute("content", "#181818");
 
-    const sunIcon = document.getElementById("icon-theme-sun");
-    const moonIcon = document.getElementById("icon-theme-moon");
-    const themeLabel = document.getElementById("theme-btn-label");
-    const themeSelect = document.getElementById("settings-theme-select");
-
-    if (sunIcon && moonIcon) {
-      if (theme === "light") {
-        sunIcon.classList.remove("hidden");
-        moonIcon.classList.add("hidden");
-        if (themeLabel) themeLabel.textContent = I18nManager.t("theme_light_label") || "Terang";
-      } else {
-        sunIcon.classList.add("hidden");
-        moonIcon.classList.remove("hidden");
-        if (themeLabel) themeLabel.textContent = I18nManager.t("theme_dark_label") || "Gelap";
-      }
-    }
-
-    if (themeSelect && themeSelect.value !== theme) {
-      themeSelect.value = theme;
-    }
-
-    // Switch in-app logos dynamically based on active theme
-    const logoUrl = this.getLogoUrl(theme);
+    // Set in-app logos to logo-darkmode-v2.jpg
+    const logoUrl = this.getLogoUrl();
     const reactiveLogos = document.querySelectorAll(".theme-reactive-logo");
     reactiveLogos.forEach((img) => {
       img.src = logoUrl;
@@ -3259,7 +3215,7 @@ const ViewController = {
       const dir = document.getElementById("settings-output-dir").value.trim();
       const br = document.getElementById("settings-default-bitrate").value;
       const tpl = document.getElementById("settings-default-template").value;
-      const thm = document.getElementById("settings-theme-select").value;
+      const thm = "dark";
       const lang = document.getElementById("settings-lang-select").value;
       const discordEnabled = document.getElementById("settings-discord-enabled") ? document.getElementById("settings-discord-enabled").checked : true;
       const discordClientId = "1547603041497387099";
@@ -3267,12 +3223,12 @@ const ViewController = {
       MusicGitState.config.defaultMusicDir = dir;
       MusicGitState.config.defaultBitrate = br;
       MusicGitState.config.defaultTemplate = tpl;
-      MusicGitState.config.theme = thm;
+      MusicGitState.config.theme = "dark";
       MusicGitState.config.language = lang;
       MusicGitState.config.discord_rpc_enabled = discordEnabled;
       MusicGitState.config.discord_client_id = discordClientId;
 
-      ThemeManager.applyTheme(thm);
+      ThemeManager.applyTheme("dark");
       I18nManager.applyLanguage(lang);
 
       // Sync settings immediately to Downloader view
@@ -3448,20 +3404,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     MusicGitState.config.defaultMusicDir = cfg.default_music_dir || "";
     MusicGitState.config.defaultBitrate = cfg.default_bitrate || "192";
     MusicGitState.config.defaultTemplate = cfg.default_template || "{num}. {title}-{id}.mp3";
-    MusicGitState.config.theme = cfg.theme || "dark";
+    MusicGitState.config.theme = "dark";
     const localLang = localStorage.getItem("musicgit_language");
     MusicGitState.config.language = localLang || cfg.language || "id";
 
     const saved = localStorage.getItem("musicgit_config");
     if (saved) {
       const parsed = JSON.parse(saved);
-      MusicGitState.config = { ...MusicGitState.config, ...parsed };
+      MusicGitState.config = { ...MusicGitState.config, ...parsed, theme: "dark" };
       if (localLang) {
         MusicGitState.config.language = localLang;
       }
     }
 
-    if (MusicGitState.config.theme) ThemeManager.applyTheme(MusicGitState.config.theme);
+    ThemeManager.applyTheme("dark");
     if (MusicGitState.config.language) I18nManager.applyLanguage(MusicGitState.config.language);
 
     const isAndroid = cfg.is_android || /android/i.test(navigator.userAgent);

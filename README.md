@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/image/logo-lightmode.jpg" alt="MusicGit Logo" width="120" style="border-radius: 20px;" />
+<img src="public/image/logo-darkmode-v2.jpg" alt="MusicGit Logo" width="120" style="border-radius: 20px;" />
 
 # MusicGit
 
@@ -56,7 +56,7 @@ MusicGit treats your **Music Playlists** like a *Remote Repository* and your loc
 - **Keep Screen Awake (Display Wake Lock)**: Configurable screen wake lock prevents the display from dimming or sleeping while music is actively playing.
 - **100% SVG Vector System**: Zero Unicode emojis across the codebase and interface; all icons are rendered using crisp, scalable SVG paths.
 - **Mobile Responsive UI**: Adaptive glassmorphism UI with *Bottom Navigation Bar*, *compact player bar*, and touch-optimized navigation for smartphone screens.
-- **Dark / Light Theme**: Full theme switching with dynamic logo swap (dark mode & light mode branding assets), persistent user preference via `localStorage`.
+- **Pure Solid Dark Theme**: Sleek, distraction-free solid studio dark theme with high-contrast UI and brand identity.
 
 ### 2. Universal Multi-Provider Music & Playlist Downloader (v2.3)
 - **Spotify**: Extracts playlists, albums, and tracks using embed-based Next.js JSON decoding. Retrieves clean titles, artists, track order, and high-resolution 640x640 album artwork without requiring Spotify developer API keys.
@@ -191,15 +191,15 @@ yt-playlist-downloader/
 │   └── utils.py              # Cross-platform path helpers (Windows / Android)
 ├── frontend/
 │   ├── assets/
-│   │   ├── logo-lightmode.jpg # Light mode logo & app icon
-│   │   ├── logo-darkmode.jpg  # Dark mode logo
-│   │   └── MusicGit-logo.png  # Fallback legacy logo
+│   │   ├── logo-darkmode-v2.jpg # Official MusicGit app logo
+│   │   ├── logo-darkmode.jpg    # Dark mode asset
+│   │   └── MusicGit-logo.png    # Fallback legacy logo
 │   ├── app.js                # Audio player, Time-Synced LRC, theme manager & SSE stream
 │   ├── index.html            # Desktop & mobile layout (Sidebar, Bottom Nav, Lyrics, Player)
-│   └── style.css             # Dark navy glassmorphism UI & responsive mobile styles
-├── public/image/             # Master branding assets (logo-lightmode.jpg, logo-darkmode.jpg)
+│   └── style.css             # Solid dark studio UI & responsive mobile styles
+├── public/image/             # Master branding assets (logo-darkmode-v2.jpg)
 ├── tests/                    # Unit tests (ID3 tagging, Library manager, API endpoints)
-├── app_icon.ico              # Multi-resolution Windows icon (generated from logo)
+├── app_icon.ico              # Multi-resolution Windows icon (generated with curved corners)
 ├── build_apk.bat             # Automated script to build Android APK (.apk)
 ├── build_exe.bat             # Automated script to build Windows Executable (.exe & .zip)
 ├── fix_existing_tags.py      # CLI script for repairing local folder ID3 tags
