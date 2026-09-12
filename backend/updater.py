@@ -20,8 +20,29 @@ from typing import Tuple, Dict, Any, Optional
 
 logger = logging.getLogger("musicgit.updater")
 
-CURRENT_VERSION = "2.3.0"
+CURRENT_VERSION = "2.3.1"
 GITHUB_REPO = "naufalpratomo/yt-playlist-downloader"
+
+
+def get_installed_exe_path() -> str:
+    """Resolve the true path to MusicGit.exe on Windows."""
+    if getattr(sys, 'frozen', False) and sys.executable:
+        return sys.executable
+    if sys.platform == "win32":
+        try:
+            import winreg
+            for root in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+                try:
+                    with winreg.OpenKey(root, r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{D37E84B1-2E9E-4B07-A961-A768F80BB872}_is1") as key:
+                        install_dir, _ = winreg.QueryValueEx(key, "InstallLocation")
+                        candidate = os.path.join(install_dir, "MusicGit.exe")
+                        if os.path.exists(candidate):
+                            return candidate
+                except OSError:
+                    pass
+        except Exception:
+            pass
+    return os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "MusicGit", "MusicGit.exe")
 
 
 def parse_version(v: str) -> Tuple[int, ...]:
@@ -292,17 +313,22 @@ class AppUpdater:
 
         # Windows execution
         if platform == "windows":
+            # Flags to completely prevent any cmd.exe console window from appearing on desktop
+            DETACHED_PROCESS = 0x00000008
+            CREATE_NO_WINDOW = 0x08000000
+            creationflags = CREATE_NO_WINDOW | DETACHED_PROCESS
+
             if file_path.lower().endswith(".exe"):
                 bat_path = os.path.join(tempfile.gettempdir(), "musicgit_installer.bat")
                 pid = os.getpid()
-                app_exe = sys.executable if getattr(sys, 'frozen', False) else os.path.join(
-                    os.environ.get("LOCALAPPDATA", ""), "Programs", "MusicGit", "MusicGit.exe"
-                )
+                app_exe = get_installed_exe_path()
+                # /SILENT displays a sleek Inno Setup progress bar without wizard questions;
+                # cmd.exe runs detached with CREATE_NO_WINDOW so no black terminal is shown.
                 bat_content = f"""@echo off
-timeout /t 1 /nobreak >nul
+ping 127.0.0.1 -n 2 >nul
 taskkill /F /PID {pid} >nul 2>&1
-timeout /t 1 /nobreak >nul
-start /wait "" "{file_path}" /VERYSILENT /SUPPRESSMSGBOXES /CLOSEAPPLICATIONS
+ping 127.0.0.1 -n 2 >nul
+start /wait "" "{file_path}" /SILENT /SUPPRESSMSGBOXES /CLOSEAPPLICATIONS
 if exist "{app_exe}" (
     start "" "{app_exe}"
 )
@@ -311,7 +337,12 @@ del "%~f0"
                 try:
                     with open(bat_path, "w", encoding="utf-8") as f:
                         f.write(bat_content)
-                    subprocess.Popen(["cmd.exe", "/c", bat_path], shell=False)
+                    subprocess.Popen(
+                        ["cmd.exe", "/c", bat_path],
+                        shell=False,
+                        creationflags=creationflags,
+                        close_fds=True
+                    )
                     threading.Timer(1.0, lambda: os._exit(0)).start()
                     return {
                         "success": True,
@@ -329,9 +360,9 @@ del "%~f0"
                 bat_path = os.path.join(tempfile.gettempdir(), "musicgit_updater.bat")
                 pid = os.getpid()
                 bat_content = f"""@echo off
-timeout /t 1 /nobreak >nul
+ping 127.0.0.1 -n 2 >nul
 taskkill /F /PID {pid} >nul 2>&1
-timeout /t 1 /nobreak >nul
+ping 127.0.0.1 -n 2 >nul
 powershell -Command "Expand-Archive -Path '{file_path}' -DestinationPath '{app_dir}' -Force"
 del /f /q "{file_path}"
 start "" "{os.path.join(app_dir, 'MusicGit.exe')}"
@@ -339,7 +370,12 @@ del "%~f0"
 """
                 with open(bat_path, "w") as f:
                     f.write(bat_content)
-                subprocess.Popen(["cmd.exe", "/c", bat_path], shell=False)
+                subprocess.Popen(
+                    ["cmd.exe", "/c", bat_path],
+                    shell=False,
+                    creationflags=creationflags,
+                    close_fds=True
+                )
                 threading.Timer(1.0, lambda: os._exit(0)).start()
                 return {
                     "success": True,

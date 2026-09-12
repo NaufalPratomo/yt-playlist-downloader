@@ -3553,7 +3553,7 @@ function escapeHtml(str) {
 }
 
 const UpdateManager = {
-  currentVersion: "2.3.0",
+  currentVersion: "2.3.1",
   pollInterval: null,
   latestRelease: null,
 
@@ -3562,6 +3562,26 @@ const UpdateManager = {
     if (btnCheck) {
       btnCheck.addEventListener("click", () => this.checkForUpdates(true));
     }
+    // Fetch initial version from backend quietly on init
+    fetch("/api/system/check-update")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.current_version) {
+          this.currentVersion = data.current_version;
+          this.updateVersionChips(data.current_version);
+        }
+      })
+      .catch(() => {});
+  },
+
+  updateVersionChips(version) {
+    if (!version) return;
+    const vStr = version.startsWith("v") || version.startsWith("V") ? version : `v${version}`;
+    const chip = document.getElementById("update-current-ver-chip");
+    if (chip) chip.textContent = vStr;
+    document.querySelectorAll(".sidebar-footer-text").forEach(el => {
+      el.textContent = `MusicGit ${vStr}`;
+    });
   },
 
   async checkForUpdates(manual = false) {
@@ -3586,6 +3606,10 @@ const UpdateManager = {
       }
       const data = await res.json();
       this.latestRelease = data;
+      if (data.current_version) {
+        this.currentVersion = data.current_version;
+        this.updateVersionChips(data.current_version);
+      }
 
       if (panel) {
         panel.classList.remove("hidden");
@@ -3635,6 +3659,7 @@ const UpdateManager = {
     const panel = document.getElementById("update-panel-container");
     if (!panel) return;
     const isEn = I18nManager.currentLang === "en";
+    const installedVer = data.current_version || this.currentVersion || "2.3.1";
     panel.innerHTML = `
       <div class="update-status-box up-to-date">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
@@ -3643,7 +3668,7 @@ const UpdateManager = {
         </svg>
         <div>
           <strong style="display: block;">${I18nManager.t("update_up_to_date") || "Aplikasi Anda sudah versi terbaru."}</strong>
-          <span style="font-size: 0.8rem; opacity: 0.85;">${isEn ? "Installed version" : "Versi terpasang"}: ${escapeHtml(data.current_version || "2.3.0")}</span>
+          <span style="font-size: 0.8rem; opacity: 0.85;">${isEn ? "Installed version" : "Versi terpasang"}: ${escapeHtml(installedVer)}</span>
         </div>
       </div>
     `;
@@ -3802,6 +3827,27 @@ const UpdateManager = {
 
   async applyUpdate(filePath, isAndroid) {
     try {
+      if (!isAndroid) {
+        const statusText = document.getElementById("update-prog-status-text");
+        if (statusText) {
+          statusText.textContent = I18nManager.currentLang === "en"
+            ? "Preparing update... MusicGit will restart automatically."
+            : "Menyiapkan pembaruan... MusicGit akan me-restart secara otomatis.";
+        }
+        const actionsBox = document.getElementById("update-actions-box");
+        if (actionsBox) {
+          actionsBox.innerHTML = `
+            <div style="font-size: 0.85rem; color: #10b981; display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.25);">
+              <svg class="spin-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+              </svg>
+              <span>${I18nManager.currentLang === "en" ? "Installing update... please wait, restarting soon." : "Memasang pembaruan... mohon tunggu, segera restart."}</span>
+            </div>
+          `;
+        }
+      }
+
       const res = await fetch("/api/system/install-update", { method: "POST" });
       const result = await res.json();
 
@@ -3812,11 +3858,11 @@ const UpdateManager = {
         } else {
           alert(`File APK siap di: ${apkPath}. Silakan buka file ini untuk memperbarui.`);
         }
-      } else {
-        alert("Pembaruan sedang dipasang di latar belakang. Aplikasi akan me-restart secara otomatis.");
       }
     } catch (err) {
       alert("Gagal memasang pembaruan: " + err.message);
+      const actionsBox = document.getElementById("update-actions-box");
+      if (actionsBox) actionsBox.classList.remove("hidden");
     }
   }
 };
