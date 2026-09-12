@@ -131,6 +131,11 @@ class AudioPlayerEngine {
       if ("mediaSession" in navigator) {
         navigator.mediaSession.playbackState = "playing";
       }
+      if (this.currentTrack && window.LyricsEngine) {
+        if (!window.LyricsEngine.currentTrack || window.LyricsEngine.currentTrack.file_path !== this.currentTrack.file_path) {
+          window.LyricsEngine.loadLyrics(this.currentTrack);
+        }
+      }
     });
 
     this.audio.addEventListener("pause", () => {
@@ -320,6 +325,11 @@ class AudioPlayerEngine {
 
     if (this.audio.paused) {
       this.audio.play().catch(console.warn);
+      if (this.currentTrack && window.LyricsEngine) {
+        if (!window.LyricsEngine.currentTrack || window.LyricsEngine.currentTrack.file_path !== this.currentTrack.file_path) {
+          window.LyricsEngine.loadLyrics(this.currentTrack);
+        }
+      }
     } else {
       this.audio.pause();
     }
@@ -541,6 +551,13 @@ class AudioPlayerEngine {
           this._renderQueue();
           this._updatePlayButtonState();
           this._updateMediaSession(track);
+
+          // Restore lyrics for restored standby track
+          if (window.LyricsEngine) {
+            window.LyricsEngine.loadLyrics(track);
+          } else if (typeof LyricsEngine !== "undefined" && LyricsEngine) {
+            LyricsEngine.loadLyrics(track);
+          }
         }
       }
     } catch (e) {
@@ -847,16 +864,29 @@ class LyricsSyncEngine {
     this._initListeners();
   }
 
+  onTrackChanged(track) {
+    if (track) {
+      this.loadLyrics(track);
+    }
+  }
+
+  scrollActiveLineIntoView() {
+    const curTime = window.MusicPlayer && window.MusicPlayer.audio ? (window.MusicPlayer.audio.currentTime || 0) : 0;
+    this.onAudioTimeUpdate(curTime, true);
+  }
+
   _initListeners() {
     if (this.refetchBtn) {
       this.refetchBtn.addEventListener("click", () => {
-        if (this.currentTrack) this.loadLyrics(this.currentTrack, true);
+        const trk = this.currentTrack || (window.MusicPlayer ? window.MusicPlayer.currentTrack : null);
+        if (trk) this.loadLyrics(trk, true);
       });
     }
 
     if (this.fullRefetchBtn) {
       this.fullRefetchBtn.addEventListener("click", () => {
-        if (this.currentTrack) this.loadLyrics(this.currentTrack, true);
+        const trk = this.currentTrack || (window.MusicPlayer ? window.MusicPlayer.currentTrack : null);
+        if (trk) this.loadLyrics(trk, true);
       });
     }
 
@@ -1026,7 +1056,7 @@ class LyricsSyncEngine {
     });
   }
 
-  onAudioTimeUpdate(currentTime) {
+  onAudioTimeUpdate(currentTime, forceScroll = false) {
     if (!this.isSynced || !this.lines || this.lines.length === 0) return;
 
     const effectiveTime = currentTime + (this.offset || 0);
@@ -1039,8 +1069,21 @@ class LyricsSyncEngine {
       }
     }
 
+    if (matchIdx === -1) {
+      if (this.activeLineIdx !== -1) {
+        this.activeLineIdx = -1;
+        if (this.container) {
+          this.container.querySelectorAll(".lyric-line.active").forEach((el) => el.classList.remove("active"));
+        }
+        if (this.fullContainer) {
+          this.fullContainer.querySelectorAll(".lyric-line-full.active").forEach((el) => el.classList.remove("active"));
+        }
+      }
+      return;
+    }
+
     // Update active line highlighting and smooth scrolling
-    if (matchIdx !== this.activeLineIdx && matchIdx !== -1) {
+    if (matchIdx !== this.activeLineIdx || forceScroll) {
       this.activeLineIdx = matchIdx;
 
       // Update Drawer lines
@@ -3592,6 +3635,18 @@ const ViewController = {
 
     MusicGitState.activeView = viewId;
 
+    // Synchronize lyrics view whenever entering Lyrics view
+    if (viewId === "view-lyrics") {
+      const activeTrack = window.MusicPlayer && window.MusicPlayer.currentTrack ? window.MusicPlayer.currentTrack : null;
+      if (activeTrack && window.LyricsEngine) {
+        if (!window.LyricsEngine.currentTrack || window.LyricsEngine.currentTrack.file_path !== activeTrack.file_path) {
+          window.LyricsEngine.loadLyrics(activeTrack);
+        } else {
+          window.LyricsEngine.scrollActiveLineIntoView();
+        }
+      }
+    }
+
     // Synchronize downloader form options whenever entering Downloader view
     if (viewId === "view-downloader") {
       syncDownloaderSettingsFromConfig();
@@ -3703,8 +3758,9 @@ let LyricsEngine, LibraryManagerEngine, DownloaderEngine, TagManager;
 
 document.addEventListener("DOMContentLoaded", async () => {
   // 1. Initialize Player & Engines
-  window.MusicPlayer = new AudioPlayerEngine();
   LyricsEngine = new LyricsSyncEngine();
+  window.LyricsEngine = LyricsEngine;
+  window.MusicPlayer = new AudioPlayerEngine();
   LibraryManagerEngine = new LibraryEngine();
   DownloaderEngine = new DownloaderSyncEngine();
   TagManager = new TagManagerEngine();

@@ -191,12 +191,11 @@ img {
   padding: 0;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  transition: transform var(--transition-fast);
 }
 
 .brand-logo-wrap:hover {
   transform: scale(1.06);
-  border-color: rgba(29, 140, 248, 0.5);
 }
 
 .brand-logo-img {
