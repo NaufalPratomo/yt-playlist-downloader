@@ -43,6 +43,10 @@ if exist "android\app\build\outputs\apk\debug\app-debug.apk" (
 )
 
 echo.
+echo 5b. Membuat arsip ZIP portabel Windows...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Test-Path 'dist\MusicGit-v2.3-Windows.zip') { Remove-Item -Force 'dist\MusicGit-v2.3-Windows.zip' }; Compress-Archive -Path 'dist\MusicGit' -DestinationPath 'dist\MusicGit-v2.3-Windows.zip' -Force"
+
+echo.
 echo 6. Memeriksa Inno Setup untuk membuat file installer Setup (.exe)...
 set "ISCC_EXE="
 if exist "C:\Program Files (x86)\Inno Setup 6\iscc.exe" set "ISCC_EXE=C:\Program Files (x86)\Inno Setup 6\iscc.exe"
@@ -65,6 +69,7 @@ echo.
 echo ========================================================
 echo   BUILD DESKTOP WINDOWS SELESAI!
 echo   Folder App : dist\MusicGit\MusicGit.exe
+if exist "dist\MusicGit-v2.3-Windows.zip" echo   Zip Portabel: dist\MusicGit-v2.3-Windows.zip
 if exist "dist\MusicGit-v2.3-Setup.exe" echo   Installer  : dist\MusicGit-v2.3-Setup.exe
 if exist "dist\MusicGit-v2.3-Android.apk" echo   Android    : dist\MusicGit-v2.3-Android.apk
 echo ========================================================
