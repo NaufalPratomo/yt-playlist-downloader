@@ -1188,15 +1188,18 @@ class LibraryEngine {
       }
     });
 
-    document.getElementById("btn-hero-open-folder").addEventListener("click", () => {
-      if (MusicGitState.currentPlaylist) {
-        fetch("/api/open-folder", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: MusicGitState.currentPlaylist.folder_path }),
-        });
-      }
-    });
+    const btnOpenFolder = document.getElementById("btn-hero-open-folder");
+    if (btnOpenFolder) {
+      btnOpenFolder.addEventListener("click", () => {
+        if (MusicGitState.currentPlaylist) {
+          fetch("/api/open-folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: MusicGitState.currentPlaylist.folder_path }),
+          });
+        }
+      });
+    }
 
     document.getElementById("btn-hero-link-remote").addEventListener("click", () => {
       if (MusicGitState.currentPlaylist) {
@@ -1260,6 +1263,110 @@ class LibraryEngine {
 
     document.getElementById("btn-close-modal-sync").addEventListener("click", closeSyncModal);
     document.getElementById("btn-cancel-modal-sync").addEventListener("click", closeSyncModal);
+
+    // Subtabs: Local Playlists vs Cloud Backups
+    const tabLocal = document.getElementById("tab-lib-local");
+    const tabCloud = document.getElementById("tab-lib-cloud");
+    const gridLocal = document.getElementById("playlists-grid");
+    const gridCloud = document.getElementById("cloud-playlists-grid");
+
+    if (tabLocal && tabCloud && gridLocal && gridCloud) {
+      tabLocal.addEventListener("click", () => {
+        tabLocal.classList.add("active");
+        tabCloud.classList.remove("active");
+        gridLocal.classList.remove("hidden");
+        gridCloud.classList.add("hidden");
+      });
+
+      tabCloud.addEventListener("click", () => {
+        tabCloud.classList.add("active");
+        tabLocal.classList.remove("active");
+        gridCloud.classList.remove("hidden");
+        gridLocal.classList.add("hidden");
+        this.renderCloudPlaylists();
+      });
+    }
+
+    // Hero Cloud Sync Button
+    const btnHeroCloud = document.getElementById("btn-hero-cloud-sync");
+    if (btnHeroCloud) {
+      btnHeroCloud.addEventListener("click", async () => {
+        if (!MusicGitState.currentPlaylist) return;
+
+        if (!MusicGitState.currentPlaylist.remote_url) {
+          alert("Playlist ini belum memiliki tautan remote. Silakan klik 'Tautkan Remote' terlebih dahulu.");
+          return;
+        }
+
+        if (!window.CloudSyncManager || !window.CloudSyncManager.isLoggedIn()) {
+          if (window.AuthUIController) window.AuthUIController.openModal();
+          return;
+        }
+
+        const btnLabel = document.getElementById("hero-cloud-sync-label");
+        const btnIcon = document.getElementById("hero-cloud-sync-icon");
+        const isEn = (window.I18nManager && window.I18nManager.currentLang === "en");
+
+        // Loading animation state
+        btnHeroCloud.disabled = true;
+        if (btnLabel) btnLabel.textContent = isEn ? "Backing up to Cloud..." : "Mencadangkan ke Cloud...";
+        if (btnIcon) {
+          btnIcon.innerHTML = `<path d="M21 12a9 9 0 1 1-6.219-8.56"></path>`;
+          btnIcon.classList.add("spin-icon-update");
+        }
+
+        try {
+          await window.CloudSyncManager.uploadPlaylist({
+            title: MusicGitState.currentPlaylist.name,
+            remote_url: MusicGitState.currentPlaylist.remote_url,
+            provider: MusicGitState.currentPlaylist.provider || "youtube",
+            cover_url: MusicGitState.currentPlaylist.cover_url || null,
+            track_count: MusicGitState.currentPlaylist.total_tracks || 0,
+            tracks: (MusicGitState.currentPlaylist.tracks || []).slice(0, 100).map((t) => ({
+              title: t.title,
+              artist: t.artist,
+              album: t.album,
+            })),
+          });
+
+          if (btnLabel) btnLabel.textContent = isEn ? "Synced to Cloud" : "Tersinkron di Cloud";
+          if (btnIcon) {
+            btnIcon.classList.remove("spin-icon-update");
+            btnIcon.innerHTML = `<polyline points="20 6 9 17 4 12"></polyline>`;
+          }
+          btnHeroCloud.style.borderColor = "var(--accent-primary)";
+          btnHeroCloud.style.color = "var(--accent-primary)";
+          this.updateCloudBadges();
+
+          // Reset button text after 3.5 seconds
+          setTimeout(() => {
+            if (btnLabel) btnLabel.textContent = isEn ? "Backup Cloud" : "Backup Cloud";
+            if (btnIcon) {
+              btnIcon.innerHTML = `
+                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+                <polyline points="12 13 12 7 9 10"></polyline>
+                <polyline points="12 7 15 10"></polyline>
+              `;
+            }
+            btnHeroCloud.style.borderColor = "";
+            btnHeroCloud.style.color = "";
+            btnHeroCloud.disabled = false;
+          }, 3500);
+        } catch (err) {
+          alert((isEn ? "Failed to backup to cloud: " : "Gagal mencadangkan ke cloud: ") + err.message);
+          if (btnLabel) btnLabel.textContent = isEn ? "Backup Cloud" : "Backup Cloud";
+          if (btnIcon) {
+            btnIcon.classList.remove("spin-icon-update");
+            btnIcon.innerHTML = `
+              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+              <polyline points="12 13 12 7 9 10"></polyline>
+              <polyline points="12 7 15 10"></polyline>
+            `;
+          }
+          btnHeroCloud.disabled = false;
+        }
+      });
+    }
   }
 
   async loadPlaylists() {
@@ -1270,6 +1377,7 @@ class LibraryEngine {
       MusicGitState.playlists = list;
       this._renderSidebarPlaylists(list);
       this._renderMasterGrid(list);
+      this.updateCloudBadges();
     } catch (err) {
       console.warn("Error loading playlists:", err);
       this.playlistsGrid.innerHTML = `<div class="sidebar-empty-state">${I18nManager.t("lib_failed_open")}</div>`;
@@ -1544,6 +1652,162 @@ class LibraryEngine {
     this.masterView.classList.remove("hidden");
     this.currentPlaylistPath = null;
     MusicGitState.currentPlaylist = null;
+    this.updateCloudBadges();
+  }
+
+  async updateCloudBadges() {
+    const badgeLocal = document.getElementById("badge-count-local-playlists");
+    if (badgeLocal) {
+      badgeLocal.textContent = (MusicGitState.playlists || []).length;
+    }
+
+    const badgeCloud = document.getElementById("badge-count-cloud-playlists");
+    if (badgeCloud) {
+      if (window.CloudSyncManager && window.CloudSyncManager.isLoggedIn()) {
+        try {
+          const list = await window.CloudSyncManager.getCloudPlaylists();
+          badgeCloud.textContent = list.length;
+        } catch (e) {
+          badgeCloud.textContent = "0";
+        }
+      } else {
+        badgeCloud.textContent = "0";
+      }
+    }
+  }
+
+  async renderCloudPlaylists() {
+    const gridCloud = document.getElementById("cloud-playlists-grid");
+    if (!gridCloud) return;
+
+    const isEn = (window.I18nManager && window.I18nManager.currentLang === "en");
+
+    if (!window.CloudSyncManager || !window.CloudSyncManager.isLoggedIn()) {
+      gridCloud.innerHTML = `
+        <div class="cloud-empty-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+          </svg>
+          <h3>${isEn ? "Guest Mode Active" : "Mode Guest Aktif"}</h3>
+          <p>${isEn ? "You are not signed in. Sign in or create an account to view, backup, and restore your playlists on any device." : "Anda belum masuk dengan akun cloud. Masuk atau buat akun untuk melihat, mencadangkan, dan mengunduh kembali playlist Anda di perangkat apa pun."}</p>
+          <button type="button" class="btn btn-primary" onclick="window.AuthUIController && window.AuthUIController.openModal()">
+            ${isEn ? "Sign In / Create Cloud Account" : "Masuk / Buat Akun Cloud"}
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    gridCloud.innerHTML = `<div class="sidebar-empty-state" style="grid-column: 1 / -1; padding: 40px; text-align: center;"><span class="spinner"></span> ${isEn ? "Loading cloud playlists..." : "Memuat playlist dari cloud..."}</div>`;
+
+    try {
+      const cloudList = await window.CloudSyncManager.getCloudPlaylists();
+      this.updateCloudBadges();
+
+      if (cloudList.length === 0) {
+        gridCloud.innerHTML = `
+          <div class="cloud-empty-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+            </svg>
+            <h3>${isEn ? "No Cloud Playlists Yet" : "Belum Ada Playlist di Cloud"}</h3>
+            <p>${isEn ? "Open any local playlist linked to a remote, then click \"Backup Cloud\" to store it here." : "Buka salah satu playlist lokal Anda yang terhubung dengan remote, lalu tekan tombol \"Backup Cloud\" untuk menyimpannya di sini."}</p>
+          </div>
+        `;
+        return;
+      }
+
+      const localUrls = new Set((MusicGitState.playlists || []).map((p) => p.remote_url).filter(Boolean));
+
+      gridCloud.innerHTML = cloudList
+        .map((cp) => {
+          const isLocal = localUrls.has(cp.remote_url);
+          const statusBadge = isLocal
+            ? `<span class="pill pill-success pill-xs" style="background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3);">Tersimpan di Lokal</span>`
+            : `<span class="pill pill-primary pill-xs">Tersimpan di Cloud Saja</span>`;
+
+          const actionBtn = isLocal
+            ? `<button type="button" class="btn btn-secondary btn-sm btn-open-local-pl" data-remote="${this._escape(cp.remote_url)}" style="width: 100%;">Buka Playlist</button>`
+            : `<button type="button" class="btn btn-accent btn-sm btn-download-cloud-pl" data-url="${this._escape(cp.remote_url)}" data-title="${this._escape(cp.title)}" style="width: 100%;">Download ke Lokal</button>`;
+
+          const coverHtml = cp.cover_url
+            ? `<img src="${cp.cover_url}" alt="${this._escape(cp.title)}" class="card-cover-img" onerror="this.outerHTML='<div class=\\'card-cover-fallback\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><polygon points=\\'12 2 2 7 12 12 22 7 12 2\\'></polygon><polyline points=\\'2 17 12 22 22 17\\'></polyline><polyline points=\\'2 12 12 17 22 12\\'></polyline></svg></div>'">`
+            : `
+              <div class="card-cover-fallback">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+                </svg>
+              </div>
+            `;
+
+          return `
+            <div class="playlist-card" style="display: flex; flex-direction: column;">
+              <div class="card-cover-wrap">
+                ${coverHtml}
+                <div class="card-git-pill" style="text-transform: uppercase;">${this._escape(cp.provider || "Remote")}</div>
+              </div>
+              <div class="card-meta-info" style="flex: 1; display: flex; flex-direction: column;">
+                <h4 class="card-pl-title" title="${this._escape(cp.title)}">${this._escape(cp.title)}</h4>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin: 4px 0 8px 0;">
+                  <span class="card-pl-stats">${cp.track_count || 0} Lagu</span>
+                  ${statusBadge}
+                </div>
+                <div style="margin-top: auto; display: flex; gap: 6px;">
+                  ${actionBtn}
+                  <button type="button" class="btn btn-secondary btn-sm btn-delete-cloud-pl" data-remote="${this._escape(cp.remote_url)}" title="Hapus dari Cloud" style="padding: 6px 10px; color: var(--text-subtle);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+      // Wire buttons
+      gridCloud.querySelectorAll(".btn-open-local-pl").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const remoteUrl = btn.dataset.remote;
+          const matched = (MusicGitState.playlists || []).find((p) => p.remote_url === remoteUrl);
+          if (matched) {
+            this.openPlaylist(matched.folder_path);
+          }
+        });
+      });
+
+      gridCloud.querySelectorAll(".btn-download-cloud-pl").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const url = btn.dataset.url;
+          if (url) {
+            ViewController.switchView("view-downloader");
+            const urlInput = document.getElementById("input-playlist-url");
+            if (urlInput) {
+              urlInput.value = url;
+              urlInput.focus();
+            }
+          }
+        });
+      });
+
+      gridCloud.querySelectorAll(".btn-delete-cloud-pl").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const remoteUrl = btn.dataset.remote;
+          if (confirm("Hapus cadangan playlist ini dari cloud?")) {
+            await window.CloudSyncManager.deleteCloudPlaylist(remoteUrl);
+            this.renderCloudPlaylists();
+          }
+        });
+      });
+    } catch (err) {
+      gridCloud.innerHTML = `
+        <div class="sidebar-empty-state" style="grid-column: 1 / -1; padding: 40px; text-align: center;">
+          <p>Gagal memuat playlist dari cloud: ${this._escape(err.message)}</p>
+        </div>
+      `;
+    }
   }
 
   async refreshCurrentView() {
@@ -2783,6 +3047,41 @@ const I18N_DICTIONARY = {
     modal_sync_failed: "Gagal: {error}",
     modal_sync_btn_download_pre: "Download",
     modal_sync_btn_download_post: "Lagu Baru Saja",
+
+    // Cloud & Auth
+    account_topbar_title: "Kelola Akun & Cloud Sync",
+    account_guest_mode: "Mode Guest",
+    account_my_account: "Akun Saya",
+    lib_tab_local: "Playlist Lokal",
+    lib_tab_cloud: "Cadangan Cloud",
+    lib_cloud_backup_btn: "Backup Cloud",
+    lib_cloud_synced: "Tersinkron di Cloud",
+    lib_cloud_backing_up: "Mencadangkan ke Cloud...",
+    settings_cloud_title: "Akun & Sinkronisasi Cloud",
+    settings_cloud_desc: "Sinkronkan metadata playlist untuk pencadangan online lintas perangkat",
+    settings_cloud_status_label: "Status Akun:",
+    settings_cloud_status_guest: "Mode Guest (Lokal saja)",
+    settings_cloud_status_connected: "Terhubung:",
+    settings_cloud_btn_open_auth: "Kelola Akun",
+    auth_modal_title: "Akun & Cloud Sync",
+    auth_modal_subtitle: "Cadangkan & sinkronkan playlist ke cloud",
+    auth_pill_connected: "Akun Terhubung",
+    auth_btn_sync_all: "Cadangkan Semua Playlist Lokal ke Cloud",
+    auth_btn_logout: "Keluar dari Akun",
+    auth_logout_confirm: "Apakah Anda yakin ingin keluar dari akun?",
+    auth_logout_success: "Berhasil keluar dari akun.",
+    auth_btn_google: "Lanjutkan dengan Google",
+    auth_or_email: "atau gunakan email",
+    auth_tab_signin: "Masuk",
+    auth_tab_signup: "Daftar Akun Baru",
+    auth_email_label: "Alamat Email",
+    auth_email_placeholder: "nama@email.com",
+    auth_password_label: "Password",
+    auth_password_placeholder: "Minimal 6 karakter",
+    auth_btn_submit_signin: "Masuk",
+    auth_btn_submit_signup: "Daftar Akun Baru",
+    auth_guest_note_title: "Mode Guest:",
+    auth_guest_note_desc: "Akun ini opsional. Jika tidak login, Anda tetap dapat mengunduh dan memutar lagu seperti biasa secara offline.",
   },
   en: {
     nav_menu_main: "MAIN MENU",
@@ -3025,6 +3324,41 @@ const I18N_DICTIONARY = {
     modal_sync_failed: "Failed: {error}",
     modal_sync_btn_download_pre: "Download",
     modal_sync_btn_download_post: "New Songs Only",
+
+    // Cloud & Auth
+    account_topbar_title: "Manage Account & Cloud Sync",
+    account_guest_mode: "Guest Mode",
+    account_my_account: "My Account",
+    lib_tab_local: "Local Playlists",
+    lib_tab_cloud: "Cloud Backups",
+    lib_cloud_backup_btn: "Backup Cloud",
+    lib_cloud_synced: "Synced to Cloud",
+    lib_cloud_backing_up: "Backing up to Cloud...",
+    settings_cloud_title: "Cloud Account & Synchronization",
+    settings_cloud_desc: "Sync playlist metadata for online multi-device backup",
+    settings_cloud_status_label: "Account Status:",
+    settings_cloud_status_guest: "Guest Mode (Local only)",
+    settings_cloud_status_connected: "Connected:",
+    settings_cloud_btn_open_auth: "Manage Account",
+    auth_modal_title: "Account & Cloud Sync",
+    auth_modal_subtitle: "Backup & sync playlists to cloud",
+    auth_pill_connected: "Account Connected",
+    auth_btn_sync_all: "Backup All Local Playlists to Cloud",
+    auth_btn_logout: "Sign Out",
+    auth_logout_confirm: "Are you sure you want to sign out?",
+    auth_logout_success: "Signed out successfully.",
+    auth_btn_google: "Continue with Google",
+    auth_or_email: "or continue with email",
+    auth_tab_signin: "Sign In",
+    auth_tab_signup: "Create Account",
+    auth_email_label: "Email Address",
+    auth_email_placeholder: "name@email.com",
+    auth_password_label: "Password",
+    auth_password_placeholder: "At least 6 characters",
+    auth_btn_submit_signin: "Sign In",
+    auth_btn_submit_signup: "Create Account",
+    auth_guest_note_title: "Guest Mode:",
+    auth_guest_note_desc: "An account is optional. If not signed in, you can still download and play songs offline as usual.",
   }
 };
 
@@ -3120,6 +3454,17 @@ const I18nManager = {
       const barArtist = document.getElementById("player-bar-artist");
       if (barTitle && dict.player_default_title) barTitle.textContent = dict.player_default_title;
       if (barArtist && dict.player_default_artist) barArtist.textContent = dict.player_default_artist;
+    }
+
+    // 9. Update Auth and Cloud Sync components
+    if (window.AuthUIController) {
+      window.AuthUIController.updateUI();
+    }
+    if (window.LibraryManagerEngine && typeof window.LibraryManagerEngine.renderCloudPlaylists === "function") {
+      const tabCloud = document.getElementById("tab-lib-cloud");
+      if (tabCloud && tabCloud.classList.contains("active")) {
+        window.LibraryManagerEngine.renderCloudPlaylists();
+      }
     }
   }
 };
@@ -3705,7 +4050,7 @@ window.syncDownloaderSettingsFromConfig = syncDownloaderSettingsFromConfig;
 // Global Handler for Android & Browser System Back Navigation
 window.handleAppBack = function () {
   // 1. Close any visible modal dialogs
-  const openModals = document.querySelectorAll(".modal:not(.hidden)");
+  const openModals = document.querySelectorAll(".modal:not(.hidden), .modal-overlay:not(.hidden)");
   if (openModals && openModals.length > 0) {
     openModals.forEach((m) => m.classList.add("hidden"));
     return true;
@@ -3752,6 +4097,364 @@ window.handleAppBack = function () {
 };
 
 // =============================================================================
+// =============================================================================
+// 7. SUPABASE AUTH & CLOUD SYNC UI CONTROLLER
+// =============================================================================
+const AuthUIController = {
+  activeTab: "signin",
+
+  init() {
+    this.modal = document.getElementById("modal-auth");
+    this.loggedInView = document.getElementById("auth-logged-in-view");
+    this.guestView = document.getElementById("auth-guest-view");
+    this.emailInput = document.getElementById("auth-input-email");
+    this.passwordInput = document.getElementById("auth-input-password");
+    this.alertMsg = document.getElementById("auth-alert-msg");
+    this.submitBtn = document.getElementById("btn-auth-submit");
+    this.submitLabel = document.getElementById("btn-auth-submit-label");
+    this.tabSignIn = document.getElementById("tab-btn-signin");
+    this.tabSignUp = document.getElementById("tab-btn-signup");
+
+    this._initListeners();
+    this.updateUI();
+
+    if (window.CloudSyncManager) {
+      window.CloudSyncManager.onAuthStateChanged(() => {
+        this.updateUI();
+        if (window.LibraryManagerEngine) {
+          window.LibraryManagerEngine.updateCloudBadges();
+        }
+      });
+    }
+  },
+
+  _initListeners() {
+    const openAuth = () => this.openModal();
+    const btnTopbar = document.getElementById("btn-topbar-account");
+    if (btnTopbar) btnTopbar.addEventListener("click", openAuth);
+
+    const btnSettingsAuth = document.getElementById("btn-settings-open-auth");
+    if (btnSettingsAuth) btnSettingsAuth.addEventListener("click", openAuth);
+
+    const btnClose = document.getElementById("btn-close-modal-auth");
+    if (btnClose) btnClose.addEventListener("click", () => this.closeModal());
+
+    if (this.modal) {
+      this.modal.addEventListener("click", (e) => {
+        if (e.target === this.modal) this.closeModal();
+      });
+    }
+
+    if (this.tabSignIn) {
+      this.tabSignIn.addEventListener("click", () => this.switchTab("signin"));
+    }
+    if (this.tabSignUp) {
+      this.tabSignUp.addEventListener("click", () => this.switchTab("signup"));
+    }
+
+    const btnGoogle = document.getElementById("btn-auth-google");
+    if (btnGoogle) {
+      btnGoogle.addEventListener("click", () => {
+        try {
+          if (!window.CloudSyncManager || !window.CloudSyncManager.isConfigured()) {
+            this._showAlert("Supabase belum dikonfigurasi.", true);
+            return;
+          }
+          window.CloudSyncManager.signInWithGoogle();
+        } catch (err) {
+          this._showAlert(err.message || "Gagal membuka login Google.", true);
+        }
+      });
+    }
+
+    const form = document.getElementById("form-supabase-auth");
+    if (form) {
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.handleSubmit();
+      });
+    }
+
+    const btnLogout = document.getElementById("btn-auth-logout");
+    if (btnLogout) {
+      btnLogout.addEventListener("click", async () => {
+        const isEn = (window.I18nManager && window.I18nManager.currentLang === "en");
+        const confirmMsg = isEn ? "Are you sure you want to sign out?" : "Apakah Anda yakin ingin keluar dari akun?";
+        if (confirm(confirmMsg)) {
+          await window.CloudSyncManager.signOut();
+          this.closeModal();
+          alert(isEn ? "Signed out successfully." : "Berhasil keluar dari akun.");
+        }
+      });
+    }
+
+    const btnSyncAll = document.getElementById("btn-sync-all-to-cloud");
+    if (btnSyncAll) {
+      btnSyncAll.addEventListener("click", async () => {
+        await this.syncAllLocalPlaylists();
+      });
+    }
+  },
+
+  switchTab(tab) {
+    this.activeTab = tab;
+    this._clearAlert();
+    const isEn = (window.I18nManager && window.I18nManager.currentLang === "en");
+
+    if (this.tabSignIn && this.tabSignUp) {
+      if (tab === "signin") {
+        this.tabSignIn.style.background = "var(--bg-card)";
+        this.tabSignIn.style.color = "var(--text-main)";
+        this.tabSignUp.style.background = "transparent";
+        this.tabSignUp.style.color = "var(--text-subtle)";
+        if (this.submitLabel) this.submitLabel.textContent = isEn ? "Sign In" : "Masuk";
+      } else {
+        this.tabSignUp.style.background = "var(--bg-card)";
+        this.tabSignUp.style.color = "var(--text-main)";
+        this.tabSignIn.style.background = "transparent";
+        this.tabSignIn.style.color = "var(--text-subtle)";
+        if (this.submitLabel) this.submitLabel.textContent = isEn ? "Create Account" : "Daftar Akun Baru";
+      }
+    }
+  },
+
+  openModal() {
+    if (!this.modal) return;
+    this._clearAlert();
+    this.updateUI();
+    this.modal.classList.remove("hidden");
+  },
+
+  closeModal() {
+    if (!this.modal) return;
+    this.modal.classList.add("hidden");
+    this._clearAlert();
+  },
+
+  _showAlert(msg, isError = true) {
+    if (!this.alertMsg) return;
+    this.alertMsg.textContent = msg;
+    this.alertMsg.style.background = isError ? "rgba(239, 68, 68, 0.15)" : "rgba(34, 197, 94, 0.15)";
+    this.alertMsg.style.color = isError ? "#ef4444" : "#22c55e";
+    this.alertMsg.style.border = `1px solid ${isError ? "rgba(239, 68, 68, 0.3)" : "rgba(34, 197, 94, 0.3)"}`;
+    this.alertMsg.classList.remove("hidden");
+  },
+
+  _clearAlert() {
+    if (!this.alertMsg) return;
+    this.alertMsg.textContent = "";
+    this.alertMsg.classList.add("hidden");
+  },
+
+  async handleSubmit() {
+    if (!window.CloudSyncManager) return;
+
+    if (!window.CloudSyncManager.isConfigured()) {
+      this._showAlert("Supabase URL dan Anon Key belum diatur. Silakan masukkan di menu Pengaturan.", true);
+      return;
+    }
+
+    const email = this.emailInput ? this.emailInput.value.trim() : "";
+    const password = this.passwordInput ? this.passwordInput.value : "";
+
+    if (!email || !password) {
+      this._showAlert("Harap isi email dan password.", true);
+      return;
+    }
+
+    if (password.length < 6) {
+      this._showAlert("Password minimal 6 karakter.", true);
+      return;
+    }
+
+    if (this.submitBtn) this.submitBtn.disabled = true;
+    if (this.submitLabel) this.submitLabel.textContent = "Memproses...";
+
+    try {
+      if (this.activeTab === "signin") {
+        await window.CloudSyncManager.signIn(email, password);
+        this._showAlert("Berhasil masuk!", false);
+        setTimeout(() => {
+          this.closeModal();
+          if (this.emailInput) this.emailInput.value = "";
+          if (this.passwordInput) this.passwordInput.value = "";
+        }, 800);
+      } else {
+        await window.CloudSyncManager.signUp(email, password);
+        if (window.CloudSyncManager.isLoggedIn()) {
+          this._showAlert("Pendaftaran berhasil!", false);
+          setTimeout(() => this.closeModal(), 800);
+        } else {
+          this._showAlert("Pendaftaran berhasil! Silakan cek email Anda untuk konfirmasi (jika verifikasi email aktif di Supabase).", false);
+        }
+      }
+    } catch (err) {
+      this._showAlert(err.message || "Terjadi kesalahan autentikasi.", true);
+    } finally {
+      if (this.submitBtn) this.submitBtn.disabled = false;
+      if (this.submitLabel) this.submitLabel.textContent = this.activeTab === "signin" ? "Masuk" : "Daftar Akun Baru";
+    }
+  },
+
+  async syncAllLocalPlaylists() {
+    if (!window.CloudSyncManager || !window.CloudSyncManager.isLoggedIn()) return;
+
+    const isEn = (window.I18nManager && window.I18nManager.currentLang === "en");
+    const playlists = MusicGitState.playlists || [];
+    const withRemote = playlists.filter((p) => !!p.remote_url);
+
+    if (withRemote.length === 0) {
+      alert(isEn ? "No local playlists have a remote link to backup. Please link a remote URL to your playlist first." : "Tidak ada playlist lokal yang memiliki tautan remote untuk dicadangkan. Silakan tautkan remote pada playlist terlebih dahulu.");
+      return;
+    }
+
+    const btn = document.getElementById("btn-sync-all-to-cloud");
+    const label = document.getElementById("sync-all-label");
+    const icon = document.getElementById("sync-all-icon");
+    const progressBox = document.getElementById("sync-cloud-progress-box");
+    const statusText = document.getElementById("sync-cloud-status-text");
+    const percentText = document.getElementById("sync-cloud-percent-text");
+    const progressBar = document.getElementById("sync-cloud-progress-bar");
+    const subStatus = document.getElementById("sync-cloud-sub-status");
+
+    // UI Loading state
+    if (btn) btn.disabled = true;
+    if (label) label.textContent = isEn ? "Backing up to Cloud..." : "Mencadangkan ke Cloud...";
+    if (icon) {
+      icon.innerHTML = `<path d="M21 12a9 9 0 1 1-6.219-8.56"></path>`;
+      icon.classList.add("spin-icon-update");
+    }
+    if (progressBox) progressBox.classList.remove("hidden");
+    if (progressBar) progressBar.style.width = "0%";
+    if (percentText) percentText.textContent = "0%";
+    if (statusText) statusText.textContent = isEn ? "Connecting to Supabase..." : "Menghubungkan ke Supabase...";
+
+    let successCount = 0;
+    const total = withRemote.length;
+
+    for (let i = 0; i < total; i++) {
+      const pl = withRemote[i];
+      const percent = Math.round((i / total) * 100);
+
+      if (statusText) statusText.textContent = `${isEn ? "Backing up: " : "Mencadangkan: "}${pl.name}`;
+      if (percentText) percentText.textContent = `${percent}%`;
+      if (progressBar) progressBar.style.width = `${percent}%`;
+      if (subStatus) subStatus.textContent = isEn ? `${i} of ${total} playlists processed` : `${i} dari ${total} playlist diproses`;
+
+      try {
+        await window.CloudSyncManager.uploadPlaylist({
+          title: pl.name,
+          remote_url: pl.remote_url,
+          provider: pl.provider || "youtube",
+          cover_url: pl.cover_url || null,
+          track_count: pl.track_count || 0,
+          tracks: [],
+        });
+        successCount++;
+      } catch (e) {
+        console.warn("Sync failed for", pl.name, e);
+      }
+
+      // Smooth visual progression tick
+      await new Promise((r) => setTimeout(r, 220));
+    }
+
+    // Complete state
+    if (progressBar) progressBar.style.width = "100%";
+    if (percentText) percentText.textContent = "100%";
+    if (subStatus) subStatus.textContent = isEn ? `${successCount} of ${total} playlists backed up` : `${successCount} dari ${total} playlist berhasil dicadangkan`;
+    if (statusText) {
+      statusText.textContent = successCount === total
+        ? (isEn ? `Done! All (${total}) playlists backed up.` : `Selesai! Semua (${total}) playlist berhasil dicadangkan.`)
+        : (isEn ? `Done! ${successCount} of ${total} playlists backed up.` : `Selesai! ${successCount} dari ${total} playlist berhasil.`);
+    }
+
+    if (icon) {
+      icon.classList.remove("spin-icon-update");
+      icon.innerHTML = `<polyline points="20 6 9 17 4 12"></polyline>`;
+    }
+    if (label) label.textContent = isEn ? "Backup Completed!" : "Pencadangan Berhasil!";
+
+    if (window.LibraryManagerEngine) {
+      window.LibraryManagerEngine.updateCloudBadges();
+      if (typeof window.LibraryManagerEngine.renderCloudPlaylists === "function") {
+        window.LibraryManagerEngine.renderCloudPlaylists();
+      }
+    }
+
+    setTimeout(() => {
+      if (btn) btn.disabled = false;
+      if (label) label.textContent = isEn ? "Backup All Local Playlists to Cloud" : "Cadangkan Semua Playlist Lokal ke Cloud";
+      if (icon) {
+        icon.innerHTML = `
+          <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+          <polyline points="12 13 12 7 9 10"></polyline>
+          <polyline points="12 7 15 10"></polyline>
+        `;
+      }
+      setTimeout(() => {
+        if (progressBox) progressBox.classList.add("hidden");
+      }, 4000);
+    }, 2500);
+  },
+
+  updateUI() {
+    const mgr = window.CloudSyncManager;
+    const isLogged = mgr && mgr.isLoggedIn();
+    const email = mgr ? mgr.getUserEmail() : null;
+    const displayName = mgr ? mgr.getUserDisplayName() : null;
+    const avatarUrl = mgr ? mgr.getUserAvatar() : null;
+    const isEn = (window.I18nManager && window.I18nManager.currentLang === "en");
+
+    const dot = document.getElementById("account-status-dot");
+    const userLabel = document.getElementById("account-user-label");
+    if (dot) dot.classList.toggle("logged-in", isLogged);
+    if (userLabel) {
+      if (isLogged) {
+        userLabel.textContent = displayName || (email ? email.split("@")[0] : (isEn ? "My Account" : "Akun Saya"));
+      } else {
+        userLabel.textContent = isEn ? "Guest Mode" : "Mode Guest";
+      }
+    }
+
+    if (this.loggedInView && this.guestView) {
+      this.loggedInView.classList.toggle("hidden", !isLogged);
+      this.guestView.classList.toggle("hidden", isLogged);
+    }
+
+    const profileName = document.getElementById("auth-profile-name");
+    if (profileName) {
+      profileName.textContent = displayName || (email ? email.split("@")[0] : (isEn ? "User" : "Pengguna"));
+    }
+
+    const profileEmail = document.getElementById("auth-profile-email");
+    if (profileEmail) profileEmail.textContent = email || "";
+
+    const avatarLetter = document.getElementById("auth-avatar-letter");
+    if (avatarLetter) {
+      if (avatarUrl) {
+        avatarLetter.innerHTML = `<img src="${avatarUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        avatarLetter.style.background = "transparent";
+      } else if (displayName || email) {
+        const letter = (displayName || email).charAt(0).toUpperCase();
+        avatarLetter.textContent = letter;
+        avatarLetter.style.background = "var(--accent-primary)";
+      }
+    }
+
+    const statusText = document.getElementById("settings-auth-status-text");
+    if (statusText) {
+      if (isLogged) {
+        statusText.textContent = `${isEn ? "Connected:" : "Terhubung:"} ${displayName || email} (${email || ""})`;
+      } else {
+        statusText.textContent = isEn ? "Guest Mode (Local only)" : "Mode Guest (Lokal saja)";
+      }
+    }
+  },
+};
+
+window.AuthUIController = AuthUIController;
+
 // BOOTSTRAP APPLICATION
 // =============================================================================
 let LyricsEngine, LibraryManagerEngine, DownloaderEngine, TagManager;
@@ -3765,6 +4468,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   DownloaderEngine = new DownloaderSyncEngine();
   TagManager = new TagManagerEngine();
   ViewController.init();
+  AuthUIController.init();
 
   // 2. Load Config from Backend and LocalStorage (Dual Persistence)
   try {
