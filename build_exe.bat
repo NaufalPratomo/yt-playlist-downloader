@@ -48,6 +48,7 @@ set "ISCC_EXE="
 if exist "C:\Program Files (x86)\Inno Setup 6\iscc.exe" set "ISCC_EXE=C:\Program Files (x86)\Inno Setup 6\iscc.exe"
 if exist "C:\Program Files\Inno Setup 6\iscc.exe" set "ISCC_EXE=C:\Program Files\Inno Setup 6\iscc.exe"
 if exist "%LocalAppData%\Programs\Inno Setup 6\iscc.exe" set "ISCC_EXE=%LocalAppData%\Programs\Inno Setup 6\iscc.exe"
+if exist "%USERPROFILE%\AppData\Local\Programs\Inno Setup 6\iscc.exe" set "ISCC_EXE=%USERPROFILE%\AppData\Local\Programs\Inno Setup 6\iscc.exe"
 
 if "%ISCC_EXE%"=="" goto NO_INNO
 echo    Inno Setup ditemukan: %ISCC_EXE%
